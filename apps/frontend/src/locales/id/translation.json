@@ -1,0 +1,62 @@
+{
+  "dashboard": {
+    "title": "Dasbor",
+    "welcome": "Selamat Datang di Dasbor"
+  },
+  "employee": {
+    "title": "Karyawan",
+    "list": "Daftar Karyawan",
+    "add": "Tambah Karyawan",
+    "edit": "Edit Karyawan",
+    "delete": "Hapus Karyawan",
+    "confirm_delete": "Apakah Anda yakin ingin menghapus karyawan ini?",
+    "name": "Nama",
+    "email": "Email",
+    "position": "Jabatan",
+    "department": "Departemen",
+    "join_date": "Tanggal Bergabung"
+  },
+  "attendance": {
+    "title": "Absensi",
+    "clock_in": "Absen Masuk",
+    "clock_out": "Absen Keluar",
+    "date": "Tanggal",
+    "status": "Status",
+    "work_duration": "Durasi Kerja"
+  },
+  "leave": {
+    "title": "Cuti",
+    "request": "Ajukan Cuti",
+    "approve": "Setujui",
+    "reject": "Tolak"
+  },
+  "payroll": {
+    "title": "Penggajian",
+    "salary": "Gaji",
+    "allowances": "Tunjangan",
+    "deductions": "Potongan",
+    "net_salary": "Gaji Bersih"
+  },
+  "auth": {
+    "login": "Masuk",
+    "logout": "Keluar",
+    "register": "Daftar",
+    "email": "Email",
+    "password": "Kata Sandi",
+    "forgot_password": "Lupa Kata Sandi?",
+    "remember_me": "Ingat Saya"
+  },
+  "common": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "actions": "Tindakan",
+    "search": "Cari",
+    "filter": "Filter",
+    "reset": "Atur Ulang",
+    "yes": "Ya",
+    "no": "Tidak",
+    "close": "Tutup",
+    "loading": "Memuat...",
+    "error": "Terjadi kesalahan"
+  }
+}

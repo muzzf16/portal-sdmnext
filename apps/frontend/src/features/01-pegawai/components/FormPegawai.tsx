@@ -1,0 +1,252 @@
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Pegawai } from '../types';
+import { createPegawai } from '../api/employeeApi';
+import { isValidEmail, isValidName, sanitizeText } from '../../../shared/utils/validation';
+import clsx from 'clsx';
+
+const FormPegawai: React.FC = () => {
+  const { register, handleSubmit, formState: { errors }, setError } = useForm<Omit<Pegawai, 'id'>>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (data: Omit<Pegawai, 'id'>) => {
+    // Perform client-side validation
+    if (!isValidName(data.name)) {
+      setError('name', {
+        type: 'manual',
+        message: 'Nama tidak valid'
+      });
+      return;
+    }
+    
+    if (!isValidEmail(data.email)) {
+      setError('email', {
+        type: 'manual',
+        message: 'Email tidak valid'
+      });
+      return;
+    }
+    
+    // Sanitize text inputs
+    const sanitizedData = {
+      ...data,
+      name: sanitizeText(data.name),
+      email: data.email, // Email should already be validated, no need to sanitize
+      position: sanitizeText(data.position),
+      department: sanitizeText(data.department),
+    };
+
+    setIsSubmitting(true);
+    try {
+      await createPegawai(sanitizedData);
+      // Handle success (e.g., close modal, refresh list)
+      alert('Pegawai berhasil ditambahkan!'); // Temporary success message
+    } catch (error) {
+      // Handle error
+      alert('Gagal menambahkan pegawai.'); // Temporary error message
+      console.error('Error creating pegawai:', error);
+    }
+    setIsSubmitting(false);
+  };
+
+  const religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
+  const maritalStatuses = ['Lajang', 'Menikah', 'Duda', 'Janda'];
+
+  return (
+    <div className="p-6 bg-white dark:bg-neutral-800 rounded-lg max-h-[70vh] overflow-y-auto">
+      <h2 className="text-xl md:text-2xl font-bold text-primary-800 dark:text-primary-200 mb-6 text-center font-serif">Tambah Pegawai Baru</h2>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Lengkap</label>
+            <input
+              id="name"
+              {...register('name', { required: 'Nama wajib diisi' })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.name && <span className="text-red-500 text-sm dark:text-red-400">{errors.name.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="nip" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIP</label>
+            <input
+              id="nip"
+              {...register('nip', { required: 'NIP wajib diisi' })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.nip && <span className="text-red-500 text-sm dark:text-red-400">{errors.nip.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+            <input
+              id="email"
+              type="email"
+              {...register('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/, message: 'Format email tidak valid' } })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.email && <span className="text-red-500 text-sm dark:text-red-400">{errors.email.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
+            <input
+              id="position"
+              {...register('position', { required: 'Posisi wajib diisi' })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.position && <span className="text-red-500 text-sm dark:text-red-400">{errors.position.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departemen</label>
+            <input
+              id="department"
+              {...register('department', { required: 'Departemen wajib diisi' })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.department && <span className="text-red-500 text-sm dark:text-red-400">{errors.department.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="joinDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Bergabung</label>
+            <input
+              id="joinDate"
+              type="date"
+              {...register('joinDate', { required: 'Tanggal bergabung wajib diisi' })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.joinDate && <span className="text-red-500 text-sm dark:text-red-400">{errors.joinDate.message}</span>}
+          </div>
+          <div className="md:col-span-2">
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
+            <textarea
+              id="address"
+              {...register('address')}
+              rows={3}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            ></textarea>
+          </div>
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nomor Telepon</label>
+            <input
+              id="phone"
+              type="tel"
+              {...register('phone')}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+          </div>
+          <div>
+            <label htmlFor="pob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tempat Lahir</label>
+            <input
+              id="pob"
+              {...register('pob')}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+          </div>
+          <div>
+            <label htmlFor="dob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Lahir</label>
+            <input
+              id="dob"
+              type="date"
+              {...register('dob')}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+          </div>
+          <div>
+            <label htmlFor="religion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agama</label>
+            <select
+              id="religion"
+              {...register('religion')}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            >
+              <option value="">Pilih Agama</option>
+              {religions.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Perkawinan</label>
+            <select
+              id="maritalStatus"
+              {...register('maritalStatus')}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            >
+              <option value="">Pilih Status</option>
+              {maritalStatuses.map(ms => <option key={ms} value={ms}>{ms}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="numberOfChildren" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah Anak</label>
+            <input
+              id="numberOfChildren"
+              type="number"
+              {...register('numberOfChildren', { valueAsNumber: true, min: { value: 0, message: 'Jumlah anak tidak boleh negatif' } })}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            />
+            {errors.numberOfChildren && <span className="text-red-500 text-sm dark:text-red-400">{errors.numberOfChildren.message}</span>}
+          </div>
+        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={clsx(
+            "w-full px-4 py-2 font-bold text-white rounded-md transition-colors duration-200",
+            "bg-primary-700 hover:bg-primary-800 disabled:bg-gray-400",
+            "dark:bg-primary-600 dark:hover:bg-primary-700 dark:disabled:bg-neutral-600"
+          )}
+        >
+          {isSubmitting ? 'Mengirim...' : 'Kirim'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default FormPegawai;

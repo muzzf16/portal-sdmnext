@@ -1,0 +1,57 @@
+
+import CutiService from './cuti.service';
+import { Request, Response, NextFunction } from 'express';
+
+class CutiController {
+  static async getAllPermintaanCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const leaveRequests = await CutiService.getAllPermintaanCuti();
+      res.status(200).json(leaveRequests);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getPermintaanCutiById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const leaveRequest = await CutiService.getPermintaanCutiById(id);
+      res.status(200).json(leaveRequest);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitPermintaanCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const leaveRequestData = req.body;
+      const newLeaveRequest = await CutiService.submitPermintaanCuti(leaveRequestData);
+      res.status(201).json(newLeaveRequest);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateStatusCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { status, rejectionReason } = req.body;
+      const result = await CutiService.updateStatusCuti(id, status, rejectionReason);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deletePermintaanCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const result = await CutiService.deletePermintaanCuti(id);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+export default CutiController;
