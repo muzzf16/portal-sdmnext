@@ -39,9 +39,28 @@ export const getPegawaiById = async (id: string) => {
   }
 };
 
-export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>) => {
+export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>, photo?: File) => {
   try {
-    const response = await api.post<Pegawai>(API_BASE, pegawai);
+    const formData = new FormData();
+    
+    // Append employee data to form data
+    Object.entries(pegawai).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
+    });
+    
+    // Append photo if provided
+    if (photo) {
+      formData.append('photo', photo);
+    }
+    
+    const response = await api.post<Pegawai>(API_BASE, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
     // Handle both standardized response format and raw response
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
       // Response is in standardized format
@@ -56,9 +75,28 @@ export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>) => {
   }
 };
 
-export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>) => {
+export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>, photo?: File) => {
   try {
-    const response = await api.put<Pegawai>(`${API_BASE}/${id}`, pegawai);
+    const formData = new FormData();
+    
+    // Append employee data to form data
+    Object.entries(pegawai).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
+    });
+    
+    // Append photo if provided
+    if (photo) {
+      formData.append('photo', photo);
+    }
+    
+    const response = await api.put<Pegawai>(`${API_BASE}/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
     // Handle both standardized response format and raw response
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
       // Response is in standardized format

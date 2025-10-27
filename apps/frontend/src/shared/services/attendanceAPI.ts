@@ -10,10 +10,16 @@ export const getAttendance = () => attendanceApi.list();
 export const getTodayAttendanceCount = async () => {
   try {
     const response = await attendanceApi.list();
+    console.log('Attendance API response:', response); // Debug log
+    
+    // Handle both old and new response formats
+    const attendanceData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+    console.log('Attendance data:', attendanceData); // Debug log
+    
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const uniqueEmployeesToday = new Set<number>();
 
-    response.data.forEach(record => {
+    attendanceData.forEach(record => {
       // Check for both English and Indonesian property names for compatibility
       const recordDate = record.date || record.tanggal;
       const clockIn = record.clock_in || record.jam_masuk;

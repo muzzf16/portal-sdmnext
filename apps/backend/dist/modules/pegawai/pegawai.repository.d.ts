@@ -8,5 +8,13 @@ export declare const PegawaiRepository: {
     updatePayrollInfo(id: string, payrollInfo: any): Promise<{
         message: string;
     }>;
+    getGenderDistribution(): Promise<{
+        name: string;
+        value: number;
+    }[]>;
+    getEducationDistribution(): Promise<{
+        name: string;
+        employees: number;
+    }[]>;
 };
 //# sourceMappingURL=pegawai.repository.d.ts.map

@@ -1,13 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { Pegawai } from '../types';
 import { createPegawai } from '../api/employeeApi';
 import { isValidEmail, isValidName, sanitizeText } from '../../../shared/utils/validation';
 import clsx from 'clsx';
+import { X } from 'lucide-react';
 
 const FormPegawai: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, setError } = useForm<Omit<Pegawai, 'id'>>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedPhoto(file);
+      
+      // Create a preview URL for the selected image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setSelectedPhoto(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const onSubmit = async (data: Omit<Pegawai, 'id'>) => {
     // Perform client-side validation
@@ -38,7 +64,7 @@ const FormPegawai: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await createPegawai(sanitizedData);
+      await createPegawai(sanitizedData, selectedPhoto || undefined);
       // Handle success (e.g., close modal, refresh list)
       alert('Pegawai berhasil ditambahkan!'); // Temporary success message
     } catch (error) {
@@ -232,7 +258,74 @@ const FormPegawai: React.FC = () => {
             />
             {errors.numberOfChildren && <span className="text-red-500 text-sm dark:text-red-400">{errors.numberOfChildren.message}</span>}
           </div>
+          <div>
+            <label htmlFor="jenis_kelamin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis Kelamin</label>
+            <select
+              id="jenis_kelamin"
+              {...register('jenis_kelamin')}
+              className={clsx(
+                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
+              )}
+            >
+              <option value="">Pilih Jenis Kelamin</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
         </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto Profil</label>
+          <div className="flex items-center space-x-4">
+            {previewUrl ? (
+              <div className="relative">
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
+                />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-gray-200 border-2 border-dashed border-gray-300 flex items-center justify-center">
+                <span className="text-gray-500 text-xs">Foto</span>
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                id="photo"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={clsx(
+                  "w-full px-4 py-2 font-medium rounded-md transition-colors",
+                  "bg-primary-100 text-primary-700 hover:bg-primary-200",
+                  "dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-800/50"
+                )}
+              >
+                {previewUrl ? 'Ganti Foto' : 'Pilih Foto'}
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Format: JPG, PNG. Ukuran maks: 2MB
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <button
           type="submit"
           disabled={isSubmitting}

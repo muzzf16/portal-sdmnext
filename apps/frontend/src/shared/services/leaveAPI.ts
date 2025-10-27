@@ -10,7 +10,15 @@ export const getLeaveRequests = () => leaveApi.list();
 export const getPendingLeaveRequestsCount = async () => {
   try {
     const response = await leaveApi.list();
-    return response.data.filter(request => request.status_pengajuan === 'menunggu').length;
+    console.log('Leave API response:', response); // Debug log
+    
+    // Handle both old and new response formats
+    const leaveData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+    console.log('Leave data:', leaveData); // Debug log
+    
+    return leaveData.filter(request => 
+      request.status_pengajuan === 'menunggu' || request.status === 'menunggu'
+    ).length;
   } catch (error) {
     console.error('Error in getPendingLeaveRequestsCount:', error);
     throw error;

@@ -1,41 +1,53 @@
-// src/shared/components/ui/Toast.tsx
 import React from 'react';
 import clsx from 'clsx';
-import { CheckCircle, XCircle, Info, X } from 'lucide-react';
+import { Info, CheckCircle, XCircle } from 'lucide-react';
 
-export interface ToastMessage {
+interface ToastProps {
   id: number;
   message: string;
   type: 'info' | 'success' | 'error';
+  onClose?: (id: number) => void;
 }
 
-const Toast: React.FC<ToastMessage> = ({ id, message, type }) => {
-  const baseClasses = "flex items-center w-full max-w-xs p-4 space-x-4 rtl:space-x-reverse divide-x rtl:divide-x-reverse rounded-lg shadow text-gray-400 bg-gray-800 divide-gray-700";
-  
-  const icons = {
-    success: (
-      <CheckCircle className="w-5 h-5 text-green-400" aria-hidden="true" />
-    ),
-    error: (
-      <XCircle className="w-5 h-5 text-red-400" aria-hidden="true" />
-    ),
-    info: (
-      <Info className="w-5 h-5 text-blue-400" aria-hidden="true" />
-    )
+export const Toast: React.FC<ToastProps> = ({
+  id,
+  message,
+  type,
+  onClose,
+}) => {
+  const typeStyles = {
+    info: 'bg-blue-500',
+    success: 'bg-green-500',
+    error: 'bg-red-500',
   };
 
+  const Icon = {
+    info: Info,
+    success: CheckCircle,
+    error: XCircle,
+  }[type];
+
   return (
-    <div id={`toast-${id}`} className={clsx(baseClasses, "mb-2")} role="alert">
-      <div className="text-sm font-normal">{icons[type]}</div>
-      <div className="ps-4 text-sm font-normal">{message}</div>
-      <button 
-        className="pl-4 text-gray-400 hover:text-white"
-        aria-label="Close"
-      >
-        <X className="w-4 h-4" />
-      </button>
+    <div
+      className={clsx(
+        'flex items-center justify-between w-full max-w-xs p-4 text-white rounded-lg shadow-md mb-3',
+        typeStyles[type]
+      )}
+      role="alert"
+    >
+      <div className="flex items-center">
+        <Icon size={20} className="mr-2" />
+        <span className="text-sm font-medium">{message}</span>
+      </div>
+      {onClose && (
+        <button
+          onClick={() => onClose(id)}
+          className="ml-auto -mx-1.5 -my-1.5 bg-transparent text-white rounded-lg focus:ring-2 focus:ring-white p-1.5 hover:bg-opacity-20 inline-flex h-8 w-8"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+      )}
     </div>
   );
 };
-
-export default Toast;

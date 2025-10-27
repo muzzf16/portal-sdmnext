@@ -19,7 +19,7 @@ export default {
         'primary-600': '#2563eb',
         'primary-700': '#1d4ed8',
         'primary-800': '#1e3a8a', // primary-dark-blue
-        'primary-900': '#1e3a8a',
+        'primary-900': '#1a365d',
         
         // Secondary colors
         'secondary-50': '#fff7ed',
@@ -39,7 +39,7 @@ export default {
         'accent-200': '#fde68a',
         'accent-300': '#fcd34d',
         'accent-400': '#fbbf24',
-        'accent-500': '#FFD700', // accent-yellow
+        'accent-500': '#FDB813', // accent-yellow (egg yolk yellow)
         'accent-600': '#d97706',
         'accent-700': '#b45309',
         'accent-800': '#92400e',
@@ -90,6 +90,9 @@ export default {
         '48': '12rem',
         '56': '14rem',
         '64': '16rem',
+      },
+      boxShadow: {
+        'soft-shadow': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
       }
     },
   },

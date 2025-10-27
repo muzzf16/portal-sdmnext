@@ -12,6 +12,7 @@ export interface Pegawai {
   department: string;
   joinDate: string;
   avatarUrl: string;
+  jenis_kelamin: string; // Gender: 'L' for Laki-laki, 'P' for Perempuan
   leaveBalance: number;
   isActive: number;
   address: string;

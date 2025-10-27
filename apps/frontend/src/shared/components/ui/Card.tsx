@@ -1,4 +1,3 @@
-// src/shared/components/ui/Card.tsx
 import React from 'react';
 import clsx from 'clsx';
 
@@ -7,10 +6,10 @@ interface CardProps {
   className?: string;
 }
 
-const Card: React.FC<CardProps> = ({ children, className }) => (
-  <div className={clsx('bg-white shadow-card rounded-xl p-6 border border-gray-200', className)}>
-    {children}
-  </div>
-);
-
-export default Card;
+export const Card: React.FC<CardProps> = ({ children, className }) => {
+  return (
+    <div className={clsx('bg-white dark:bg-gray-800 rounded-lg shadow-md', className)}>
+      {children}
+    </div>
+  );
+};

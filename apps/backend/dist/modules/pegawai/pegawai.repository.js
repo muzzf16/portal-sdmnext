@@ -44,6 +44,7 @@ exports.PegawaiRepository = {
             department: data.department || 'N/A',
             joinDate: data.joinDate || new Date().toISOString().split('T')[0],
             avatarUrl: data.avatarUrl || '/avatars/default-avatar.jpg',
+            jenis_kelamin: data.jenis_kelamin || null,
             leaveBalance: data.leaveBalance ?? 18,
             isActive: data.hasOwnProperty('isActive') ? (data.isActive ? 1 : 0) : 1,
             address: data.address || '',
@@ -73,7 +74,8 @@ exports.PegawaiRepository = {
             workHistory: JSON.stringify(data.workHistory || []),
             trainingCertificates: JSON.stringify(data.trainingCertificates || []),
             payrollInfo: JSON.stringify(data.payrollInfo || {}),
-            isActive: data.hasOwnProperty('isActive') ? (data.isActive ? 1 : 0) : 1
+            isActive: data.hasOwnProperty('isActive') ? (data.isActive ? 1 : 0) : 1,
+            jenis_kelamin: data.jenis_kelamin
         };
         delete fieldsToUpdate.id;
         const setClause = Object.keys(fieldsToUpdate).map(key => `${key} = ?`).join(', ');
@@ -95,6 +97,49 @@ exports.PegawaiRepository = {
         if (result.changes === 0)
             throw new Error('Employee not found');
         return { message: 'Payroll info updated' };
+    },
+    async getGenderDistribution() {
+        const db = await (0, db_1.openDb)();
+        const rows = await db.all('SELECT jenis_kelamin FROM pegawai WHERE jenis_kelamin IS NOT NULL');
+        const genderCount = { 'L': 0, 'P': 0, 'Other': 0 };
+        rows.forEach(row => {
+            if (row.jenis_kelamin === 'L') {
+                genderCount['L']++;
+            }
+            else if (row.jenis_kelamin === 'P') {
+                genderCount['P']++;
+            }
+            else {
+                genderCount['Other']++;
+            }
+        });
+        return [
+            { name: 'Laki-laki', value: genderCount['L'] },
+            { name: 'Perempuan', value: genderCount['P'] },
+            ...(genderCount['Other'] > 0 ? [{ name: 'Lainnya', value: genderCount['Other'] }] : [])
+        ];
+    },
+    async getEducationDistribution() {
+        const db = await (0, db_1.openDb)();
+        const rows = await db.all('SELECT educationHistory FROM pegawai WHERE educationHistory IS NOT NULL AND educationHistory != \'[]\'');
+        const educationCount = {};
+        rows.forEach(row => {
+            if (row.educationHistory && row.educationHistory !== '[]') {
+                try {
+                    const educationHistory = JSON.parse(row.educationHistory);
+                    if (Array.isArray(educationHistory) && educationHistory.length > 0) {
+                        educationHistory.forEach(edu => {
+                            const level = edu.level || edu.jenjang_pendidikan || 'Tidak Diketahui';
+                            educationCount[level] = (educationCount[level] || 0) + 1;
+                        });
+                    }
+                }
+                catch (e) {
+                    console.error('Error parsing educationHistory:', e);
+                }
+            }
+        });
+        return Object.entries(educationCount).map(([name, employees]) => ({ name, employees }));
     }
 };
 //# sourceMappingURL=pegawai.repository.js.map

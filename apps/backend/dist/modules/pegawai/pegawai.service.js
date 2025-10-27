@@ -28,6 +28,9 @@ class PegawaiService {
     }
     static async createPegawai(name, email, pegawaiData) {
         try {
+            if (pegawaiData.jenis_kelamin && !['L', 'P'].includes(pegawaiData.jenis_kelamin)) {
+                throw new errors_1.AppError('Jenis kelamin must be L (Laki-laki) or P (Perempuan)', 400);
+            }
             const newPegawai = await pegawai_repository_1.PegawaiRepository.create({
                 ...pegawaiData,
                 name,
@@ -44,6 +47,9 @@ class PegawaiService {
     }
     static async updatePegawai(id, name, email, pegawaiData) {
         try {
+            if (pegawaiData.jenis_kelamin && !['L', 'P'].includes(pegawaiData.jenis_kelamin)) {
+                throw new errors_1.AppError('Jenis kelamin must be L (Laki-laki) or P (Perempuan)', 400);
+            }
             const updatedPegawai = await pegawai_repository_1.PegawaiRepository.update(id, {
                 ...pegawaiData,
                 name,
@@ -82,6 +88,22 @@ class PegawaiService {
                 throw new errors_1.AppError('Employee not found', 404);
             }
             throw new errors_1.AppError(`Error updating employee payroll info: ${error.message}`, 500);
+        }
+    }
+    static async getGenderDistribution() {
+        try {
+            return await pegawai_repository_1.PegawaiRepository.getGenderDistribution();
+        }
+        catch (error) {
+            throw new errors_1.AppError(`Error retrieving gender distribution: ${error.message}`, 500);
+        }
+    }
+    static async getEducationDistribution() {
+        try {
+            return await pegawai_repository_1.PegawaiRepository.getEducationDistribution();
+        }
+        catch (error) {
+            throw new errors_1.AppError(`Error retrieving education distribution: ${error.message}`, 500);
         }
     }
 }

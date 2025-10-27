@@ -50,6 +50,7 @@ export const initializeDb = async () => {
       department TEXT,
       joinDate TEXT,
       avatarUrl TEXT,
+      jenis_kelamin TEXT CHECK(jenis_kelamin IN ('L', 'P')),
       leaveBalance INTEGER,
       isActive INTEGER,
       address TEXT,

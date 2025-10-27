@@ -1,4 +1,3 @@
-// src/shared/components/ui/Alert.tsx
 import React from 'react';
 import clsx from 'clsx';
 import { X } from 'lucide-react';
@@ -11,46 +10,42 @@ interface AlertProps {
   className?: string;
 }
 
-const Alert: React.FC<AlertProps> = ({ children, variant = 'info', icon, onClose, className }) => {
-  const variantClasses = {
-    info: 'bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200',
-    success: 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-200',
-    warning: 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200',
-    danger: 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200',
-  };
-
-  const iconVariantClasses = {
-    info: 'text-blue-400',
-    success: 'text-green-400',
-    warning: 'text-yellow-400',
-    danger: 'text-red-400',
+export const Alert: React.FC<AlertProps> = ({
+  children,
+  variant = 'info',
+  icon,
+  onClose,
+  className,
+}) => {
+  const variantStyles = {
+    info: 'bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200',
+    success: 'bg-green-100 border-green-400 text-green-800 dark:bg-green-900 dark:border-green-700 dark:text-green-200',
+    warning: 'bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200',
+    danger: 'bg-red-100 border-red-400 text-red-800 dark:bg-red-900 dark:border-red-700 dark:text-red-200',
   };
 
   return (
-    <div className={clsx(
-      'rounded-lg p-4 flex items-start',
-      variantClasses[variant],
-      className
-    )}>
-      {icon && (
-        <div className={clsx('flex-shrink-0 mr-3', iconVariantClasses[variant])}>
-          {icon}
-        </div>
+    <div
+      className={clsx(
+        'p-4 rounded-md border flex items-center justify-between',
+        variantStyles[variant],
+        className
       )}
-      <div className="flex-1">
-        {children}
+      role="alert"
+    >
+      <div className="flex items-center">
+        {icon && <div className="mr-3 flex-shrink-0">{icon}</div>}
+        <div className="text-sm font-medium">{children}</div>
       </div>
       {onClose && (
         <button
           onClick={onClose}
-          className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          aria-label="Close"
+          className="ml-auto -mx-1.5 -my-1.5 bg-transparent text-current rounded-lg focus:ring-2 focus:ring-current p-1.5 hover:bg-opacity-20 inline-flex h-8 w-8 dark:hover:bg-opacity-30"
+          aria-label="Dismiss"
         >
-          <X size={18} />
+          <X size={20} />
         </button>
       )}
     </div>
   );
 };
-
-export default Alert;

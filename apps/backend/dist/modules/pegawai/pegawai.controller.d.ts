@@ -6,6 +6,9 @@ declare class PegawaiController {
     static updatePegawai(req: Request, res: Response, next: NextFunction): Promise<void>;
     static deletePegawai(req: Request, res: Response, next: NextFunction): Promise<void>;
     static updatePegawaiPayrollInfo(req: Request, res: Response, next: NextFunction): Promise<void>;
+    static getGenderDistribution(req: Request, res: Response, next: NextFunction): Promise<void>;
+    static getEducationDistribution(req: Request, res: Response, next: NextFunction): Promise<void>;
+    static uploadAvatar: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
 }
 export default PegawaiController;
 //# sourceMappingURL=pegawai.controller.d.ts.map

@@ -9,6 +9,7 @@ export interface Pegawai {
     department: string;
     joinDate: string;
     avatarUrl: string;
+    jenis_kelamin: string;
     leaveBalance: number;
     isActive: number;
     address: string;

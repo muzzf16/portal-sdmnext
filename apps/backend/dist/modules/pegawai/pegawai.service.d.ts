@@ -9,6 +9,14 @@ declare class PegawaiService {
     static updatePegawaiPayrollInfo(id: string, payrollInfo: any): Promise<{
         message: string;
     }>;
+    static getGenderDistribution(): Promise<{
+        name: string;
+        value: number;
+    }[]>;
+    static getEducationDistribution(): Promise<{
+        name: string;
+        employees: number;
+    }[]>;
 }
 export default PegawaiService;
 //# sourceMappingURL=pegawai.service.d.ts.map

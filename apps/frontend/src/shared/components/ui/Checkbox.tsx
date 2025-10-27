@@ -1,33 +1,35 @@
-// src/shared/components/ui/Checkbox.tsx
 import React from 'react';
 import clsx from 'clsx';
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  id: string;
   error?: string;
 }
 
-const Checkbox: React.FC<CheckboxProps> = ({ label, id, error, className, ...props }) => (
-  <div className="flex items-start">
-    <div className="flex items-center h-5">
+export const Checkbox: React.FC<CheckboxProps> = ({
+  label,
+  id,
+  error,
+  className,
+  ...props
+}) => {
+  return (
+    <div className="mb-4 flex items-center">
       <input
         id={id}
         type="checkbox"
-        {...props}
         className={clsx(
-          "h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500",
-          error ? "border-red-500" : "",
+          'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700',
+          error && 'border-red-500',
           className
         )}
+        {...props}
       />
-    </div>
-    <div className="ml-3 text-sm">
-      <label htmlFor={id} className="font-medium text-gray-700">
+      <label htmlFor={id} className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
         {label}
       </label>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
-  </div>
-);
-
-export default Checkbox;
+  );
+};

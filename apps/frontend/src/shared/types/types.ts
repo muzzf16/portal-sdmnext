@@ -28,6 +28,20 @@ export interface Pegawai {
   position: string;
   department: string;
   joinDate: string;
+  // Added for contract management
+  start_date?: string;   // English field name
+  end_date?: string;     // English field name
+  tanggal_masuk?: string; // Indonesian field name
+  tanggal_keluar?: string; // Indonesian field name
+  kontrak_berakhir?: string; // Indonesian field name for contract end
+  // Additional possible field names for compatibility
+  contractStartDate?: string;
+  contractEndDate?: string;
+  // Additional fields for charts and analytics
+  jenis_kelamin?: string; // Indonesian field name for gender ('L', 'P')
+  gender?: string;        // English field name for gender
+  pendidikan_terakhir?: string; // Indonesian field name for education
+  education?: string;     // English field name for education
 }
 
 /**

@@ -107,6 +107,7 @@ const AppRoutes: React.FC = () => {
           <DashboardLayout />
         </PrivateRoute>
       }>
+        <Route index element={<Navigate to="admin" replace />} />
         <Route path="admin" element={
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>

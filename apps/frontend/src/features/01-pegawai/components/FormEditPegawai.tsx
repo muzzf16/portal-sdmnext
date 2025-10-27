@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { Pegawai } from '../types';
 import { updatePegawai } from '../api/employeeApi';
 import { usePegawai } from '../hooks/usePegawai';
+import { X } from 'lucide-react';
 
 interface FormEditPegawaiProps {
   employeeId: string;
@@ -12,19 +13,45 @@ interface FormEditPegawaiProps {
 
 const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess, onCancel }) => {
   const { pegawai, loading, error } = usePegawai(employeeId);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Omit<Pegawai, 'id'>>();
+  const { register, handleSubmit, reset, formState: { errors }, watch } = useForm<Omit<Pegawai, 'id'>>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(pegawai?.avatarUrl || null);
 
   useEffect(() => {
     if (pegawai) {
       reset(pegawai); // Populate form with existing employee data
+      setPreviewUrl(pegawai.avatarUrl || null);
     }
   }, [pegawai, reset]);
+
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedPhoto(file);
+      
+      // Create a preview URL for the selected image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setSelectedPhoto(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const onSubmit = async (data: Omit<Pegawai, 'id'>) => {
     setIsSubmitting(true);
     try {
-      await updatePegawai(employeeId, data);
+      await updatePegawai(employeeId, data, selectedPhoto || undefined);
       alert('Pegawai berhasil diperbarui!');
       onSuccess();
     } catch (err) {
@@ -169,7 +196,66 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
             />
             {errors.numberOfChildren && <span className="text-red-500 text-sm">{errors.numberOfChildren.message}</span>}
           </div>
+          <div>
+            <label htmlFor="jenis_kelamin" className="block text-sm font-medium text-slate-700 mb-1">Jenis Kelamin</label>
+            <select
+              id="jenis_kelamin"
+              {...register('jenis_kelamin')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            >
+              <option value="">Pilih Jenis Kelamin</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
         </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Foto Profil</label>
+          <div className="flex items-center space-x-4">
+            {previewUrl ? (
+              <div className="relative">
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="w-20 h-20 rounded-full object-cover border-2 border-slate-300"
+                />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center">
+                <span className="text-slate-500 text-xs">Foto</span>
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                id="photo"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full px-4 py-2 font-medium rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200"
+              >
+                {previewUrl ? 'Ganti Foto' : 'Pilih Foto'}
+              </button>
+              <p className="text-xs text-slate-500 mt-1">
+                Format: JPG, PNG. Ukuran maks: 2MB
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div className="flex justify-end space-x-4 mt-6">
           <button
             type="button"

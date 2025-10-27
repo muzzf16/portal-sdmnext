@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePegawaiList, useDeletePegawai } from '../hooks/usePegawaiQuery';
-import FormEditPegawai from './FormEditPegawai'; // Import the new component
+import FormEditPegawai from './FormEditPegawai';
 import clsx from 'clsx';
 import { Eye, Calendar, Edit3, Trash2, Search, Filter, User, Building, Award, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
+import { Table, Button, Input, Select, Badge } from '@/shared/components/ui';
 
 const DaftarPegawai: React.FC = () => {
   const { data: pegawai, isLoading: loading, error, refetch: fetchPegawai } = usePegawaiList();
@@ -68,6 +69,8 @@ const DaftarPegawai: React.FC = () => {
 
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
+
+  const tableHeaders = ['Foto','Nama', 'NIP', 'Posisi', 'Departemen', 'Status', 'Aksi'];
 
   return (
     <div className="mt-6">
@@ -157,83 +160,43 @@ const DaftarPegawai: React.FC = () => {
         )}
       </div>
 
-      {/* Employee Grid */}
+      {/* Employee Table */}
       {filteredPegawai.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredPegawai.map(p => (
-            <div 
-              key={p.id} 
-              className="bg-white dark:bg-neutral-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-            >
-              <div className="p-5">
-                {/* Profile Header */}
-                <div className="flex items-center mb-4">
-                  <div className="relative">
-                    {p.avatarUrl ? (
-                      <img 
-                        src={p.avatarUrl} 
-                        alt={p.name} 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-neutral-700 shadow"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center border-2 border-white dark:border-neutral-700 shadow">
-                        <span className="text-2xl font-bold text-primary-700 dark:text-primary-400">
-                          {p.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <div className={`absolute bottom-0 right-0 rounded-full p-1 ${p.isActive === false ? 'bg-red-500' : 'bg-green-500'} border-2 border-white dark:border-neutral-800`}>
-                      {p.isActive === false ? (
-                        <XCircle className="h-3 w-3 text-white" />
-                      ) : (
-                        <CheckCircle className="h-3 w-3 text-white" />
-                      )}
-                    </div>
+        <Table headers={tableHeaders}>
+          {filteredPegawai.map((p) => (
+            <tr key={p.id}>
+              <td className="py-4 px-6">
+                {p.avatarUrl ? (
+                  <img 
+                    src={p.avatarUrl} 
+                    alt={p.name} 
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <span className="text-lg font-bold text-primary-700 dark:text-primary-400">
+                      {p.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                  
-                  <div className="ml-4 flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">{p.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{p.nip}</p>
-                    <div className="flex items-center mt-1">
-                      {p.isActive === false ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Nonaktif
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Aktif
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Employee Details */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                    <User className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{p.position || 'Posisi belum diatur'}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                    <Building className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{p.department || 'Unit belum diatur'}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                    <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>Bergabung: {p.joinDate ? new Date(p.joinDate).toLocaleDateString('id-ID') : '-'}</span>
-                  </div>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex space-x-2">
+                )}
+              </td>
+              <td className="py-4 px-6 font-medium text-gray-900 dark:text-white">{p.name}</td>
+              <td className="py-4 px-6">{p.nip}</td>
+              <td className="py-4 px-6">{p.position || '-'}</td>
+              <td className="py-4 px-6">{p.department || '-'}</td>
+              <td className="py-4 px-6">
+                <Badge variant={p.isActive === false ? 'danger' : 'success'}>
+                  {p.isActive === false ? 'Nonaktif' : 'Aktif'}
+                </Badge>
+              </td>
+              <td className="py-4 px-6">
+                <div className="flex items-center space-x-2">
                   <Link 
                     to={`/dashboard/pegawai/${p.id}`} 
-                    className="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+                    className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+                    title="Lihat"
                   >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Lihat
+                    <Eye className="h-4 w-4" />
                   </Link>
                   <button
                     onClick={() => openEditModal(String(p.id))}
@@ -250,10 +213,10 @@ const DaftarPegawai: React.FC = () => {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
-            </div>
+              </td>
+            </tr>
           ))}
-        </div>
+        </Table>
       ) : (
         <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md p-12 text-center">
           <User className="h-16 w-16 mx-auto text-gray-300 dark:text-gray-600" />
@@ -263,12 +226,13 @@ const DaftarPegawai: React.FC = () => {
               ? 'Belum ada pegawai yang terdaftar.' 
               : 'Tidak ada pegawai yang sesuai dengan filter pencarian.'}
           </p>
-          <button
+          <Button
             onClick={clearFilters}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+            variant="primary"
+            className="mt-4"
           >
             Reset Filter
-          </button>
+          </Button>
         </div>
       )}
 

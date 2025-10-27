@@ -2,6 +2,43 @@
 import PegawaiService from './pegawai.service';
 import { AppError } from '../../utils/errors';
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Ensure the uploads directory exists
+    const uploadDir = 'public/uploads/avatars';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Create unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  // Accept only image files
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new AppError('Invalid file type. Only images are allowed.', 400), false);
+  }
+};
+
+const upload = multer({ 
+  storage, 
+  fileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB limit
+  }
+});
 
 class PegawaiController {
   static async getAllPegawai(req: Request, res: Response, next: NextFunction) {
@@ -25,8 +62,21 @@ class PegawaiController {
 
   static async createPegawai(req: Request, res: Response, next: NextFunction) {
     try {
+      // Process file upload if avatar is provided
+      let avatarUrl = req.body.avatarUrl;
+      if (req.file) {
+        avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      }
+
       const { name, email, ...pegawaiData } = req.body;
-      const newPegawai = await PegawaiService.createPegawai(name, email, pegawaiData);
+
+      // Add avatarUrl to pegawaiData
+      const newPegawaiData = {
+        ...pegawaiData,
+        avatarUrl: avatarUrl || '/avatars/default-avatar.jpg'
+      };
+
+      const newPegawai = await PegawaiService.createPegawai(name, email, newPegawaiData);
       res.status(201).json(newPegawai);
     } catch (error) {
       next(error);
@@ -35,9 +85,25 @@ class PegawaiController {
 
   static async updatePegawai(req: Request, res: Response, next: NextFunction) {
     try {
+      // Process file upload if avatar is provided
+      let avatarUrl = req.body.avatarUrl;
+      if (req.file) {
+        avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      }
+
       const { id } = req.params;
       const { name, email, ...pegawaiData } = req.body;
-      const updatedPegawai = await PegawaiService.updatePegawai(id, name, email, pegawaiData);
+
+      // Add avatarUrl to pegawaiData if it's changed
+      const updatedPegawaiData = {
+        ...pegawaiData
+      };
+
+      if (avatarUrl) {
+        updatedPegawaiData.avatarUrl = avatarUrl;
+      }
+
+      const updatedPegawai = await PegawaiService.updatePegawai(id, name, email, updatedPegawaiData);
       res.status(200).json(updatedPegawai);
     } catch (error) {
       next(error);
@@ -64,6 +130,27 @@ class PegawaiController {
       next(error);
     }
   }
+
+  static async getGenderDistribution(req: Request, res: Response, next: NextFunction) {
+    try {
+      const distribution = await PegawaiService.getGenderDistribution();
+      res.status(200).json(distribution);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getEducationDistribution(req: Request, res: Response, next: NextFunction) {
+    try {
+      const distribution = await PegawaiService.getEducationDistribution();
+      res.status(200).json(distribution);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Upload avatar middleware
+  static uploadAvatar = upload.single('photo');
 }
 
 export default PegawaiController;

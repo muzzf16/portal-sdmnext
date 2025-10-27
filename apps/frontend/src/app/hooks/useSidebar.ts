@@ -1,18 +1,12 @@
-// src/app/hooks/useSidebar.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-interface UseSidebarReturn {
-  isSidebarOpen: boolean;
-  toggleSidebar: () => void;
-  closeSidebar: () => void;
-  openSidebar: () => void;
-}
+const MOBILE_BREAKPOINT = 768; // px
 
-export const useSidebar = (): UseSidebarReturn => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+export const useSidebar = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= MOBILE_BREAKPOINT);
 
   const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen(prev => !prev);
+    setIsSidebarOpen((prev) => !prev);
   }, []);
 
   const closeSidebar = useCallback(() => {
@@ -23,57 +17,25 @@ export const useSidebar = (): UseSidebarReturn => {
     setIsSidebarOpen(true);
   }, []);
 
-  // Auto-close sidebar on mobile devices
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) { // Tailwind's md breakpoint
-        setIsSidebarOpen(false);
+      if (window.innerWidth < MOBILE_BREAKPOINT) {
+        closeSidebar();
       } else {
-        setIsSidebarOpen(true);
+        openSidebar();
       }
     };
 
-    // Set initial state
-    handleResize();
-    
-    // Add event listener
     window.addEventListener('resize', handleResize);
-    
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
-
-  // Close sidebar when navigating on mobile
-  useEffect(() => {
-    const closeOnMobile = () => {
-      if (window.innerWidth < 768) {
-        setIsSidebarOpen(false);
-      }
-    };
-
-    // Close sidebar on initial load if mobile
-    closeOnMobile();
-
-    // Listen for route changes (this is a simplified approach)
-    // In a real app, you might want to use React Router's events
-    const handleRouteChange = () => {
-      closeOnMobile();
-    };
-
-    // Add event listeners for navigation
-    window.addEventListener('popstate', handleRouteChange);
-    
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-    };
-  }, []);
+  }, [closeSidebar, openSidebar]);
 
   return {
     isSidebarOpen,
     toggleSidebar,
     closeSidebar,
-    openSidebar
+    openSidebar,
   };
 };

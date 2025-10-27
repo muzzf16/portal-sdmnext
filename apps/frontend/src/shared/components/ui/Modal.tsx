@@ -1,6 +1,7 @@
-// src/shared/components/ui/Modal.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import clsx from 'clsx';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,40 +11,61 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
+}) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-xl'
+    xl: 'max-w-xl',
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 print:!static print:p-0 print:bg-white" onClick={onClose}>
-      <div 
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div
         className={clsx(
-          "bg-white rounded-xl shadow-elegant w-full print:shadow-none print:border-none print:w-full print:max-w-none",
+          'relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full',
           sizeClasses[size]
         )}
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
       >
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center print:hidden">
-          <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
-          <button 
-            onClick={onClose} 
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none focus:outline-none"
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 id="modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+            {title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+            aria-label="Close modal"
           >
-            &times;
+            <X size={20} />
           </button>
         </div>
-        <div className="p-6 print:p-0 overflow-y-auto" style={{ maxHeight: '80vh' }}>
+        <div className="p-4 text-gray-700 dark:text-gray-300">
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
-
-export default Modal;

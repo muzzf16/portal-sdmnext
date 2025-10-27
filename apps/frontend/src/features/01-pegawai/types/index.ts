@@ -9,6 +9,8 @@ export interface Pegawai {
   department: string;
   joinDate: string;
   avatarUrl?: string;
+  jenis_kelamin?: 'L' | 'P'; // L for Laki-laki (male), P for Perempuan (female)
+  gender?: 'male' | 'female'; // English equivalent
   leaveBalance?: number;
   isActive?: boolean;
   address?: string;

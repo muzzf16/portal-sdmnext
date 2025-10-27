@@ -1,35 +1,49 @@
-// src/shared/components/ui/Select.tsx
 import React from 'react';
 import clsx from 'clsx';
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectOption {
+  value: string;
   label: string;
-  error?: string;
-  options: { value: string; label: string }[];
 }
 
-const Select: React.FC<SelectProps> = ({ label, id, error, options, className, ...props }) => (
-  <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-      {label}
-    </label>
-    <select
-      id={id}
-      {...props}
-      className={clsx(
-        "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-secondary-orange focus:border-secondary-orange focus:ring-2 focus:ring-offset-0 transition-colors",
-        error ? "border-red-500" : "",
-        className
-      )}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-    {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-  </div>
-);
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  id: string;
+  options: SelectOption[];
+  error?: string;
+}
 
-export default Select;
+export const Select: React.FC<SelectProps> = ({
+  label,
+  id,
+  options,
+  error,
+  className,
+  ...props
+}) => {
+  return (
+    <div className="mb-4">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+      <select
+        id={id}
+        className={clsx(
+          'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+          error
+            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100',
+          className
+        )}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  );
+};

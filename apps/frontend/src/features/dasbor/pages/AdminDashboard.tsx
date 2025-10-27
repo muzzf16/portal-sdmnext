@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getEmployees } from '../../../shared/services/employeeAPI';
+import { getEmployees, getEmployeeGenderData, getEmployeeEducationData } from '../../../shared/services/employeeAPI';
 import { getTodayAttendanceCount } from '../../../shared/services/attendanceAPI';
 import { getPendingLeaveRequestsCount } from '../../../shared/services/leaveAPI';
 import { getExpiringContractsCount } from '../../../shared/services/kontrakAPI';
-import { Users, Clock, Calendar, FileText, TrendingUp, Eye, Plus, BarChart3, DollarSign, UserCheck, File, Briefcase, Search } from 'lucide-react';
+import { Users, Clock, Calendar, FileText, Eye, BarChart3, DollarSign, UserCheck, File } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Card } from '@/shared/components/ui';
+
+const COLORS = ['#0088FE', '#FF8042', '#00C49F', '#FFBB28'];
 
 const AdminDashboard: React.FC = () => {
   const [totalEmployees, setTotalEmployees] = useState<number | null>(null);
@@ -23,12 +27,20 @@ const AdminDashboard: React.FC = () => {
   const [loadingExpiringContracts, setLoadingExpiringContracts] = useState<boolean>(true);
   const [errorExpiringContracts, setErrorExpiringContracts] = useState<string | null>(null);
 
+  // Chart data states
+  const [genderData, setGenderData] = useState<{ name: string; value: number }[]>([]);
+  const [educationData, setEducationData] = useState<{ name: string; employees: number }[]>([]);
+  const [loadingCharts, setLoadingCharts] = useState<boolean>(true);
+  const [errorCharts, setErrorCharts] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTotalEmployees = async () => {
       try {
         const response = await getEmployees();
+        console.log('Employee API response (dashboard):', response); // Debug log
         // Handle both old and new response formats
-        const employeesData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const employeesData = Array.isArray(response) ? response : Array.isArray(response.data) ? response.data : response.data?.data || [];
+        console.log('Employee data (dashboard):', employeesData); // Debug log
         setTotalEmployees(employeesData.length);
       } catch (error) {
         setErrorEmployees('Failed to fetch total employees.');
@@ -74,10 +86,39 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
-    fetchTotalEmployees();
-    fetchTodayAttendance();
-    fetchPendingLeaveRequests();
-    fetchExpiringContracts();
+    const fetchChartData = async () => {
+      try {
+        // Fetch chart data in parallel
+        const [genderResponse, educationResponse] = await Promise.all([
+          getEmployeeGenderData(),
+          getEmployeeEducationData()
+        ]);
+        
+        setGenderData(genderResponse);
+        setEducationData(educationResponse);
+      } catch (error) {
+        setErrorCharts('Failed to fetch chart data.');
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setLoadingCharts(false);
+      }
+    };
+
+    // Run all fetch functions together
+    Promise.all([
+      fetchTotalEmployees(),
+      fetchTodayAttendance(),
+      fetchPendingLeaveRequests(),
+      fetchExpiringContracts(),
+      fetchChartData()
+    ]).catch(error => {
+      console.error('An error occurred during initial data fetching:', error);
+      setLoadingEmployees(false);
+      setLoadingTodayAttendance(false);
+      setLoadingPendingLeaveRequests(false);
+      setLoadingExpiringContracts(false);
+      setLoadingCharts(false);
+    });
   }, []);
 
   return (
@@ -86,7 +127,7 @@ const AdminDashboard: React.FC = () => {
         <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Dashboard Admin</h2>
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {[
+          {[ 
             { 
               title: 'Total Karyawan', 
               value: loadingEmployees ? '...' : errorEmployees ? 'Error' : totalEmployees !== null ? totalEmployees.toString() : 'N/A', 
@@ -131,11 +172,81 @@ const AdminDashboard: React.FC = () => {
           ))}
         </div>
 
+        {/* Employee Analysis Charts */}
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Analisis Karyawan</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Distribusi Gender</h3>
+            {loadingCharts ? (
+              <div className="flex justify-center items-center h-[300px]">
+                <p>Loading chart data...</p>
+              </div>
+            ) : errorCharts ? (
+              <div className="flex justify-center items-center h-[300px]">
+                <p className="text-red-500">{errorCharts}</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={genderData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={(props) => {
+                      const { name, percent } = props;
+                      return `${name} ${(percent! * 100).toFixed(0)}%`;
+                    }}
+                  >
+                    {genderData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Distribusi Pendidikan</h3>
+            {loadingCharts ? (
+              <div className="flex justify-center items-center h-[300px]">
+                <p>Loading chart data...</p>
+              </div>
+            ) : errorCharts ? (
+              <div className="flex justify-center items-center h-[300px]">
+                <p className="text-red-500">{errorCharts}</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={educationData}
+                  margin={{
+                    top: 5, right: 30, left: 20, bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis dataKey="name" className="text-sm text-gray-600 dark:text-gray-300" />
+                  <YAxis className="text-sm text-gray-600 dark:text-gray-300" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="employees" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </div>
+
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Akses Cepat</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {[
+            {[ 
               { title: 'Manajemen Karyawan', path: '/dashboard/pegawai', icon: Users },
               { title: 'Absensi', path: '/dashboard/absensi', icon: Clock },
               { title: 'Cuti & Izin', path: '/dashboard/cuti', icon: Calendar },
@@ -171,7 +282,7 @@ const AdminDashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {[
+            {[ 
               { action: 'Pegawai baru ditambahkan', user: 'Budi Santoso', time: '2 menit yang lalu' },
               { action: 'Pengajuan cuti disetujui', user: 'Ani Lestari', time: '15 menit yang lalu' },
               { action: 'Gaji bulan ini diproses', user: 'Sistem', time: '1 jam yang lalu' },
