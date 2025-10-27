@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePegawaiList, useDeletePegawai } from '../hooks/usePegawaiQuery';
 import FormEditPegawai from './FormEditPegawai';
-import clsx from 'clsx';
-import { Eye, Calendar, Edit3, Trash2, Search, Filter, User, Building, Award, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
-import { Table, Button, Input, Select, Badge } from '@/shared/components/ui';
+import { Eye, Edit3, Trash2, Search, Filter, User, ChevronDown } from 'lucide-react';
+import { Table, Button, Badge } from '@/shared/components/ui';
 
 const DaftarPegawai: React.FC = () => {
   const { data: pegawai, isLoading: loading, error, refetch: fetchPegawai } = usePegawaiList();

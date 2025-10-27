@@ -5,7 +5,7 @@ import { usePegawai } from '../hooks/usePegawai';
 import { useRiwayatJabatan } from '../hooks/useRiwayatJabatan';
 import { usePelatihan } from '../hooks/usePelatihan';
 import { printEmployeeProfile } from '../utils/printProfile';
-import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Globe, Users, Briefcase, GraduationCap, FileCertificate, Star } from 'lucide-react';
+import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Globe, Users, Briefcase, GraduationCap, FileBadge, Star } from 'lucide-react';
 import clsx from 'clsx';
 
 const HalamanDetailPegawai: React.FC = () => {
@@ -134,7 +134,7 @@ const HalamanDetailPegawai: React.FC = () => {
             {[
               { id: 'biodata', label: 'Data Diri', icon: User },
               { id: 'riwayat', label: 'Riwayat Pekerjaan', icon: Briefcase },
-              { id: 'sertifikat', label: 'Sertifikat', icon: FileCertificate },
+              { id: 'sertifikat', label: 'Sertifikat', icon: FileBadge },
               { id: 'kinerja', label: 'Kinerja', icon: Star },
             ].map((tab) => (
               <button
@@ -190,7 +190,10 @@ const HalamanDetailPegawai: React.FC = () => {
                   </div>
                   <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Jenis Kelamin</div>
-                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">-</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
+                      {pegawai.jenis_kelamin === 'L' ? 'Laki-laki' : 
+                       pegawai.jenis_kelamin === 'P' ? 'Perempuan' : '-'}
+                    </div>
                   </div>
                   <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Agama</div>
