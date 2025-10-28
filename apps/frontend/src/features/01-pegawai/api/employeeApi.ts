@@ -2,18 +2,14 @@ import api from '../../../shared/services/api';
 import { ApiResponse } from '../../../shared/services/apiService';
 import { Pegawai } from '../types';
 
-// API functions that can handle both raw and standardized responses
 const API_BASE = '/employees';
 
 export const getPegawai = async () => {
   try {
     const response = await api.get<Pegawai[]>(API_BASE);
-    // Handle both standardized response format and raw response
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      // Response is in standardized format
-      return response.data as ApiResponse<Pegawai[]>;
+      return response.data as unknown as ApiResponse<Pegawai[]>;
     } else {
-      // Response is raw data
       return { success: true, data: response.data, message: undefined, meta: undefined } as ApiResponse<Pegawai[]>;
     }
   } catch (error) {
@@ -25,12 +21,9 @@ export const getPegawai = async () => {
 export const getPegawaiById = async (id: string) => {
   try {
     const response = await api.get<Pegawai>(`${API_BASE}/${id}`);
-    // Handle both standardized response format and raw response
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      // Response is in standardized format
-      return response.data as ApiResponse<Pegawai>;
+      return response.data as unknown as ApiResponse<Pegawai>;
     } else {
-      // Response is raw data
       return { success: true, data: response.data, message: undefined, meta: undefined } as ApiResponse<Pegawai>;
     }
   } catch (error) {
@@ -43,14 +36,16 @@ export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>, photo?: File) 
   try {
     const formData = new FormData();
     
-    // Append employee data to form data
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        formData.append(key, value.toString());
+        if (key === 'educationHistory' && Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, value.toString());
+        }
       }
     });
     
-    // Append photo if provided
     if (photo) {
       formData.append('photo', photo);
     }
@@ -61,12 +56,9 @@ export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>, photo?: File) 
       },
     });
     
-    // Handle both standardized response format and raw response
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      // Response is in standardized format
-      return response.data as ApiResponse<Pegawai>;
+      return response.data as unknown as ApiResponse<Pegawai>;
     } else {
-      // Response is raw data
       return { success: true, data: response.data, message: undefined, meta: undefined } as ApiResponse<Pegawai>;
     }
   } catch (error) {
@@ -79,14 +71,16 @@ export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>, photo
   try {
     const formData = new FormData();
     
-    // Append employee data to form data
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        formData.append(key, value.toString());
+        if (key === 'educationHistory' && Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, value.toString());
+        }
       }
     });
     
-    // Append photo if provided
     if (photo) {
       formData.append('photo', photo);
     }
@@ -97,12 +91,9 @@ export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>, photo
       },
     });
     
-    // Handle both standardized response format and raw response
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      // Response is in standardized format
-      return response.data as ApiResponse<Pegawai>;
+      return response.data as unknown as ApiResponse<Pegawai>;
     } else {
-      // Response is raw data
       return { success: true, data: response.data, message: undefined, meta: undefined } as ApiResponse<Pegawai>;
     }
   } catch (error) {
@@ -113,8 +104,7 @@ export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>, photo
 
 export const deletePegawai = async (id: string) => {
   try {
-    const response = await api.delete(`${API_BASE}/${id}`);
-    // For delete, we return a standardized success response
+    await api.delete(`${API_BASE}/${id}`);
     return { success: true, data: true, message: 'Employee deleted successfully', meta: undefined } as ApiResponse<boolean>;
   } catch (error) {
     console.error(`Error deleting employee ${id}:`, error);

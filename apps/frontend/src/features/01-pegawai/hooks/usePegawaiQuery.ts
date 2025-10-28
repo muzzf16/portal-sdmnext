@@ -1,7 +1,16 @@
 // src/features/01-pegawai/hooks/usePegawaiQuery.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import employeeApi, { getPegawai, getPegawaiById, createPegawai, updatePegawai, deletePegawai } from '../api/employeeApi';
+import { getPegawai, getPegawaiById, createPegawai, updatePegawai, deletePegawai } from '../api/employeeApi';
 import { Pegawai } from '../types';
+
+const VITE_API_URL = 'http://localhost:3333';
+
+const constructAvatarUrl = (pegawaiData: Pegawai): Pegawai => {
+  if (pegawaiData && pegawaiData.avatarUrl && !pegawaiData.avatarUrl.startsWith('http')) {
+    return { ...pegawaiData, avatarUrl: `${VITE_API_URL}${pegawaiData.avatarUrl}` };
+  }
+  return pegawaiData;
+};
 
 // Query keys
 const EMPLOYEE_QUERY_KEYS = {
@@ -18,15 +27,12 @@ export const usePegawaiList = (filters?: any) => {
     queryKey: EMPLOYEE_QUERY_KEYS.list(filters),
     queryFn: async () => {
       const response = await getPegawai();
-      // Handle both standardized and raw response formats
       if (response && typeof response === 'object' && 'data' in response) {
-        // Response is in standardized format
         return response.data || [];
-      } else {
-        // Response is raw data
-        return response || [];
       }
+      return response || [];
     },
+    select: (data: Pegawai[]) => data.map(constructAvatarUrl),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -36,16 +42,13 @@ export const usePegawai = (id: string) => {
     queryKey: EMPLOYEE_QUERY_KEYS.detail(id),
     queryFn: async () => {
       const response = await getPegawaiById(id);
-      // Handle both standardized and raw response formats
       if (response && typeof response === 'object' && 'data' in response) {
-        // Response is in standardized format
         return response.data;
-      } else {
-        // Response is raw data
-        return response;
       }
+      return response;
     },
-    enabled: !!id, // Only run query if id is provided
+    select: (data: Pegawai) => constructAvatarUrl(data),
+    enabled: !!id,
   });
 };
 
@@ -56,17 +59,12 @@ export const useCreatePegawai = () => {
   return useMutation({
     mutationFn: async (pegawai: Omit<Pegawai, 'id'>) => {
       const response = await createPegawai(pegawai);
-      // Handle both standardized and raw response formats
       if (response && typeof response === 'object' && 'data' in response) {
-        // Response is in standardized format
         return response.data;
-      } else {
-        // Response is raw data
-        return response;
       }
+      return response;
     },
     onSuccess: () => {
-      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.lists() });
     },
   });
@@ -78,19 +76,13 @@ export const useUpdatePegawai = () => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Pegawai> }) => {
       const response = await updatePegawai(id, data);
-      // Handle both standardized and raw response formats
       if (response && typeof response === 'object' && 'data' in response) {
-        // Response is in standardized format
         return response.data;
-      } else {
-        // Response is raw data
-        return response;
       }
+      return response;
     },
     onSuccess: (_, variables) => {
-      // Update the specific employee in the cache
       queryClient.setQueryData(EMPLOYEE_QUERY_KEYS.detail(variables.id), variables.data);
-      // Invalidate the list to refetch
       queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.lists() });
     },
   });
@@ -102,17 +94,12 @@ export const useDeletePegawai = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await deletePegawai(id);
-      // Handle both standardized and raw response formats
       if (response && typeof response === 'object' && 'data' in response) {
-        // Response is in standardized format
         return response.data;
-      } else {
-        // Response is raw data
-        return response;
       }
+      return response;
     },
     onSuccess: () => {
-      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.lists() });
     },
   });

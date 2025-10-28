@@ -1,5 +1,5 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { Pegawai } from '../types';
 import { createPegawai } from '../api/employeeApi';
 import { isValidEmail, isValidName, sanitizeText } from '../../../shared/utils/validation';
@@ -7,7 +7,16 @@ import clsx from 'clsx';
 import { X } from 'lucide-react';
 
 const FormPegawai: React.FC = () => {
-  const { register, handleSubmit, formState: { errors }, setError } = useForm<Omit<Pegawai, 'id'>>();
+  const { register, control, handleSubmit, formState: { errors }, setError } = useForm<Omit<Pegawai, 'id'>>({
+    defaultValues: {
+      educationHistory: []
+    }
+  });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "educationHistory"
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -17,8 +26,6 @@ const FormPegawai: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedPhoto(file);
-      
-      // Create a preview URL for the selected image
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -36,40 +43,27 @@ const FormPegawai: React.FC = () => {
   };
 
   const onSubmit = async (data: Omit<Pegawai, 'id'>) => {
-    // Perform client-side validation
     if (!isValidName(data.name)) {
-      setError('name', {
-        type: 'manual',
-        message: 'Nama tidak valid'
-      });
+      setError('name', { type: 'manual', message: 'Nama tidak valid' });
       return;
     }
-    
     if (!isValidEmail(data.email)) {
-      setError('email', {
-        type: 'manual',
-        message: 'Email tidak valid'
-      });
+      setError('email', { type: 'manual', message: 'Email tidak valid' });
       return;
     }
-    
-    // Sanitize text inputs
     const sanitizedData = {
       ...data,
       name: sanitizeText(data.name),
-      email: data.email, // Email should already be validated, no need to sanitize
+      email: data.email,
       position: sanitizeText(data.position),
       department: sanitizeText(data.department),
     };
-
     setIsSubmitting(true);
     try {
       await createPegawai(sanitizedData, selectedPhoto || undefined);
-      // Handle success (e.g., close modal, refresh list)
-      alert('Pegawai berhasil ditambahkan!'); // Temporary success message
+      alert('Pegawai berhasil ditambahkan!');
     } catch (error) {
-      // Handle error
-      alert('Gagal menambahkan pegawai.'); // Temporary error message
+      alert('Gagal menambahkan pegawai.');
       console.error('Error creating pegawai:', error);
     }
     setIsSubmitting(false);
@@ -85,195 +79,118 @@ const FormPegawai: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Lengkap</label>
-            <input
-              id="name"
-              {...register('name', { required: 'Nama wajib diisi' })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="name" {...register('name', { required: 'Nama wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.name && <span className="text-red-500 text-sm dark:text-red-400">{errors.name.message}</span>}
           </div>
           <div>
             <label htmlFor="nip" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIP</label>
-            <input
-              id="nip"
-              {...register('nip', { required: 'NIP wajib diisi' })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="nip" {...register('nip', { required: 'NIP wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.nip && <span className="text-red-500 text-sm dark:text-red-400">{errors.nip.message}</span>}
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-            <input
-              id="email"
-              type="email"
-              {...register('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/, message: 'Format email tidak valid' } })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="email" type="email" {...register('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/, message: 'Format email tidak valid' } })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.email && <span className="text-red-500 text-sm dark:text-red-400">{errors.email.message}</span>}
           </div>
           <div>
             <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
-            <input
-              id="position"
-              {...register('position', { required: 'Posisi wajib diisi' })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="position" {...register('position', { required: 'Posisi wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.position && <span className="text-red-500 text-sm dark:text-red-400">{errors.position.message}</span>}
           </div>
           <div>
             <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departemen</label>
-            <input
-              id="department"
-              {...register('department', { required: 'Departemen wajib diisi' })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="department" {...register('department', { required: 'Departemen wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.department && <span className="text-red-500 text-sm dark:text-red-400">{errors.department.message}</span>}
           </div>
           <div>
             <label htmlFor="joinDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Bergabung</label>
-            <input
-              id="joinDate"
-              type="date"
-              {...register('joinDate', { required: 'Tanggal bergabung wajib diisi' })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="joinDate" type="date" {...register('joinDate', { required: 'Tanggal bergabung wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.joinDate && <span className="text-red-500 text-sm dark:text-red-400">{errors.joinDate.message}</span>}
           </div>
           <div className="md:col-span-2">
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
-            <textarea
-              id="address"
-              {...register('address')}
-              rows={3}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            ></textarea>
+            <textarea id="address" {...register('address')} rows={3} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}></textarea>
           </div>
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nomor Telepon</label>
-            <input
-              id="phone"
-              type="tel"
-              {...register('phone')}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="phone" type="tel" {...register('phone')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
           </div>
           <div>
             <label htmlFor="pob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tempat Lahir</label>
-            <input
-              id="pob"
-              {...register('pob')}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="pob" {...register('pob')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
           </div>
           <div>
             <label htmlFor="dob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Lahir</label>
-            <input
-              id="dob"
-              type="date"
-              {...register('dob')}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="dob" type="date" {...register('dob')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
           </div>
           <div>
             <label htmlFor="religion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agama</label>
-            <select
-              id="religion"
-              {...register('religion')}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            >
+            <select id="religion" {...register('religion')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}>
               <option value="">Pilih Agama</option>
               {religions.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Perkawinan</label>
-            <select
-              id="maritalStatus"
-              {...register('maritalStatus')}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            >
+            <select id="maritalStatus" {...register('maritalStatus')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}>
               <option value="">Pilih Status</option>
               {maritalStatuses.map(ms => <option key={ms} value={ms}>{ms}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="numberOfChildren" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah Anak</label>
-            <input
-              id="numberOfChildren"
-              type="number"
-              {...register('numberOfChildren', { valueAsNumber: true, min: { value: 0, message: 'Jumlah anak tidak boleh negatif' } })}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            />
+            <input id="numberOfChildren" type="number" {...register('numberOfChildren', { valueAsNumber: true, min: { value: 0, message: 'Jumlah anak tidak boleh negatif' } })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.numberOfChildren && <span className="text-red-500 text-sm dark:text-red-400">{errors.numberOfChildren.message}</span>}
           </div>
           <div>
             <label htmlFor="jenis_kelamin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis Kelamin</label>
-            <select
-              id="jenis_kelamin"
-              {...register('jenis_kelamin')}
-              className={clsx(
-                "w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
-                "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
-                "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400"
-              )}
-            >
+            <select id="jenis_kelamin" {...register('jenis_kelamin')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}>
               <option value="">Pilih Jenis Kelamin</option>
               <option value="L">Laki-laki</option>
               <option value="P">Perempuan</option>
             </select>
           </div>
+        </div>
+
+        {/* Education History Section */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Riwayat Pendidikan</h3>
+          {fields.map((item, index) => (
+            <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border border-gray-200 dark:border-neutral-700 rounded-lg">
+              <input
+                {...register(`educationHistory.${index}.level`)}
+                placeholder="Jenjang (e.g., S1)"
+                className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
+              />
+              <input
+                {...register(`educationHistory.${index}.schoolName`)}
+                placeholder="Nama Sekolah"
+                className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
+              />
+              <input
+                {...register(`educationHistory.${index}.major`)}
+                placeholder="Jurusan"
+                className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
+              />
+              <div className="flex items-center">
+                <input
+                  {...register(`educationHistory.${index}.graduationYear`)}
+                  placeholder="Tahun Lulus"
+                  className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
+                />
+                <button type="button" onClick={() => remove(index)} className="ml-2 text-red-500 hover:text-red-700">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => append({ level: '', schoolName: '', major: '', graduationYear: '' })}
+            className="px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 border border-dashed border-primary-500 rounded-md hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
+          >
+            + Tambah Pendidikan
+          </button>
         </div>
         
         <div className="md:col-span-2">
@@ -320,7 +237,7 @@ const FormPegawai: React.FC = () => {
                 {previewUrl ? 'Ganti Foto' : 'Pilih Foto'}
               </button>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Format: JPG, PNG. Ukuran maks: 2MB
+                Format: JPG, PNG. Ukuran maks: 5MB
               </p>
             </div>
           </div>

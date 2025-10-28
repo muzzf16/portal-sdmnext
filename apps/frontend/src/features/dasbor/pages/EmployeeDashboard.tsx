@@ -41,7 +41,7 @@ const EmployeeDashboard: React.FC = () => {
   useEffect(() => {
     const fetchAttendanceSummary = async () => {
       try {
-        const summary = await getEmployeeAttendanceSummary(employeeId);
+        const summary = await getEmployeeAttendanceSummary(employeeId.toString());
         setAttendanceSummary(summary);
       } catch (error) {
         setErrorAttendanceSummary('Failed to fetch attendance summary.');
@@ -53,7 +53,7 @@ const EmployeeDashboard: React.FC = () => {
 
     const fetchApprovedLeaveCount = async () => {
       try {
-        const count = await getEmployeeApprovedLeaveCount(employeeId);
+        const count = await getEmployeeApprovedLeaveCount(employeeId.toString());
         setApprovedLeaveCount(count);
       } catch (error) {
         setErrorApprovedLeave('Failed to fetch approved leave count.');
@@ -65,7 +65,7 @@ const EmployeeDashboard: React.FC = () => {
 
     const fetchLatestPayroll = async () => {
       try {
-        const payroll = await getEmployeeLatestPayroll(employeeId);
+        const payroll = await getEmployeeLatestPayroll(employeeId.toString());
         setLatestPayroll(payroll);
       } catch (error) {
         setErrorLatestPayroll('Failed to fetch latest payroll.');
@@ -77,7 +77,7 @@ const EmployeeDashboard: React.FC = () => {
 
     const fetchWeeklyAttendance = async () => {
       try {
-        const attendance = await getEmployeeWeeklyAttendance(employeeId);
+        const attendance = await getEmployeeWeeklyAttendance(employeeId.toString());
         setWeeklyAttendance(attendance);
       } catch (error) {
         setErrorWeeklyAttendance('Failed to fetch weekly attendance.');
@@ -89,7 +89,7 @@ const EmployeeDashboard: React.FC = () => {
 
     const fetchRecentNotifications = async () => {
       try {
-        const notifications = await getEmployeeRecentNotifications(employeeId);
+        const notifications = await getEmployeeRecentNotifications(employeeId.toString());
         setRecentNotifications(notifications);
       } catch (error) {
         setErrorRecentNotifications('Failed to fetch recent notifications.');

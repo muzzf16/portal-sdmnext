@@ -1,5 +1,14 @@
 import ApiService, { ApiResponse } from './apiService';
-import { LeaveRequest } from '../types/types';
+
+// Minimal local LeaveRequest interface to match the properties used in this module.
+// This avoids relying on a non-existent export from ../types/types.
+export interface LeaveRequest {
+  id?: string | number;
+  employeeId?: string;
+  status_pengajuan?: string;
+  status?: string;
+  [key: string]: any;
+}
 
 // Create an instance of ApiService for leave operations
 const leaveApi = new ApiService<LeaveRequest>('/leave-requests');
@@ -9,14 +18,14 @@ export const getLeaveRequests = () => leaveApi.list();
 
 export const getPendingLeaveRequestsCount = async () => {
   try {
-    const response = await leaveApi.list();
+    const response: any = await leaveApi.list();
     console.log('Leave API response:', response); // Debug log
     
     // Handle both old and new response formats
     const leaveData = Array.isArray(response.data) ? response.data : response.data?.data || [];
     console.log('Leave data:', leaveData); // Debug log
     
-    return leaveData.filter(request => 
+    return leaveData.filter((request: LeaveRequest) => 
       request.status_pengajuan === 'menunggu' || request.status === 'menunggu'
     ).length;
   } catch (error) {

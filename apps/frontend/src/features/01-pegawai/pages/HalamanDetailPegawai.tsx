@@ -322,7 +322,7 @@ const HalamanDetailPegawai: React.FC = () => {
           {activeTab === 'sertifikat' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <FileCertificate className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+                <FileBadge className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
                 Riwayat Pelatihan & Sertifikat
               </h3>
               

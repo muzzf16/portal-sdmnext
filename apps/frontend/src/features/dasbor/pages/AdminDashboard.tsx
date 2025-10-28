@@ -39,7 +39,13 @@ const AdminDashboard: React.FC = () => {
         const response = await getEmployees();
         console.log('Employee API response (dashboard):', response); // Debug log
         // Handle both old and new response formats
-        const employeesData = Array.isArray(response) ? response : Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const employeesData = Array.isArray(response)
+          ? response
+          : (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data))
+            ? (response as any).data
+            : (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data?.data))
+              ? (response as any).data.data
+              : [];
         console.log('Employee data (dashboard):', employeesData); // Debug log
         setTotalEmployees(employeesData.length);
       } catch (error) {
@@ -198,7 +204,7 @@ const AdminDashboard: React.FC = () => {
                     dataKey="value"
                     label={(props) => {
                       const { name, percent } = props;
-                      return `${name} ${(percent! * 100).toFixed(0)}%`;
+                      return `${name} ${(Number(percent) * 100).toFixed(0)}%`;
                     }}
                   >
                     {genderData.map((_, index) => (

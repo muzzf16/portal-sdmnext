@@ -38,6 +38,7 @@ exports.PegawaiRepository = {
             id: newId,
             name: data.name,
             nip: data.nip || `NIP${Date.now().toString().slice(-4)}`,
+            email: data.email,
             position: data.position || 'N/A',
             pangkat: data.pangkat || 'N/A',
             golongan: data.golongan || 'N/A',
@@ -68,21 +69,48 @@ exports.PegawaiRepository = {
     },
     async update(id, data) {
         const db = await (0, db_1.openDb)();
-        const fieldsToUpdate = {
-            ...data,
-            educationHistory: JSON.stringify(data.educationHistory || []),
-            workHistory: JSON.stringify(data.workHistory || []),
-            trainingCertificates: JSON.stringify(data.trainingCertificates || []),
-            payrollInfo: JSON.stringify(data.payrollInfo || {}),
-            isActive: data.hasOwnProperty('isActive') ? (data.isActive ? 1 : 0) : 1,
-            jenis_kelamin: data.jenis_kelamin
-        };
-        delete fieldsToUpdate.id;
+        const validColumns = [
+            'name', 'nip', 'email', 'position', 'pangkat', 'golongan', 'department',
+            'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone',
+            'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren',
+            'educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo',
+            'jenis_kelamin'
+        ];
+        const fieldsToUpdate = {};
+        for (const key of Object.keys(data)) {
+            if (validColumns.includes(key)) {
+                fieldsToUpdate[key] = data[key];
+            }
+        }
+        if (fieldsToUpdate.hasOwnProperty('educationHistory')) {
+            fieldsToUpdate.educationHistory = JSON.stringify(fieldsToUpdate.educationHistory || []);
+        }
+        if (fieldsToUpdate.hasOwnProperty('workHistory')) {
+            fieldsToUpdate.workHistory = JSON.stringify(fieldsToUpdate.workHistory || []);
+        }
+        if (fieldsToUpdate.hasOwnProperty('trainingCertificates')) {
+            fieldsToUpdate.trainingCertificates = JSON.stringify(fieldsToUpdate.trainingCertificates || []);
+        }
+        if (fieldsToUpdate.hasOwnProperty('payrollInfo')) {
+            fieldsToUpdate.payrollInfo = JSON.stringify(fieldsToUpdate.payrollInfo || {});
+        }
+        if (fieldsToUpdate.hasOwnProperty('isActive')) {
+            fieldsToUpdate.isActive = fieldsToUpdate.isActive ? 1 : 0;
+        }
+        if (Object.keys(fieldsToUpdate).length === 0) {
+            const currentRow = await this.findById(id);
+            if (!currentRow)
+                throw new Error('Employee not found');
+            return currentRow;
+        }
         const setClause = Object.keys(fieldsToUpdate).map(key => `${key} = ?`).join(', ');
         const values = [...Object.values(fieldsToUpdate), id];
         const result = await db.run(`UPDATE pegawai SET ${setClause} WHERE id = ?`, values);
-        if (result.changes === 0)
-            throw new Error('Employee not found');
+        if (result.changes === 0) {
+            const existing = await this.findById(id);
+            if (!existing)
+                throw new Error('Employee not found');
+        }
         const updatedRow = await db.get('SELECT * FROM pegawai WHERE id = ?', id);
         return parseJsonFields([updatedRow])[0];
     },

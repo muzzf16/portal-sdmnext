@@ -18,7 +18,12 @@ export const useRiwayatJabatan = (employeeId: string) => {
       try {
         setLoading(true);
         const response = await getRiwayatJabatan(employeeId);
-        setRiwayatJabatan(response.data || []);
+        const data = response?.data ?? [];
+        // Normalize API shape to local RiwayatJabatan type (convert id to number)
+        const normalized: RiwayatJabatan[] = Array.isArray(data)
+          ? data.map((item: any) => ({ ...item, id: Number(item.id) }))
+          : [];
+        setRiwayatJabatan(normalized);
       } catch (err) {
         setError(err as Error);
       } finally {

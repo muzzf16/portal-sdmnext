@@ -4,7 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const pegawai_service_1 = __importDefault(require("./pegawai.service"));
-const errors_1 = require("../../utils/errors");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -26,14 +25,14 @@ const fileFilter = (req, file, cb) => {
         cb(null, true);
     }
     else {
-        cb(new errors_1.AppError('Invalid file type. Only images are allowed.', 400), false);
+        cb(new Error('Invalid file type. Only images are allowed.'), false);
     }
 };
 const upload = (0, multer_1.default)({
     storage,
     fileFilter,
     limits: {
-        fileSize: 2 * 1024 * 1024
+        fileSize: 5 * 1024 * 1024
     }
 });
 class PegawaiController {

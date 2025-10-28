@@ -1,29 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { TokenExpiredError } from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  // Fail fast - signing secret is required for secure operation
+  throw new Error('JWT_SECRET is not set in environment');
+}
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Access token required' 
+      message: 'Access token required'
     });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key', (err: any, decoded: any) => {
-    if (err) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Invalid or expired token' 
-      });
-    }
-    
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
     (req as any).user = decoded; // Add user info to request object
     return next();
-  });
-  
-  // Explicitly return here to satisfy TypeScript
-  return;
+  } catch (err: any) {
+    if (err instanceof TokenExpiredError) {
+      return res.status(401).json({ success: false, message: 'Token expired' });
+    }
+    return res.status(403).json({ success: false, message: 'Invalid token' });
+  }
 };

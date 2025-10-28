@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/app/hooks/useSidebar';
-import { Menu, X, Home, Users, Briefcase, DollarSign, Calendar, BarChart2, Bell, Settings, FileText, UserPlus, Award } from 'lucide-react';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { Menu, X, Home, Users, Briefcase, DollarSign, Calendar, BarChart2, Settings, FileText, UserPlus, Award } from 'lucide-react';
 import clsx from 'clsx';
+
+const VITE_API_URL = 'http://localhost:3333';
 
 interface NavItemProps {
   to: string;
@@ -32,6 +35,17 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
 const DashboardLayout: React.FC = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  const getAvatarUrl = () => {
+    if (user?.avatarUrl) {
+      if (user.avatarUrl.startsWith('http')) {
+        return user.avatarUrl;
+      }
+      return `${VITE_API_URL}${user.avatarUrl}`;
+    }
+    return `${VITE_API_URL}/avatars/default-avatar.jpg`;
+  };
 
   const navItems = [
     { to: '/dashboard', icon: <Home size={20} />, text: 'Dashboard' },
@@ -66,7 +80,7 @@ const DashboardLayout: React.FC = () => {
         </nav>
         <div className="p-4 border-t border-primary-700">
           <button
-            onClick={() => alert('Logout functionality not implemented.')}
+            onClick={logout}
             className={clsx(
               'flex items-center w-full py-2 px-4 rounded-lg text-gray-300 hover:bg-primary-600 hover:text-white transition-colors duration-200',
               !isSidebarOpen && 'justify-center'
@@ -98,16 +112,16 @@ const DashboardLayout: React.FC = () => {
             >
               <img
                 className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                src="https://via.placeholder.com/150"
+                src={getAvatarUrl()}
                 alt="User Avatar"
               />
-              <span className="text-sm font-medium hidden md:block text-gray-700 dark:text-gray-200">John Doe</span>
+              <span className="text-sm font-medium hidden md:block text-gray-700 dark:text-gray-200">{user?.name || 'Guest'}</span>
             </button>
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-soft-shadow py-1 z-50">
-                <a href="#" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
-                <a href="#" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
-                <a href="#" onClick={() => alert('Logout functionality not implemented.')} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
+                <a href="/dashboard/pengaturan/profil" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
+                <a href="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
+                <a href="#" onClick={logout} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
               </div>
             )}
           </div>

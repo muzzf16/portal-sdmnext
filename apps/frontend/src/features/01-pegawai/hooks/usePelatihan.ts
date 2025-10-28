@@ -18,7 +18,7 @@ export const usePelatihan = (employeeId: string) => {
       try {
         setLoading(true);
         const response = await getPelatihan(employeeId);
-        setPelatihan(response.data || []);
+        setPelatihan((response.data || []).map(item => ({ ...item, id: Number(item.id) })));
       } catch (err) {
         setError(err as Error);
       } finally {

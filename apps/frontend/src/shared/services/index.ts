@@ -12,7 +12,6 @@ export * from './onboardingAPI';
 export * from './payrollAPI';
 export * from './performanceAPI';
 export * from './recruitmentAPI';
-export * from './reportAPI';
 export * from './kontrakAPI';
 export * from './laporanAPI';
 export * from './notifikasiAPI';
