@@ -71,6 +71,29 @@ class PenggajianService {
       throw new AppError(`Error deleting payroll: ${error.message}`, 500);
     }
   }
+
+  static async addSalaryComponent(id: string, component: { name: string; type: 'income' | 'deduction'; amount: number }) {
+    try {
+      const payroll = await PenggajianRepository.findById(id);
+      if (!payroll) {
+        throw new AppError('Payroll not found', 404);
+      }
+
+      if (component.type === 'income') {
+        payroll.incomes.push({ name: component.name, amount: component.amount });
+      } else {
+        payroll.deductions.push({ name: component.name, amount: component.amount });
+      }
+
+      return await PenggajianRepository.update(id, payroll);
+
+    } catch (error: any) {
+      if (error.message === 'Payroll not found') {
+        throw error;
+      }
+      throw new AppError(`Error adding salary component: ${error.message}`, 500);
+    }
+  }
 }
 
 export default PenggajianService;

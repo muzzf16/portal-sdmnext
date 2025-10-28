@@ -21,5 +21,5 @@ export const usePenggajian = (id: string) => {
     fetchPenggajian();
   }, [id]);
 
-  return { penggajian, loading, error };
+  return { penggajian, loading, error, setPenggajian };
 };

@@ -2,6 +2,14 @@ import { PelatihanRepository } from './pelatihan.repository';
 import { AppError } from '../../utils/errors';
 
 class PelatihanService {
+  static async getAllPelatihan() {
+    try {
+      return await PelatihanRepository.findAll();
+    } catch (error: any) {
+      throw new AppError(`Error retrieving pelatihan: ${error.message}`, 500);
+    }
+  }
+
   static async getPelatihanByEmployeeId(employeeId: string) {
     try {
       return await PelatihanRepository.findByEmployeeId(employeeId);

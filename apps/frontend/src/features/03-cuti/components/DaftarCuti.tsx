@@ -6,21 +6,27 @@ const DaftarCuti: React.FC = () => {
   const { cuti, loading, error, setCuti } = useCuti();
 
   const handleUpdateStatus = async (id: string, status: string) => {
-    const rejectionReasonPrompt = status.includes('Ditolak') ? prompt('Masukkan alasan penolakan:') : undefined;
-    if (status.includes('Ditolak') && rejectionReasonPrompt === null) return; // User cancelled the prompt
-    const rejectionReason = rejectionReasonPrompt || undefined;
+    let reason: string | undefined;
+    if (status === 'Ditolak') {
+        reason = prompt('Enter rejection reason:');
+        if (reason === null) return; // User cancelled the prompt
+    }
 
-    if (window.confirm(`Apakah Anda yakin ingin ${status.toLowerCase()} permintaan cuti ini?`)) {
+    const confirmAction = status === 'Disetujui' ? 'approve' : 'reject';
+
+    if (window.confirm(`Are you sure you want to ${confirmAction} this leave request?`)) {
       try {
-        await perbaruiStatusPermintaanCuti(id, status, rejectionReason);
+        await perbaruiStatusPermintaanCuti(id, status, reason);
+        // Optimistically update the UI
         setCuti(cuti.map(l => l.id === id ? { ...l, status } : l));
       } catch (error) {
-        // Handle error
+        console.error("Failed to update leave status", error);
+        alert(`Failed to ${confirmAction} leave request.`);
       }
     }
   };
 
-  if (loading) return <div>Memuat...</div>;
+  if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
@@ -28,12 +34,12 @@ const DaftarCuti: React.FC = () => {
       <table className="min-w-full bg-white">
         <thead>
           <tr>
-            <th className="py-2 px-4 border-b">Nama Pegawai</th>
-            <th className="py-2 px-4 border-b">Jenis Cuti</th>
-            <th className="py-2 px-4 border-b">Tanggal Mulai</th>
-            <th className="py-2 px-4 border-b">Tanggal Selesai</th>
+            <th className="py-2 px-4 border-b">Employee Name</th>
+            <th className="py-2 px-4 border-b">Leave Type</th>
+            <th className="py-2 px-4 border-b">Start Date</th>
+            <th className="py-2 px-4 border-b">End Date</th>
             <th className="py-2 px-4 border-b">Status</th>
-            <th className="py-2 px-4 border-b">Aksi</th>
+            <th className="py-2 px-4 border-b">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -47,10 +53,8 @@ const DaftarCuti: React.FC = () => {
               <td className="py-2 px-4 border-b">
                 {l.status === 'Menunggu' && (
                   <>
-                    <button onClick={() => handleUpdateStatus(l.id, 'Disetujui')} className="text-green-500 hover:underline">Setujui</button>
-                    <button onClick={() => handleUpdateStatus(l.id, 'Ditolak')} className="ml-4 text-red-500 hover:underline">Tolak</button>
-                    <button onClick={() => handleUpdateStatus(l.id, 'Disetujui Sistem')} className="ml-4 text-blue-500 hover:underline">Disetujui Sistem</button>
-                    <button onClick={() => handleUpdateStatus(l.id, 'Ditolak Sistem')} className="ml-4 text-orange-500 hover:underline">Ditolak Sistem</button>
+                    <button onClick={() => handleUpdateStatus(l.id, 'Disetujui')} className="text-green-500 hover:underline">Approve</button>
+                    <button onClick={() => handleUpdateStatus(l.id, 'Ditolak')} className="ml-4 text-red-500 hover:underline">Reject</button>
                   </>
                 )}
               </td>

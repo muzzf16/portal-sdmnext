@@ -8,5 +8,6 @@ export interface Penggajian {
   deductions: any[];
   totalIncome: number;
   totalDeductions: number;
+  grossSalary: number;
   netSalary: number;
 }

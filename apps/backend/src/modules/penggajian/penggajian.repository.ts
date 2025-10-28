@@ -4,11 +4,15 @@ import { openDb } from '../../config/db';
 
 // Helper to parse JSON fields from DB results
 const parseJsonFields = (rows: any[]) => {
-  return rows.map(row => ({
-    ...row,
-    incomes: row.incomes ? JSON.parse(row.incomes) : [],
-    deductions: row.deductions ? JSON.parse(row.deductions) : [],
-  }));
+  return rows.map(row => {
+    const grossSalary = row.baseSalary + row.totalIncome;
+    return {
+      ...row,
+      incomes: row.incomes ? JSON.parse(row.incomes) : [],
+      deductions: row.deductions ? JSON.parse(row.deductions) : [],
+      grossSalary,
+    };
+  });
 };
 
 export const PenggajianRepository = {

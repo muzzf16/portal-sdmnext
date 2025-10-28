@@ -62,6 +62,17 @@ class PenggajianController {
       next(error);
     }
   }
+
+  static async addSalaryComponent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const componentData = req.body;
+      const updatedPayroll = await PenggajianService.addSalaryComponent(id, componentData);
+      res.status(200).json(updatedPayroll);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default PenggajianController;
