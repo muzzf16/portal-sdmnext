@@ -6,8 +6,8 @@ const DaftarCuti: React.FC = () => {
   const { cuti, loading, error, setCuti } = useCuti();
 
   const handleUpdateStatus = async (id: string, status: string) => {
-    const rejectionReasonPrompt = status === 'Ditolak' ? prompt('Masukkan alasan penolakan:') : undefined;
-    if (status === 'Ditolak' && rejectionReasonPrompt === null) return; // User cancelled the prompt
+    const rejectionReasonPrompt = status.includes('Ditolak') ? prompt('Masukkan alasan penolakan:') : undefined;
+    if (status.includes('Ditolak') && rejectionReasonPrompt === null) return; // User cancelled the prompt
     const rejectionReason = rejectionReasonPrompt || undefined;
 
     if (window.confirm(`Apakah Anda yakin ingin ${status.toLowerCase()} permintaan cuti ini?`)) {
@@ -49,6 +49,8 @@ const DaftarCuti: React.FC = () => {
                   <>
                     <button onClick={() => handleUpdateStatus(l.id, 'Disetujui')} className="text-green-500 hover:underline">Setujui</button>
                     <button onClick={() => handleUpdateStatus(l.id, 'Ditolak')} className="ml-4 text-red-500 hover:underline">Tolak</button>
+                    <button onClick={() => handleUpdateStatus(l.id, 'Disetujui Sistem')} className="ml-4 text-blue-500 hover:underline">Disetujui Sistem</button>
+                    <button onClick={() => handleUpdateStatus(l.id, 'Ditolak Sistem')} className="ml-4 text-orange-500 hover:underline">Ditolak Sistem</button>
                   </>
                 )}
               </td>
