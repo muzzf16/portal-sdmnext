@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTugasOrientasi, buatTugasOrientasi, perbaruiTugasOrientasi, hapusTugasOrientasi } from '../../../shared/services/orientasiAPI';
-import { OnboardingTask } from '../../../shared/types/types';
+import { TugasOrientasi as OnboardingTask } from '../../../shared/types/types';
 
 const HalamanOrientasiPegawai: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [onboardingTasks, setOnboardingTasks] = useState<OnboardingTask[]>([]);
-  const [loading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [currentTask, setCurrentTask] = useState<Partial<OnboardingTask> | null>(null);
@@ -18,11 +18,14 @@ const HalamanOrientasiPegawai: React.FC = () => {
   }, [id]);
 
   const fetchOnboardingTasks = async (employeeId: string) => {
+    setLoading(true);
     try {
-      const response = await getOnboardingTasks(employeeId);
+      const response = await getTugasOrientasi(employeeId);
       setOnboardingTasks(response.data);
     } catch (err) {
       setError('Gagal mengambil tugas orientasi');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,7 +42,7 @@ const HalamanOrientasiPegawai: React.FC = () => {
   const handleDeleteTask = async (taskId: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus tugas ini?')) {
       try {
-        await deleteOnboardingTask(taskId);
+        await hapusTugasOrientasi(taskId);
         if (id) fetchOnboardingTasks(id);
       } catch (err) {
         setError('Gagal menghapus tugas');
@@ -53,9 +56,9 @@ const HalamanOrientasiPegawai: React.FC = () => {
 
     try {
       if (currentTask.id) {
-        await updateOnboardingTask(currentTask.id, currentTask);
+        await perbaruiTugasOrientasi(currentTask.id, currentTask);
       } else {
-        await createOnboardingTask(id, { ...currentTask, employee_id: id } as Omit<OnboardingTask, 'id'>);
+        await buatTugasOrientasi(id, { ...currentTask, employee_id: id } as Omit<OnboardingTask, 'id'>);
       }
       fetchOnboardingTasks(id);
       setIsModalOpen(false);

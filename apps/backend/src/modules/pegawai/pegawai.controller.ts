@@ -1,4 +1,3 @@
-
 import PegawaiService from './pegawai.service';
 import { AppError } from '../../utils/errors';
 import { Request, Response, NextFunction } from 'express';
@@ -9,7 +8,6 @@ import fs from 'fs';
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Ensure the uploads directory exists
     const uploadDir = 'public/uploads/avatars';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -17,14 +15,12 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Create unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  // Accept only image files
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
@@ -62,7 +58,6 @@ class PegawaiController {
 
   static async createPegawai(req: Request, res: Response, next: NextFunction) {
     try {
-      // Process file upload if avatar is provided
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
         avatarUrl = `/uploads/avatars/${req.file.filename}`;
@@ -70,7 +65,14 @@ class PegawaiController {
 
       const { name, email, ...pegawaiData } = req.body;
 
-      // Add avatarUrl to pegawaiData
+      if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
+        try {
+          pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
+        } catch (e) {
+          return next(new AppError('Invalid educationHistory JSON format.', 400));
+        }
+      }
+
       const newPegawaiData = {
         ...pegawaiData,
         avatarUrl: avatarUrl || '/avatars/default-avatar.jpg'
@@ -85,7 +87,6 @@ class PegawaiController {
 
   static async updatePegawai(req: Request, res: Response, next: NextFunction) {
     try {
-      // Process file upload if avatar is provided
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
         avatarUrl = `/uploads/avatars/${req.file.filename}`;
@@ -94,7 +95,14 @@ class PegawaiController {
       const { id } = req.params;
       const { name, email, ...pegawaiData } = req.body;
 
-      // Add avatarUrl to pegawaiData if it's changed
+      if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
+        try {
+          pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
+        } catch (e) {
+          return next(new AppError('Invalid educationHistory JSON format.', 400));
+        }
+      }
+
       const updatedPegawaiData = {
         ...pegawaiData
       };
