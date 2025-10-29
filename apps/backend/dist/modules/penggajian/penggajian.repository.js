@@ -3,11 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PenggajianRepository = void 0;
 const db_1 = require("../../config/db");
 const parseJsonFields = (rows) => {
-    return rows.map(row => ({
-        ...row,
-        incomes: row.incomes ? JSON.parse(row.incomes) : [],
-        deductions: row.deductions ? JSON.parse(row.deductions) : [],
-    }));
+    return rows.map(row => {
+        const grossSalary = row.baseSalary + row.totalIncome;
+        return {
+            ...row,
+            incomes: row.incomes ? JSON.parse(row.incomes) : [],
+            deductions: row.deductions ? JSON.parse(row.deductions) : [],
+            grossSalary,
+        };
+    });
 };
 exports.PenggajianRepository = {
     async findAll() {

@@ -1,5 +1,22 @@
 export declare const PelatihanRepository: {
-    findByEmployeeId(employeeId: string): Promise<any[]>;
+    findAll(): Promise<{
+        id: any;
+        employeeId: any;
+        trainingName: any;
+        organizer: any;
+        startDate: any;
+        endDate: any;
+        certificate: any;
+    }[]>;
+    findByEmployeeId(employeeId: string): Promise<{
+        id: any;
+        employeeId: any;
+        trainingName: any;
+        organizer: any;
+        startDate: any;
+        endDate: any;
+        certificate: any;
+    }[]>;
     create(employeeId: string, data: {
         nama_pelatihan: string;
         penyelenggara: string;

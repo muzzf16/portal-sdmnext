@@ -7,6 +7,11 @@ declare class PenggajianService {
     static deletePenggajian(id: string): Promise<{
         message: string;
     }>;
+    static addSalaryComponent(id: string, component: {
+        name: string;
+        type: 'income' | 'deduction';
+        amount: number;
+    }): Promise<any>;
 }
 export default PenggajianService;
 //# sourceMappingURL=penggajian.service.d.ts.map

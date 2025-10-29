@@ -72,6 +72,27 @@ class PenggajianService {
             throw new errors_1.AppError(`Error deleting payroll: ${error.message}`, 500);
         }
     }
+    static async addSalaryComponent(id, component) {
+        try {
+            const payroll = await penggajian_repository_1.PenggajianRepository.findById(id);
+            if (!payroll) {
+                throw new errors_1.AppError('Payroll not found', 404);
+            }
+            if (component.type === 'income') {
+                payroll.incomes.push({ name: component.name, amount: component.amount });
+            }
+            else {
+                payroll.deductions.push({ name: component.name, amount: component.amount });
+            }
+            return await penggajian_repository_1.PenggajianRepository.update(id, payroll);
+        }
+        catch (error) {
+            if (error.message === 'Payroll not found') {
+                throw error;
+            }
+            throw new errors_1.AppError(`Error adding salary component: ${error.message}`, 500);
+        }
+    }
 }
 exports.default = PenggajianService;
 //# sourceMappingURL=penggajian.service.js.map

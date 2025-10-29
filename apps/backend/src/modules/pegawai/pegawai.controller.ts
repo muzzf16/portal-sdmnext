@@ -24,7 +24,9 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only images are allowed.'), false);
+    // Pass error as first parameter when validation fails
+    // Using type assertion to handle TypeScript error
+    cb(new Error('Invalid file type. Only images are allowed.') as any, false);
   }
 };
 

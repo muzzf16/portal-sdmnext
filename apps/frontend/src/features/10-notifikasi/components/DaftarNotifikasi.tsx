@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDaftarNotifikasi } from '../hooks/useDaftarNotifikasi';
+import { Table, Badge, Button } from '@/shared/components/ui';
 
 interface DaftarNotifikasiProps {
   employeeId: string;
@@ -8,25 +9,47 @@ interface DaftarNotifikasiProps {
 const DaftarNotifikasi: React.FC<DaftarNotifikasiProps> = ({ employeeId }) => {
   const { daftarNotifikasi, loading, error, markAsRead } = useDaftarNotifikasi(employeeId);
 
-  if (loading) return <div>Memuat...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (loading) return <div className="text-center py-4">Memuat...</div>;
+  if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
+
+  const tableHeaders = ['Pesan', 'Tipe', 'Tanggal', 'Status', 'Aksi'];
 
   return (
-    <div className="mt-8">
-      <ul className="space-y-4">
+    <div className="mt-6">
+      <Table headers={tableHeaders}>
         {Array.isArray(daftarNotifikasi) && daftarNotifikasi.map(notifikasi => (
-          <li key={notifikasi.id} className={`p-4 rounded-md ${notifikasi.is_read ? 'bg-slate-100' : 'bg-blue-100'}`}>
-            <h3 className="font-bold">{notifikasi.message}</h3>
-            <p>Tipe: {notifikasi.type}</p>
-            <span className="text-sm text-slate-500">{new Date(notifikasi.created_at).toLocaleString()}</span>
-            {!notifikasi.is_read && (
-              <button onClick={() => markAsRead(notifikasi.id)} className="ml-4 bg-blue-500 text-white px-2 py-1 rounded text-sm">
-                Tandai Sudah Dibaca
-              </button>
-            )}
-          </li>
+          <tr key={notifikasi.id} className={notifikasi.is_read ? '' : 'bg-blue-50'}>
+            <td className="py-4 px-6 font-medium">{notifikasi.message}</td>
+            <td className="py-4 px-6">
+              <Badge variant={
+                notifikasi.type === 'info' ? 'info' : 
+                notifikasi.type === 'warning' ? 'warning' : 
+                notifikasi.type === 'error' ? 'danger' : 
+                notifikasi.type === 'success' ? 'success' : 'secondary'
+              }>
+                {notifikasi.type}
+              </Badge>
+            </td>
+            <td className="py-4 px-6">{new Date(notifikasi.created_at).toLocaleString('id-ID')}</td>
+            <td className="py-4 px-6">
+              <Badge variant={notifikasi.is_read ? 'secondary' : 'warning'}>
+                {notifikasi.is_read ? 'Dibaca' : 'Belum Dibaca'}
+              </Badge>
+            </td>
+            <td className="py-4 px-6">
+              {!notifikasi.is_read && (
+                <Button 
+                  onClick={() => markAsRead(notifikasi.id)}
+                  variant="secondary" 
+                  size="sm"
+                >
+                  Tandai Sudah Dibaca
+                </Button>
+              )}
+            </td>
+          </tr>
         ))}
-      </ul>
+      </Table>
     </div>
   );
 };

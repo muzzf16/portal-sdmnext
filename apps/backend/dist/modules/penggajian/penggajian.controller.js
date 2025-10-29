@@ -65,6 +65,17 @@ class PenggajianController {
             next(error);
         }
     }
+    static async addSalaryComponent(req, res, next) {
+        try {
+            const { id } = req.params;
+            const componentData = req.body;
+            const updatedPayroll = await penggajian_service_1.default.addSalaryComponent(id, componentData);
+            res.status(200).json(updatedPayroll);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
 }
 exports.default = PenggajianController;
 //# sourceMappingURL=penggajian.controller.js.map

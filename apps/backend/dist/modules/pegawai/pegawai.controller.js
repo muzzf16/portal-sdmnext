@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const pegawai_service_1 = __importDefault(require("./pegawai.service"));
+const errors_1 = require("../../utils/errors");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -62,6 +63,14 @@ class PegawaiController {
                 avatarUrl = `/uploads/avatars/${req.file.filename}`;
             }
             const { name, email, ...pegawaiData } = req.body;
+            if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
+                try {
+                    pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
+                }
+                catch (e) {
+                    return next(new errors_1.AppError('Invalid educationHistory JSON format.', 400));
+                }
+            }
             const newPegawaiData = {
                 ...pegawaiData,
                 avatarUrl: avatarUrl || '/avatars/default-avatar.jpg'
@@ -81,6 +90,14 @@ class PegawaiController {
             }
             const { id } = req.params;
             const { name, email, ...pegawaiData } = req.body;
+            if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
+                try {
+                    pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
+                }
+                catch (e) {
+                    return next(new errors_1.AppError('Invalid educationHistory JSON format.', 400));
+                }
+            }
             const updatedPegawaiData = {
                 ...pegawaiData
             };

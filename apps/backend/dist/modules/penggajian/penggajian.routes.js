@@ -12,5 +12,6 @@ router.get('/employee/:id', penggajian_controller_1.default.getPenggajianByEmplo
 router.post('/', penggajian_controller_1.default.createPenggajian);
 router.put('/:id', penggajian_controller_1.default.updatePenggajian);
 router.delete('/:id', penggajian_controller_1.default.deletePenggajian);
+router.post('/:id/components', penggajian_controller_1.default.addSalaryComponent);
 exports.default = router;
 //# sourceMappingURL=penggajian.routes.js.map

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const pelatihan_controller_1 = __importDefault(require("./pelatihan.controller"));
 const router = (0, express_1.Router)();
+router.get('/', pelatihan_controller_1.default.getAllPelatihan);
 router.get('/employee/:id', pelatihan_controller_1.default.getPelatihanByEmployeeId);
 router.post('/employee/:id', pelatihan_controller_1.default.addPelatihan);
 exports.default = router;

@@ -342,21 +342,21 @@ const HalamanDetailPegawai: React.FC = () => {
                           <Award className="h-8 w-8 text-primary-600 dark:text-primary-400" />
                         </div>
                         <div className="ml-4">
-                          <h4 className="text-lg font-medium text-gray-900 dark:text-white">{item.nama_pelatihan}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{item.penyelenggara}</p>
+                          <h4 className="text-lg font-medium text-gray-900 dark:text-white">{item.nama_pelatihan || item.trainingName}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{item.penyelenggara || item.organizer}</p>
                           
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
                               <Calendar className="h-3 w-3 mr-1" />
-                              {item.tanggal_mulai 
-                                ? new Date(item.tanggal_mulai).toLocaleDateString('id-ID') 
+                              {item.tanggal_mulai || item.startDate
+                                ? new Date(item.tanggal_mulai || item.startDate).toLocaleDateString('id-ID') 
                                 : '-'}
                             </span>
                             
-                            {item.nomor_sertifikat && (
+                            {(item.nomor_sertifikat || item.certificate) && (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
                                 <FileText className="h-3 w-3 mr-1" />
-                                {item.nomor_sertifikat}
+                                {item.nomor_sertifikat || item.certificate}
                               </span>
                             )}
                           </div>

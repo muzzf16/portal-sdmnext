@@ -1,36 +1,39 @@
 import React from 'react';
 import { useAbsensi } from '../hooks/useAbsensi';
+import { Table, Badge } from '@/shared/components/ui';
 
 const DaftarAbsensi: React.FC = () => {
   const { absensi, loading, error } = useAbsensi();
 
-  if (loading) return <div>Memuat...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (loading) return <div className="text-center py-4">Memuat...</div>;
+  if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
+
+  const tableHeaders = ['Tanggal', 'Jam Masuk', 'Jam Keluar', 'Status', 'Durasi Kerja'];
 
   return (
-    <div className="mt-8">
-      <table className="min-w-full bg-white">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">Tanggal</th>
-            <th className="py-2 px-4 border-b">Jam Masuk</th>
-            <th className="py-2 px-4 border-b">Jam Keluar</th>
-            <th className="py-2 px-4 border-b">Status</th>
-            <th className="py-2 px-4 border-b">Durasi Kerja</th>
+    <div className="mt-6">
+      <Table headers={tableHeaders}>
+        {absensi.map(record => (
+          <tr key={record.id}>
+            <td className="py-4 px-6">{record.date}</td>
+            <td className="py-4 px-6">{record.clockIn || '-'}</td>
+            <td className="py-4 px-6">{record.clockOut || '-'}</td>
+            <td className="py-4 px-6">
+              <Badge 
+                variant={
+                  record.status === 'hadir' ? 'success' : 
+                  record.status === 'izin' ? 'info' : 
+                  record.status === 'sakit' ? 'warning' : 
+                  record.status === 'cuti' ? 'secondary' : 'danger'
+                }
+              >
+                {record.status}
+              </Badge>
+            </td>
+            <td className="py-4 px-6">{record.workDuration || '-'}</td>
           </tr>
-        </thead>
-        <tbody>
-          {absensi.map(record => (
-            <tr key={record.id}>
-              <td className="py-2 px-4 border-b">{record.date}</td>
-              <td className="py-2 px-4 border-b">{record.clockIn}</td>
-              <td className="py-2 px-4 border-b">{record.clockOut}</td>
-              <td className="py-2 px-4 border-b">{record.status}</td>
-              <td className="py-2 px-4 border-b">{record.workDuration}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </Table>
     </div>
   );
 };

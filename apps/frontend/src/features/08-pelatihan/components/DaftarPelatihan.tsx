@@ -1,44 +1,41 @@
 import React from 'react';
 import { usePelatihan } from '../hooks/usePelatihan';
+import { Table } from '@/shared/components/ui';
 
 const DaftarPelatihan: React.FC = () => {
   const { pelatihan, loading, error } = usePelatihan();
 
-  if (loading) return <div>Memuat...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (loading) return <div className="text-center py-4">Memuat...</div>;
+  if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
+
+  const tableHeaders = ['Nama Pelatihan', 'Penyelenggara', 'Tanggal Mulai', 'Tanggal Selesai', 'Sertifikat'];
 
   return (
-    <div className="mt-8">
-      <table className="min-w-full bg-white">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">Nama Pelatihan</th>
-            <th className="py-2 px-4 border-b">Penyelenggara</th>
-            <th className="py-2 px-4 border-b">Tanggal Mulai</th>
-            <th className="py-2 px-4 border-b">Tanggal Selesai</th>
-            <th className="py-2 px-4 border-b">Sertifikat</th>
+    <div className="mt-6">
+      <Table headers={tableHeaders}>
+        {pelatihan.map(item => (
+          <tr key={item.id}>
+            <td className="py-4 px-6">{item.trainingName}</td>
+            <td className="py-4 px-6">{item.organizer}</td>
+            <td className="py-4 px-6">{new Date(item.startDate).toLocaleDateString('id-ID')}</td>
+            <td className="py-4 px-6">{new Date(item.endDate).toLocaleDateString('id-ID')}</td>
+            <td className="py-4 px-6">
+              {item.certificate ? (
+                <a 
+                  href={item.certificate} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center px-3 py-1 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
+                >
+                  Lihat Sertifikat
+                </a>
+              ) : (
+                <span className="text-gray-500">-</span>
+              )}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {pelatihan.map(item => (
-            <tr key={item.id}>
-              <td className="py-2 px-4 border-b">{item.trainingName}</td>
-              <td className="py-2 px-4 border-b">{item.organizer}</td>
-              <td className="py-2 px-4 border-b">{item.startDate}</td>
-              <td className="py-2 px-4 border-b">{item.endDate}</td>
-              <td className="py-2 px-4 border-b">
-                {item.certificate ? (
-                  <a href={item.certificate} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                    Lihat
-                  </a>
-                ) : (
-                  '-'
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </Table>
     </div>
   );
 };

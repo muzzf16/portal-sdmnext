@@ -18,7 +18,22 @@ export const usePelatihan = (employeeId: string) => {
       try {
         setLoading(true);
         const response = await getPelatihan(employeeId);
-        setPelatihan((response.data || []).map(item => ({ ...item, id: Number(item.id) })));
+        // Map the response to the local Pelatihan type to ensure consistent field names
+        const mappedData = (response.data || []).map(item => {
+          // Handle both naming conventions (English and Indonesian)
+          return {
+            id: Number(item.id) || Number(item.id),
+            pegawai_id: Number(item.pegawai_id) || Number(item.employeeId),
+            nama_pelatihan: item.nama_pelatihan || item.trainingName,
+            penyelenggara: item.penyelenggara || item.organizer,
+            tanggal_mulai: item.tanggal_mulai || item.startDate,
+            tanggal_selesai: item.tanggal_selesai || item.endDate,
+            nomor_sertifikat: item.nomor_sertifikat || item.certificate,
+            durasi: item.durasi,
+            deskripsi: item.deskripsi,
+          } as Pelatihan;
+        });
+        setPelatihan(mappedData);
       } catch (err) {
         setError(err as Error);
       } finally {
