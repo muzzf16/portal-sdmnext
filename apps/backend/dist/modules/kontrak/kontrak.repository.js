@@ -39,6 +39,19 @@ exports.KontrakRepository = {
         const db = await (0, db_1.openDb)();
         await db.run('DELETE FROM kontrak WHERE id = ?', id);
         return { id };
+    },
+    async findExpiringContracts() {
+        const db = await (0, db_1.openDb)();
+        const rows = await db.all(`
+      SELECT * FROM kontrak 
+      WHERE status = 'active' 
+      AND endDate IN (
+        date('now', '+30 days'),
+        date('now', '+14 days'),
+        date('now', '+7 days')
+      )
+    `);
+        return parseJsonFields(rows);
     }
 };
 //# sourceMappingURL=kontrak.repository.js.map

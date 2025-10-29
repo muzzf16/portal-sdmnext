@@ -79,6 +79,15 @@ exports.PenggajianRepository = {
         const db = await (0, db_1.openDb)();
         const result = await db.run('DELETE FROM penggajian WHERE id = ?', id);
         return !!(result.changes && result.changes > 0);
+    },
+    async findRecentlyProcessed() {
+        const db = await (0, db_1.openDb)();
+        const rows = await db.all(`
+      SELECT * FROM penggajian 
+      WHERE datetime('now') - datetime(created_at) <= 86400  -- Last 24 hours
+      ORDER BY created_at DESC
+    `);
+        return parseJsonFields(rows);
     }
 };
 //# sourceMappingURL=penggajian.repository.js.map

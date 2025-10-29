@@ -8,5 +8,6 @@ export declare const PenilaianKinerjaRepository: {
         message: string;
     }>;
     delete(id: string): Promise<boolean>;
+    findUpcomingReviews(): Promise<any[]>;
 };
 //# sourceMappingURL=penilaianKinerja.repository.d.ts.map

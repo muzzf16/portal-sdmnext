@@ -17,6 +17,7 @@ const notifikasi_routes_1 = __importDefault(require("../modules/notifikasi/notif
 const kontrak_routes_1 = __importDefault(require("../modules/kontrak/kontrak.routes"));
 const pelatihan_routes_1 = __importDefault(require("../modules/pelatihan/pelatihan.routes"));
 const laporan_routes_1 = __importDefault(require("../modules/laporan/laporan.routes"));
+const dashboard_routes_1 = __importDefault(require("../modules/dashboard/dashboard.routes"));
 const upload_1 = __importDefault(require("./upload"));
 const router = (0, express_1.Router)();
 router.use('/auth', auth_pengguna_routes_1.default);
@@ -32,6 +33,7 @@ router.use('/notifikasi', notifikasi_routes_1.default);
 router.use('/contracts', kontrak_routes_1.default);
 router.use('/pelatihan', pelatihan_routes_1.default);
 router.use('/reports', laporan_routes_1.default);
+router.use('/dashboard', dashboard_routes_1.default);
 router.use('/', upload_1.default);
 exports.default = router;
 //# sourceMappingURL=index.js.map

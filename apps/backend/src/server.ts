@@ -1,12 +1,21 @@
 import app from './app';
+import Scheduler from './jobs/scheduler';
 
 const PORT = parseInt(process.env.PORT || '3333', 10);
 
 const server = app.listen(PORT, () => console.log(`API running on ${PORT}`));
 
+// Start the scheduler for automated reminders
+const scheduler = Scheduler.getInstance();
+scheduler.startAllJobs();
+
 // Graceful shutdown
 const shutdown = (signal: string) => {
 	console.log(`Received ${signal}. Shutting down gracefully...`);
+	
+	// Stop all scheduled jobs
+	scheduler.stopAllJobs();
+	
 	server.close(() => {
 		console.log('Closed out remaining connections.');
 		process.exit(0);

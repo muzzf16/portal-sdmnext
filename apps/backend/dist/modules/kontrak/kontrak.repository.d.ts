@@ -7,5 +7,6 @@ export declare const KontrakRepository: {
     delete(id: string): Promise<{
         id: string;
     }>;
+    findExpiringContracts(): Promise<any[]>;
 };
 //# sourceMappingURL=kontrak.repository.d.ts.map

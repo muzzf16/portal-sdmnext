@@ -1,1 +1,1 @@
-{"version":3,"file":"penggajian.repository.d.ts","sourceRoot":"","sources":["../../../src/modules/penggajian/penggajian.repository.ts"],"names":[],"mappings":"AAiBA,eAAO,MAAM,oBAAoB;;iBAOZ,MAAM;iCAOU,MAAM;iBAMtB,GAAG;eA+BL,MAAM,QAAQ,GAAG;eA4BjB,MAAM;CAKxB,CAAC"}
+{"version":3,"file":"penggajian.repository.d.ts","sourceRoot":"","sources":["../../../src/modules/penggajian/penggajian.repository.ts"],"names":[],"mappings":"AAiBA,eAAO,MAAM,oBAAoB;;iBAOZ,MAAM;iCAOU,MAAM;iBAMtB,GAAG;eA+BL,MAAM,QAAQ,GAAG;eA4BjB,MAAM;;CAgBxB,CAAC"}

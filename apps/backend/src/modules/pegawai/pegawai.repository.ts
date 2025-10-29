@@ -61,6 +61,7 @@ export const PegawaiRepository = {
       workHistory: JSON.stringify(data.workHistory || []),
       trainingCertificates: JSON.stringify(data.trainingCertificates || []),
       payrollInfo: JSON.stringify(data.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] }),
+      tanggal_keluar: data.tanggal_keluar || null, // For turnover analysis
     };
 
     const columns = Object.keys(pegawaiData);
@@ -81,7 +82,7 @@ export const PegawaiRepository = {
       'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone', 
       'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren', 
       'educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo',
-      'jenis_kelamin'
+      'jenis_kelamin', 'tanggal_keluar'
     ];
 
     const fieldsToUpdate: any = {};
@@ -192,5 +193,16 @@ export const PegawaiRepository = {
     });
     
     return Object.entries(educationCount).map(([name, employees]) => ({ name, employees }));
+  },
+
+  // Additional method for comprehensive employee report data
+  async getEmployeeReportData() {
+    const db = await openDb();
+    const rows = await db.all(`
+      SELECT id, nip, name, email, position, department, joinDate, jenis_kelamin, isActive, tanggal_keluar
+      FROM pegawai
+      ORDER BY name ASC
+    `);
+    return rows;
   }
 };

@@ -80,6 +80,16 @@ exports.PenilaianKinerjaRepository = {
         const db = await (0, db_1.openDb)();
         const result = await db.run('DELETE FROM penilaian_kinerja WHERE id = ?', id);
         return !!(result.changes && result.changes > 0);
+    },
+    async findUpcomingReviews() {
+        const db = await (0, db_1.openDb)();
+        const rows = await db.all(`
+      SELECT * FROM penilaian_kinerja 
+      WHERE status = 'Scheduled'
+      AND reviewDate BETWEEN date('now') AND date('now', '+30 days')
+      ORDER BY reviewDate ASC
+    `);
+        return parseJsonFields(rows);
     }
 };
 //# sourceMappingURL=penilaianKinerja.repository.js.map

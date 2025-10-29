@@ -7,5 +7,6 @@ export declare const PermintaanCutiRepository: {
         message: string;
     }>;
     delete(id: string): Promise<boolean>;
+    findRecentlyProcessed(): Promise<any[]>;
 };
 //# sourceMappingURL=permintaanCuti.repository.d.ts.map

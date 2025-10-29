@@ -16,5 +16,6 @@ export declare const PegawaiRepository: {
         name: string;
         employees: number;
     }[]>;
+    getEmployeeReportData(): Promise<any[]>;
 };
 //# sourceMappingURL=pegawai.repository.d.ts.map

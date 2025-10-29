@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import authRoutes from '../modules/pengguna/auth.pengguna.routes';
 import employeeRoutes from '../modules/pegawai/pegawai.routes';
@@ -13,6 +12,7 @@ import notificationRoutes from '../modules/notifikasi/notifikasi.routes';
 import contractRoutes from '../modules/kontrak/kontrak.routes';
 import pelatihanRoutes from '../modules/pelatihan/pelatihan.routes';
 import reportRoutes from '../modules/laporan/laporan.routes';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes';
 import uploadRoutes from './upload';
 
 const router = Router();
@@ -30,6 +30,7 @@ router.use('/notifikasi', notificationRoutes);
 router.use('/contracts', contractRoutes);
 router.use('/pelatihan', pelatihanRoutes);
 router.use('/reports', reportRoutes);
+router.use('/dashboard', dashboardRoutes);
 router.use('/', uploadRoutes);
 
 export default router;

@@ -104,5 +104,17 @@ export const PermintaanCutiRepository = {
     const db = await openDb();
     const result = await db.run('DELETE FROM permintaan_cuti WHERE id = ?', id);
     return !!(result.changes && result.changes > 0);
+  },
+
+  // New method for finding recently processed leave requests
+  async findRecentlyProcessed() {
+    const db = await openDb();
+    const rows = await db.all(`
+      SELECT * FROM permintaan_cuti 
+      WHERE status IN ('Disetujui', 'Ditolak')
+      AND datetime('now') - datetime(created_at) <= 86400  -- Last 24 hours
+      ORDER BY created_at DESC
+    `);
+    return parseJsonFields(rows);
   }
 };

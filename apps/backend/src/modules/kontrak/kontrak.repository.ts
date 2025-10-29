@@ -69,5 +69,21 @@ export const KontrakRepository = {
     const db = await openDb();
     await db.run('DELETE FROM kontrak WHERE id = ?', id);
     return { id };
+  },
+
+  // New method for finding expiring contracts
+  async findExpiringContracts() {
+    const db = await openDb();
+    // Find contracts expiring in 30, 14, and 7 days
+    const rows = await db.all(`
+      SELECT * FROM kontrak 
+      WHERE status = 'active' 
+      AND endDate IN (
+        date('now', '+30 days'),
+        date('now', '+14 days'),
+        date('now', '+7 days')
+      )
+    `);
+    return parseJsonFields(rows);
   }
 };

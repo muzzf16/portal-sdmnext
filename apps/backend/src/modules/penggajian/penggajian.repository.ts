@@ -98,5 +98,16 @@ export const PenggajianRepository = {
     const db = await openDb();
     const result = await db.run('DELETE FROM penggajian WHERE id = ?', id);
     return !!(result.changes && result.changes > 0);
+  },
+
+  // New method for finding recently processed payrolls
+  async findRecentlyProcessed() {
+    const db = await openDb();
+    const rows = await db.all(`
+      SELECT * FROM penggajian 
+      WHERE datetime('now') - datetime(created_at) <= 86400  -- Last 24 hours
+      ORDER BY created_at DESC
+    `);
+    return parseJsonFields(rows);
   }
 };

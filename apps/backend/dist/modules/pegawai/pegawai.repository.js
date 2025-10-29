@@ -59,6 +59,7 @@ exports.PegawaiRepository = {
             workHistory: JSON.stringify(data.workHistory || []),
             trainingCertificates: JSON.stringify(data.trainingCertificates || []),
             payrollInfo: JSON.stringify(data.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] }),
+            tanggal_keluar: data.tanggal_keluar || null,
         };
         const columns = Object.keys(pegawaiData);
         const placeholders = columns.map(() => '?').join(',');
@@ -74,7 +75,7 @@ exports.PegawaiRepository = {
             'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone',
             'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren',
             'educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo',
-            'jenis_kelamin'
+            'jenis_kelamin', 'tanggal_keluar'
         ];
         const fieldsToUpdate = {};
         for (const key of Object.keys(data)) {
@@ -168,6 +169,15 @@ exports.PegawaiRepository = {
             }
         });
         return Object.entries(educationCount).map(([name, employees]) => ({ name, employees }));
+    },
+    async getEmployeeReportData() {
+        const db = await (0, db_1.openDb)();
+        const rows = await db.all(`
+      SELECT id, nip, name, email, position, department, joinDate, jenis_kelamin, isActive, tanggal_keluar
+      FROM pegawai
+      ORDER BY name ASC
+    `);
+        return rows;
     }
 };
 //# sourceMappingURL=pegawai.repository.js.map

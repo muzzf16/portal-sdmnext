@@ -126,7 +126,7 @@ describe('DashboardLayout', () => {
     
     render(
       <MemoryRouter>
-        <AuthContext.Provider value={{...mockAuthContext, logout: jest.fn()}>
+        <AuthContext.Provider value={{...mockAuthContext, logout: jest.fn()}}>
           <DashboardLayout />
         </AuthContext.Provider>
       </MemoryRouter>

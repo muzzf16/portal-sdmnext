@@ -4,10 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
+const scheduler_1 = __importDefault(require("./jobs/scheduler"));
 const PORT = parseInt(process.env.PORT || '3333', 10);
 const server = app_1.default.listen(PORT, () => console.log(`API running on ${PORT}`));
+const scheduler = scheduler_1.default.getInstance();
+scheduler.startAllJobs();
 const shutdown = (signal) => {
     console.log(`Received ${signal}. Shutting down gracefully...`);
+    scheduler.stopAllJobs();
     server.close(() => {
         console.log('Closed out remaining connections.');
         process.exit(0);
