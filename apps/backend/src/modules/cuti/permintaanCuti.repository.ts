@@ -112,8 +112,8 @@ export const PermintaanCutiRepository = {
     const rows = await db.all(`
       SELECT * FROM permintaan_cuti 
       WHERE status IN ('Disetujui', 'Ditolak')
-      AND datetime('now') - datetime(created_at) <= 86400  -- Last 24 hours
-      ORDER BY created_at DESC
+      AND datetime('now') - datetime(createdAt) <= 86400  -- Last 24 hours
+      ORDER BY createdAt DESC
     `);
     return parseJsonFields(rows);
   }

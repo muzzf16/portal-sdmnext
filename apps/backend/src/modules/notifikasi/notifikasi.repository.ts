@@ -9,13 +9,13 @@ const parseJsonFields = (rows: any[]) => {
 export const NotifikasiRepository = {
   async findByEmployeeId(employeeId: string) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM notifikasi WHERE employee_id = ? ORDER BY created_at DESC', employeeId);
+    const rows = await db.all('SELECT id, employee_id, message, type, is_read, created_at, scheduled_for, delivery_channel, related_entity, related_entity_id FROM notifikasi WHERE employee_id = ? ORDER BY created_at DESC', employeeId);
     return parseJsonFields(rows);
   },
 
   async findUnreadByEmployeeId(employeeId: string) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM notifikasi WHERE employee_id = ? AND is_read = 0 ORDER BY created_at DESC', employeeId);
+    const rows = await db.all('SELECT id, employee_id, message, type, is_read, created_at, scheduled_for, delivery_channel, related_entity, related_entity_id FROM notifikasi WHERE employee_id = ? AND is_read = 0 ORDER BY created_at DESC', employeeId);
     return parseJsonFields(rows);
   },
 
@@ -23,21 +23,21 @@ export const NotifikasiRepository = {
     const db = await openDb();
     const { employee_id, message, type = 'info', delivery_channel = 'in_app', related_entity, related_entity_id, scheduled_for } = notificationData;
     const result = await db.run(
-      `INSERT INTO notifikasi (employee_id, message, type, delivery_channel, related_entity, related_entity_id, scheduled_for) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      employee_id, message, type, delivery_channel, related_entity, related_entity_id, scheduled_for
+      `INSERT INTO notifikasi (employee_id, message, type, is_read, created_at, scheduled_for, delivery_channel, related_entity, related_entity_id) 
+       VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)`,
+      employee_id, message, type, 0, scheduled_for, delivery_channel, related_entity, related_entity_id
     );
     return { 
       id: result.lastID, 
       employee_id, 
       message, 
       type, 
+      is_read: false, 
+      created_at: new Date().toISOString(),
+      scheduled_for,
       delivery_channel,
       related_entity,
-      related_entity_id,
-      scheduled_for,
-      is_read: false, 
-      created_at: new Date().toISOString() 
+      related_entity_id
     };
   },
 
@@ -51,7 +51,7 @@ export const NotifikasiRepository = {
     const db = await openDb();
     // Get notifications that are scheduled for delivery and not yet sent
     const rows = await db.all(
-      'SELECT * FROM notifikasi WHERE scheduled_for IS NOT NULL AND scheduled_for <= datetime("now") AND is_read = 0'
+      'SELECT id, employee_id, message, type, is_read, created_at, scheduled_for, delivery_channel, related_entity, related_entity_id FROM notifikasi WHERE scheduled_for IS NOT NULL AND scheduled_for <= datetime("now") AND is_read = 0'
     );
     return parseJsonFields(rows);
   }

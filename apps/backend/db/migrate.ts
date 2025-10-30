@@ -197,6 +197,10 @@ export const initializeDb = async () => {
       type TEXT,
       is_read INTEGER,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      scheduled_for TEXT,
+      delivery_channel TEXT,
+      related_entity TEXT,
+      related_entity_id TEXT,
       FOREIGN KEY(employee_id) REFERENCES pegawai(id)
     );
   `);

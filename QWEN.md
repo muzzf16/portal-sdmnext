@@ -1,50 +1,17 @@
+# PORTALS-SDM - HRMS (Human Resource Management System) - Development Context
 
-**portal-sdm** adalah HRMS modular full-stack:
+## Project Overview
 
-* Frontend: **React + TypeScript + Vite + Tailwind**
-* Backend: **Node.js + Express + sqlite3** (penggunaan `sqlite3` package)
-* Deployment: **VPS** (Nginx reverse proxy) + **PM2** untuk proses Node.js
-* Pattern: Feature-based modular architecture (frontend `features/*`, backend `modules/*`)
-* Goal: production-ready, maintainable, skalabel untuk tim pengembang.
+PORTALS-SDM is a comprehensive Human Resource Management System built as a full-stack application with a React frontend and Node.js/Express backend. The system is designed to manage all aspects of human resource operations including employee data, attendance, leave, payroll, performance, training, recruitment, contracts, and analytics.
 
----
+The project follows a modern architecture using TypeScript throughout, with SQLite as the database. It's organized in a monorepo structure with separate backend and frontend applications under the `apps/` directory.
 
-## Table of contents
-
-1. Project layout (monorepo)
-2. Frontend architecture (struktur & detail)
-3. Backend architecture (struktur, contoh file, run)
-4. API spec (endpoints utama + contoh request/response)
-5. Database schema (sqlite3) — tabel inti & field
-6. Data flow (text diagram)
-7. Auth, security & best practices
-8. Local development & npm scripts
-9. Testing & CI recommendations
-10. Deployment guide (VPS + Nginx + PM2)
-11. Docs & maintenance checklist
-
----
-**STRUKTUR MODUL UTAMA**
-| Modul                                            | Fungsi Utama                                                                   | Catatan                                             |
-| ------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **1. Master Data Pegawai**                       | Menyimpan dan mengelola seluruh informasi karyawan.                            | Dasar semua modul lain.                             |
-| **2. Absensi & Kehadiran**                       | Catat jam masuk, keluar, lembur, izin, keterlambatan.                          | Bisa manual atau terhubung alat (fingerprint/RFID). |
-| **3. Cuti & Izin**                               | Manajemen cuti tahunan, sakit, dll.                                            | Termasuk sistem approval berjenjang.                |
-| **4. Penggajian (Payroll)**                      | Hitung gaji otomatis berdasarkan absensi, tunjangan, potongan.                 | Integrasi ke BPJS, pajak, pinjaman, lembur.         |
-| **5. Manajemen Kontrak & Jabatan**               | Kelola masa kontrak, promosi, mutasi, atau demosi.                             | Reminder otomatis saat kontrak hampir habis.        |
-| **6. Penilaian Kinerja (Performance Appraisal)** | Evaluasi kinerja, KPI, skor, feedback.                                         | Bisa input supervisor dan rekan kerja.              |
-| **7. Rekrutmen & Onboarding**                    | Modul untuk lamaran kerja, seleksi, dan orientasi.                             | Menyimpan data kandidat.                            |
-| **8. Pelatihan & Sertifikasi (Training)**        | Riwayat pelatihan dan sertifikat pegawai.                                      | Bisa dilampirkan file PDF/scan sertifikat.          |
-| **9. Laporan & Analitik**                        | Laporan bulanan: absensi, gaji, kinerja, cuti, turnover.                       | Export PDF/Excel dan dashboard statistik.           |
-| **10. Notifikasi & Pengingat Otomatis**          | Email/WhatsApp reminder: cuti disetujui, kontrak habis, lembur disetujui, dll. | Bisa pakai API WA atau email gateway.               |
-
-
-## 1. Project layout (monorepo)
+## Project Structure
 
 ```
-hrms/
+sistem-manajemen-sdm/
 ├── apps/
-│   ├── backend/           # Node/Express API (sqlite3)
+│   ├── backend/           # Node/Express API (SQLite)
 │   │   ├── package.json
 │   │   ├── src/
 │   │   │   ├── config/
@@ -61,9 +28,8 @@ hrms/
 │   │   │   │   ├── authMiddleware.ts
 │   │   │   │   └── errorHandler.ts
 │   │   │   ├── utils/
-│   │   │   ├── app.ts
-│   │   │   └── server.ts
-│   │   └── database.sqlite
+│   │   ├── app.ts
+│   │   └── server.ts
 │   └── frontend/
 │       ├── package.json
 │       ├── vite.config.ts
@@ -77,505 +43,216 @@ hrms/
 │           ├── routes/
 │           ├── styles/
 │           └── main.tsx
-├── packages/
-│   ├── shared/   # (optional) shared types & helpers across apps
-│   └── ui/       # (optional) shared react-ui package
 ├── docs/
-│   └── QWEN.md (QWEN architecture document)
 ├── .env
 └── README.md
 ```
 
----
+## Technologies Used
 
-## 2. Frontend architecture (struktur & detail)
+### Frontend
+- React with TypeScript
+- Vite as build tool
+- Tailwind CSS for styling
+- React Router for navigation
+- Recharts for data visualization
+- Lucide React for icons
+- TanStack Query for data fetching
+- React Hook Form for form management
 
-### 2.1 Prinsip
+### Backend
+- Node.js with Express
+- SQLite as database
+- TypeScript for type safety
+- bcrypt for password hashing
+- jsonwebtoken for authentication
+- express-validator for input validation
+- Helmet for security
+- CORS for cross-origin requests
+- Multer for file uploads
 
-* **Feature-sliced**: setiap fitur punya subfolder (`components`, `hooks`, `pages`, `api`, `types`).
-* **Shared** menyimpan komponen UI (Button, Card, Table), hooks global (useApi), utils, dan type definitions.
-* **Providers**: `AuthProvider`, `NotificationProvider`, `ToastProvider`, `LayoutProvider`.
-* **Routing**: React Router v6+ dengan `DashboardLayout` (Sidebar + Header + Outlet).
+## Implemented Modules
 
-### 2.2 Contoh folder `src/` (frontend)
+The system has completed implementation of all 10 planned modules:
 
-```
-src/
-├── app/
-│   ├── App.tsx
-│   ├── providers/
-│   │   ├── AuthProvider.tsx
-│   │   └── index.tsx  (AppProviders)
-│   └── layout/
-│       └── DashboardLayout.tsx
-├── features/
-│   ├── 01-employee/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── pages/
-│   └── ...
-├── shared/
-│   ├── components/ui/
-│   ├── hooks/
-│   ├── utils/
-│   └── types/
-├── routes/
-├── styles/global.css
-└── main.tsx
-```
+### Core Modules
+1. **Employee Management** - Complete employee profiles with history
+2. **Attendance Management** - Clock-in/clock-out system with tracking
+3. **Leave Management** - Leave requests with approval workflow
+4. **Payroll Management** - Automated salary calculation
+5. **Performance Review** - KPI-based performance tracking
+6. **Training Management** - Training and certification tracking
+7. **Contract & Position Management** - Contract and job history
+8. **Recruitment & Onboarding** - Candidate and new hire management
+9. **Reports & Analytics** - Comprehensive reporting with builder
+10. **Notifications & Automated Reminders** - System notifications
 
-### 2.3 Best practices frontend
+### Enhanced Features
+- **Dashboard Analytics** - Executive dashboards with real-time metrics
+- **Custom Report Builder** - Flexible report creation capabilities
+- **Automated Notification System** - Scheduled reminders and alerts
+- **Job Scheduling System** - Automated task execution
 
-* Use `React Query` / `TanStack Query` (opsional) untuk caching server state.
-* `useApi` hook menggunakan Axios with baseURL `process.env.VITE_API_BASE`.
-* Lazy load route components (`React.lazy` + `Suspense`).
-* Centralized ErrorBoundary at App root.
-* Tailwind theme tokens (colors, spacing) di `tailwind.config.ts`.
-
----
-
-## 3. Backend architecture (struktur, contoh file, run)
-
-### 3.1 Prinsip
-
-* Layers: Controller → Service → Repository → DB
-* `sqlite3` package untuk koneksi (simple). Alternatif: better-sqlite3 (sync) atau Drizzle ORM jika ingin type-safe.
-* Modular per domain (employee, attendance, payroll, ...).
-
-### 3.2 Contoh `apps/backend/src` (ringkas)
-
-```
-src/
-├── config/
-│   └── db.ts
-├── modules/
-│   └── employee/
-│       ├── employee.controller.ts
-│       ├── employee.service.ts
-│       └── employee.repository.ts
-├── routes/
-│   └── index.ts
-├── middleware/
-│   ├── authMiddleware.ts
-│   └── errorHandler.ts
-├── utils/
-│   ├── jwt.ts
-│   └── response.ts
-├── app.ts
-└── server.ts
-```
-
-### 3.3 Contoh `db.ts` (sqlite3)
-
-```ts
-// src/config/db.ts
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-
-export async function openDb() {
-  return open({
-    filename: process.env.DB_SOURCE || './database.sqlite',
-    driver: sqlite3.Database
-  });
-}
-```
-
-### 3.4 Contoh `employee.repository.ts`
-
-```ts
-// src/modules/employee/employee.repository.ts
-import { openDb } from '../../config/db';
-
-export const EmployeeRepository = {
-  async findAll() {
-    const db = await openDb();
-    return db.all('SELECT * FROM employees ORDER BY nama ASC');
-  },
-
-  async findById(id:number) {
-    const db = await openDb();
-    return db.get('SELECT * FROM employees WHERE id = ?', id);
-  },
-
-  async create(payload:any) {
-    const db = await openDb();
-    const result = await db.run(
-      `INSERT INTO employees (nama, nip, jabatan, departemen, tanggal_masuk) VALUES (?, ?, ?, ?, ?)`,
-      payload.nama, payload.nip, payload.jabatan, payload.departemen, payload.tanggal_masuk
-    );
-    return result.lastID;
-  }
-}
-```
-
-### 3.5 Contoh `server.ts` & `app.ts`
-
-```ts
-// src/app.ts
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import routes from './routes';
-import errorHandler from './middleware/errorHandler';
-
-const app = express();
-app.use(helmet());
-app.use(express.json());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
-app.use('/api', routes);
-app.use(errorHandler);
-export default app;
-
-// src/server.ts
-import app from './app';
-const PORT = process.env.PORT || 3333;
-app.listen(PORT, () => console.log(`API running on ${PORT}`));
-```
-
----
-
-## 4. API spec (endpoints utama)
-
-> Semua endpoint bawah path `/api`
+## API Endpoints
 
 ### Auth
-
-* `POST /auth/login` — body `{email, password}` → returns `{ accessToken, refreshToken, user }`
-* `POST /auth/refresh` — body `{ refreshToken }` → returns new tokens
+- `POST /auth/login` — login users
+- `POST /auth/refresh` — refresh tokens
 
 ### Employee
-
-* `GET /employees` — list pegawai (query: page, q, dept)
-* `GET /employees/:id` — detail pegawai
-* `POST /employees` — create
-* `PUT /employees/:id` — update
-* `DELETE /employees/:id` — delete
+- `GET /employees` — list employees
+- `GET /employees/:id` — employee details
+- `POST /employees` — create new employee
+- `PUT /employees/:id` — update employee
+- `DELETE /employees/:id` — delete employee
 
 ### Attendance
-
-* `POST /attendance/clock-in` — `{ employeeId }`
-* `POST /attendance/clock-out` — `{ employeeId }`
-* `GET /attendance?employeeId=&month=YYYY-MM` — rekap
+- `POST /attendance/clock-in` — clock in
+- `POST /attendance/clock-out` — clock out
+- `GET /attendance?employeeId=&month=YYYY-MM` — attendance records
 
 ### Leave
-
-* `GET /leave-requests` — list
-* `POST /leave-requests` — create
-* `PUT /leave-requests/:id` — approve/reject (body `{ status, note }`)
+- `GET /leave-requests` — leave requests list
+- `POST /leave-requests` — create new leave request
+- `PUT /leave-requests/:id` — approve/deny request
 
 ### Payroll
-
-* `GET /payrolls?period=YYYY-MM` — rekap payroll
-* `POST /payrolls/run` — generate gaji bulan
+- `GET /payrolls?period=YYYY-MM` — payroll records
+- `POST /payrolls` — create payroll
+- `PUT /payrolls/:id` — update payroll
+- `DELETE /payrolls/:id` — delete payroll
+- `POST /payrolls/:id/components` — add salary components
 
 ### Performance
+- `GET /performance-reviews` — performance reviews
+- `GET /performance-reviews/:id` — review details
+- `POST /performance-reviews` — create review
+- `PUT /performance-reviews/:id` — update review
+- `PUT /performance-reviews/:id/feedback` — add feedback
+- `DELETE /performance-reviews/:id` — delete review
 
-* `GET /performance-reviews?employeeId=&period=YYYY-MM`
-* `POST /performance-reviews`
+### Training
+- `GET /pelatihan` — training list
+- `GET /pelatihan/employee/:id` — training for specific employee
+- `POST /pelatihan/employee/:id` — add training for employee
 
-**Response format** (konvensi)
+### Contracts
+- `GET /contracts` — contracts list
+- `GET /contracts/:id` — contract details
+- `GET /contracts/employee/:employeeId` — employee contracts
+- `POST /contracts` — create new contract
+- `PUT /contracts/:id` — update contract
+- `DELETE /contracts/:id` — delete contract
 
-```json
-{
-  "success": true,
-  "data": ...,
-  "meta": { "page": 1, "perPage": 20, "total": 120 }
-}
+### Recruitment
+- `GET /recruitment/candidates` — candidates list
+- `GET /recruitment/candidates/:id` — candidate details
+- `POST /recruitment/candidates` — add new candidate
+- `PUT /recruitment/candidates/:id` — update candidate
+- `DELETE /recruitment/candidates/:id` — delete candidate
+
+### Reports
+- `GET /reports/employees` — employee reports
+- `GET /reports/attendance` — attendance reports
+- `GET /reports/payroll` — payroll reports
+- `GET /reports/leave` — leave reports
+- `GET /reports/performance` — performance reports
+- `GET /reports/turnover` — turnover reports
+- `GET /reports/demographics` — demographic reports
+- `GET /reports/employees/comprehensive` — comprehensive employee reports
+- `GET /reports/attendance/analytics` — attendance analytics
+- `GET /reports/payroll/analytics` — payroll analytics
+
+### Dashboard
+- `GET /dashboard/admin` — admin dashboard data
+- `GET /dashboard/employee/:employeeId` — employee dashboard data
+
+### Notifications
+- `GET /notifikasi/employee/:employeeId` — employee notifications
+- `GET /notifikasi/employee/:employeeId/unread` — unread notifications
+- `POST /notifikasi/employee/:employeeId` — create new notification
+- `PUT /notifikasi/:notificationId/read` — mark notification as read
+- `GET /notifikasi/scheduled` — scheduled notifications
+
+## Building and Running
+
+### Backend
+```bash
+cd apps/backend
+npm install
+npm run dev
 ```
+Server will run on `http://localhost:3333`
 
----
-
-## 5. Database schema (sqlite3) — tabel inti
-
--- ==============================================
--- HRMS Database Schema (SQLite)
--- ==============================================
-PRAGMA foreign_keys = ON;
-
--- 🧑‍💼 PEGAWAI
-CREATE TABLE IF NOT EXISTS pegawai (
-    id_pegawai INTEGER PRIMARY KEY AUTOINCREMENT,
-    nip TEXT UNIQUE NOT NULL,
-    nama_lengkap TEXT NOT NULL,
-    tempat_lahir TEXT,
-    tanggal_lahir DATE,
-    jenis_kelamin TEXT CHECK(jenis_kelamin IN ('L', 'P')),
-    alamat TEXT,
-    email TEXT,
-    no_hp TEXT,
-    agama TEXT,
-    status_perkawinan TEXT,
-    jumlah_anak INTEGER DEFAULT 0,
-    pendidikan_terakhir TEXT,
-    jabatan TEXT,
-    departemen TEXT,
-    status_kerja TEXT CHECK(status_kerja IN ('aktif','nonaktif')) DEFAULT 'aktif',
-    tanggal_masuk DATE,
-    tanggal_keluar DATE,
-    foto TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- 🕒 ABSENSI
-CREATE TABLE IF NOT EXISTS absensi (
-    id_absensi INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    tanggal DATE NOT NULL,
-    jam_masuk TIME,
-    jam_keluar TIME,
-    status_kehadiran TEXT CHECK(status_kehadiran IN ('hadir','izin','sakit','cuti','alpa')) DEFAULT 'hadir',
-    keterlambatan INTEGER DEFAULT 0,
-    lembur REAL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
-
--- 💰 PENGGAJIAN
-CREATE TABLE IF NOT EXISTS penggajian (
-    id_gaji INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    periode TEXT NOT NULL, -- Format: YYYY-MM
-    gaji_pokok REAL DEFAULT 0,
-    tunjangan_transport REAL DEFAULT 0,
-    tunjangan_makan REAL DEFAULT 0,
-    tunjangan_jabatan REAL DEFAULT 0,
-    lembur REAL DEFAULT 0,
-    potongan_bpjs REAL DEFAULT 0,
-    potongan_pajak REAL DEFAULT 0,
-    potongan_pinjam REAL DEFAULT 0,
-    total_gaji_bersih REAL DEFAULT 0,
-    tanggal_pembayaran DATE,
-    metode_pembayaran TEXT CHECK(metode_pembayaran IN ('transfer','tunai')) DEFAULT 'transfer',
-    status TEXT CHECK(status IN ('dibayar','belum')) DEFAULT 'belum',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
-
--- 📄 CUTI
-CREATE TABLE IF NOT EXISTS cuti (
-    id_cuti INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    jenis_cuti TEXT CHECK(jenis_cuti IN ('tahunan','sakit','pribadi','melahirkan')) DEFAULT 'tahunan',
-    tanggal_mulai DATE NOT NULL,
-    tanggal_selesai DATE NOT NULL,
-    alasan TEXT,
-    status_pengajuan TEXT CHECK(status_pengajuan IN ('menunggu','disetujui','ditolak')) DEFAULT 'menunggu',
-    id_atasan_penyetuju INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
-
--- ⚙️ PENILAIAN KINERJA
-CREATE TABLE IF NOT EXISTS penilaian_kinerja (
-    id_penilaian INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    periode TEXT NOT NULL, -- Format: YYYY-MM
-    aspek TEXT, -- JSON: {"disiplin":80,"tanggung_jawab":85,"teamwork":90,"produktifitas":88}
-    skor_total REAL,
-    komentar_supervisor TEXT,
-    rekomendasi TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
-
--- 📑 PELATIHAN
-CREATE TABLE IF NOT EXISTS pelatihan (
-    id_pelatihan INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    nama_pelatihan TEXT NOT NULL,
-    penyelenggara TEXT,
-    tanggal_mulai DATE,
-    tanggal_selesai DATE,
-    sertifikat TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
-
--- 💳 PINJAMAN KARYAWAN
-CREATE TABLE IF NOT EXISTS pinjaman_karyawan (
-    id_pinjaman INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    tanggal_pinjaman DATE NOT NULL,
-    jumlah REAL NOT NULL,
-    tenor INTEGER NOT NULL, -- dalam bulan
-    cicilan_perbulan REAL,
-    sisa_pinjaman REAL,
-    status_pinjaman TEXT CHECK(status_pinjaman IN ('aktif','lunas','menunggak')) DEFAULT 'aktif',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
-
-> NOTE: Buat migration/seed script untuk bikin tabel dan contoh data. Simpan SQL di `apps/backend/db/migrations` atau gunakan simple script JS untuk init DB.
-
----
-
-## 6. Data flow (text diagram)
-
-### Clock-in flow (example)
-
+### Frontend
+```bash
+cd apps/frontend
+npm install
+npm run dev
 ```
-[Frontend Clock-in Button]
-    ↓ POST /api/attendance/clock-in { employeeId }
-[Express Controller: attendanceController.clockIn]
-    ↓ calls attendanceService.recordClockIn(employeeId)
-[attendanceService] -> validates, calculates lateness
-    ↓ attendanceRepository.insert(...)
-[SQLite DB] -> new attendance row
-    ↑ return success
-[attendanceService] -> returns { success:true, data: attendanceRow }
-[Express] -> response 200 -> Frontend displays successful clock-in
-```
+Application will be available at `http://localhost:5173`
 
-### Payroll run flow
+### Additional Scripts
+Backend:
+- `npm run build` - Compile TypeScript to JavaScript
+- `npm run start` - Run compiled JavaScript
+- `npm run migrate` - Run database migrations
+- `npm run seed` - Seed database with sample data
 
-```
-[Frontend admin clicks Run Payroll]
-    ↓ POST /api/payrolls/run { periode: '2025-10' }
-[payroll.controller.runPayroll] 
-    ↓ payroll.service.fetchAllEmployees()
-    ↓ for each employee: compute gaji using attendance, leave, tunjangan rules
-    ↓ payroll.repository.insert(payrollRecord)
-[DB] store payroll records
-[Controller] -> respond with summary & downloadable slips
-```
+Frontend:
+- `npm run build` - Build for production
+- `npm run lint` - Check for linting errors
+- `npm run preview` - Preview production build
+- `npm run test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage
 
----
+## Security Features
 
-## 7. Auth, security & best practices
+- Password hashing using bcrypt
+- JWT-based authentication
+- Input validation and sanitization
+- Protection against common attacks (XSS, CSRF)
+- Prepared statements to prevent SQL injection
+- Role-based access control (RBAC)
+- Audit logging for activity tracking
 
-### 7.1 Authentication
+## Architecture Patterns
 
-* Login returns **Access Token (short)** & **Refresh Token (long)**.
-* Access token used in `Authorization: Bearer <token>` header.
-* Refresh token stored in HTTP-only cookie (if web) or handled securely.
+The system follows several architectural patterns:
 
-### 7.2 Security middleware (recommended)
+- **MVC + Service Layer**: Clear separation between controllers, services, and repositories
+- **Feature-based Organization**: Frontend components organized by feature domain
+- **Repository Pattern**: Data access abstraction layer
+- **Middleware Pattern**: Cross-cutting concerns in Express middleware
+- **Modular Monolith**: Clear module separation within a single deployable unit
 
-* `helmet()` — HTTP headers hardening
-* `express-rate-limit` — block abuse
-* `express-validator` / `zod` — validate input body
-* `xss-clean` / sanitize inputs if accepting HTML
-* Use parameterized sqlite queries (avoid string interpolation) or use prepared statements.
+## Database Schema
 
-### 7.3 Passwords
+SQLite database with tables for:
+- `users` - Authentication information
+- `pegawai` - Employee data
+- `absensi` - Attendance records
+- `permintaan_cuti` - Leave requests
+- `penggajian` - Payroll information
+- `penilaian_kinerja` - Performance reviews
+- `pelatihan` - Training records
+- `kontrak` - Employment contracts
+- `riwayat_jabatan` - Job history
+- `kandidat` - Recruitment candidates
+- `tugas_orientasi` - Onboarding tasks
+- `notifikasi` - Notification system
 
-* Hash with `bcrypt` (salt rounds >= 10)
-* Never store raw password; use `.env` for secrets (JWT_SECRET).
+## Development Conventions
 
-### 7.4 CORS
+- TypeScript is used throughout for type safety
+- RESTful API design principles
+- Feature-based directory organization in frontend
+- Service layer for business logic separation
+- Consistent error handling patterns
+- Comprehensive input validation
+- Proper separation of concerns
 
-* Restrict `CORS_ORIGIN` to frontend domain (e.g., `https://app.example.com`)
+## Project Status
 
----
-
-## 8. Local development & npm scripts
-
-### Backend `apps/backend/package.json` (suggestion)
-
-```json
-{
-  "name": "portal-sdm-backend",
-  "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "start": "node dist/server.js",
-    "build": "tsc",
-    "migrate": "node scripts/init_db.js",
-    "seed": "node scripts/seed_db.js"
-  }
-}
-```
-
-### Frontend `apps/frontend/package.json` (suggestion)
-
-```json
-{
-  "name": "hrms-frontend",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  }
-}
-```
-
-### Developing locally
-
-* Run backend: `cd apps/backend && npm run dev`
-* Run frontend: `cd apps/frontend && npm run dev`
-* Environment variables in `.env` (top-level or per app)
-
----
-
-## 9. Testing & CI recommendations
-
-* Unit tests: **Vitest** (frontend) + **Jest/Vitest** (backend)
-* Integration tests: **supertest** (API)
-* Mocking: **msw** (frontend)
-* Lint & format: **ESLint**, **Prettier**
-* CI pipeline (GitHub Actions):
-
-  * Steps: checkout → install → lint → test → build
-  * For main branch, create release artifacts (frontend build & backend dist)
-
----
-
-## 10. Deployment guide (VPS + Nginx + PM2)
-
-
-
-## 11. Docs & maintenance checklist
-
-* Add `docs/ERD.png` (diagram) — keep in repo.
-* Keep migration scripts up to date in `apps/backend/db/migrations/`.
-* Add `CONTRIBUTING.md` describing feature development flow.
-* Add `CHANGELOG.md` for releases.
-
----
-
-## Appendix A — Example env variables
-
-`.env` (backend)
-
-```
-PORT=3333
-NODE_ENV=production
-DB_SOURCE=./database.sqlite
-JWT_SECRET=YOUR_SECRET
-CORS_ORIGIN=https://app.yourdomain.com
-```
-
-`.env` (frontend)
-
-```
-VITE_API_BASE=https://api.yourdomain.com/api
-```
-
----
-
-## Appendix B — Quickstart (Developers)
-
-1. Clone repo
-2. `cd hrms/apps/backend && npm install && npm run migrate && npm run seed && npm run dev`
-3. `cd hrms/apps/frontend && npm install && npm run dev`
-4. Open `http://localhost:5173`
-
----
-
-## Appendix C — Checklist sebelum produksi
-
-* [ ] Pastikan `JWT_SECRET` set dan kuat
-* [ ] Hapus sample accounts & seed data
-* [ ] Ganti `CORS_ORIGIN` dengan domain produksi
-* [ ] Set file permissions untuk `database.sqlite`
-* [ ] Setup PM2 auto-start & logrotate
-* [ ] Setup HTTPS + HTTP → HTTPS redirect
-
----
-
-## Penutup
-
-Dokumen ini adalah blueprint production-ready untuk HRMS yang modular, dapat di-scale, dan sesuai praktik engineering modern. Jika kamu ingin, aku bisa:
-
-* Meng-generate `apps/backend` starter files (controller/service/repository) lengkap dengan migration & seed script untuk `sqlite3`.
-* Atau generate `apps/frontend` starter (React + TypeScript + Vite + Tailwind) yang terhubung ke API local.
-
+The HRMS system implementation is **COMPLETE** with all planned modules and features successfully delivered. The system provides a comprehensive, enterprise-grade human resource management solution that covers all aspects of HR operations with advanced reporting, automated notifications, and comprehensive dashboards.
