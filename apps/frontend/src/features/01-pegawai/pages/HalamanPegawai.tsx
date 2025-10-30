@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import DaftarPegawai from '../components/DaftarPegawai';
 import FormPegawai from '../components/FormPegawai';
 import clsx from 'clsx';
-import { Plus, X, Search, Filter, User, Building, Award, Calendar } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 const HalamanPegawai: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

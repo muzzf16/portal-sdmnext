@@ -35,7 +35,15 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
 const DashboardLayout: React.FC = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary-600"></div>
+      </div>
+    );
+  }
 
   const getAvatarUrl = () => {
     if (user?.avatarUrl) {
@@ -47,19 +55,35 @@ const DashboardLayout: React.FC = () => {
     return `${VITE_API_URL}/avatars/default-avatar.jpg`;
   };
 
-  const navItems = [
-    { to: '/dashboard', icon: <Home size={20} />, text: 'Dashboard' },
-    { to: '/dashboard/pegawai', icon: <Users size={20} />, text: 'Pegawai' },
-    { to: '/dashboard/absensi', icon: <Calendar size={20} />, text: 'Absensi' },
-    { to: '/dashboard/cuti', icon: <Briefcase size={20} />, text: 'Cuti & Izin' },
-    { to: '/dashboard/penggajian', icon: <DollarSign size={20} />, text: 'Penggajian' },
-    { to: '/dashboard/kontrak', icon: <FileText size={20} />, text: 'Kontrak' },
-    { to: '/dashboard/kinerja', icon: <BarChart2 size={20} />, text: 'Kinerja' },
-    { to: '/dashboard/perekrutan', icon: <UserPlus size={20} />, text: 'Perekrutan' },
-    { to: '/dashboard/pelatihan', icon: <Award size={20} />, text: 'Pelatihan' },
-    { to: '/dashboard/laporan', icon: <FileText size={20} />, text: 'Laporan' },
-    { to: '/dashboard/pengaturan', icon: <Settings size={20} />, text: 'Pengaturan' },
+  // Define base navigation items
+  const allNavItems = [
+    // Shared
+    { to: '/dashboard', icon: <Home size={20} />, text: 'Dashboard', roles: ['admin', 'employee'] },
+   
+
+    // Admin Only
+    { to: '/dashboard/pegawai', icon: <Users size={20} />, text: 'Manajemen Pegawai', roles: ['admin'] },
+    { to: '/dashboard/absensi', icon: <Calendar size={20} />, text: 'Manajemen Absensi', roles: ['admin'] },
+    { to: '/dashboard/cuti', icon: <Briefcase size={20} />, text: 'Manajemen Cuti', roles: ['admin'] },
+    { to: '/dashboard/penggajian', icon: <DollarSign size={20} />, text: 'Manajemen Penggajian', roles: ['admin'] },
+    { to: '/dashboard/kontrak', icon: <FileText size={20} />, text: 'Manajemen Kontrak', roles: ['admin'] },
+    { to: '/dashboard/kinerja', icon: <BarChart2 size={20} />, text: 'Manajemen Kinerja', roles: ['admin'] },
+    { to: '/dashboard/perekrutan', icon: <UserPlus size={20} />, text: 'Perekrutan', roles: ['admin'] },
+    { to: '/dashboard/pelatihan', icon: <Award size={20} />, text: 'Manajemen Pelatihan', roles: ['admin'] },
+    { to: '/dashboard/laporan', icon: <FileText size={20} />, text: 'Laporan', roles: ['admin'] },
+    { to: '/dashboard/pengaturan', icon: <Settings size={20} />, text: 'Pengaturan', roles: ['admin', 'employee'] }, 
+    // Employee Specific (paths are dynamic)
+    { to: `/dashboard/pegawai/${user?.employeeid}` , icon: <Users size={20}/>, text: 'Profil Saya', roles: ['employee'] },
+    { to: '/dashboard/absensi-saya', icon: <Calendar size={20} />, text: 'Absensi Saya', roles: ['employee'] },
+    { to: '/dashboard/cuti-saya', icon: <Briefcase size={20} />, text: 'Cuti Saya', roles: ['employee'] },
+    { to: '/dashboard/penggajian-saya', icon: <DollarSign size={20} />, text: 'Gaji Saya', roles: ['employee'] },
+    { to: '/dashboard/kinerja-saya', icon: <BarChart2 size={20} />, text: 'Kinerja Saya', roles: ['employee'] },
+    { to: `/dashboard/pegawai/${user?.employeeid}/pelatihan`, icon: <Award size={20} />, text: 'Pelatihan Saya', roles: ['employee'] },
   ];
+
+  const navItems = allNavItems.filter(item => 
+    user?.role && item.roles.includes(user.role)
+  );
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">

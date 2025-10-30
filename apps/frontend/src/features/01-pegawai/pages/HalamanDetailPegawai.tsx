@@ -5,7 +5,7 @@ import { usePegawai } from '../hooks/usePegawai';
 import { useRiwayatJabatan } from '../hooks/useRiwayatJabatan';
 import { usePelatihan } from '../hooks/usePelatihan';
 import { printEmployeeProfile } from '../utils/printProfile';
-import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Globe, Users, Briefcase, GraduationCap, FileBadge, Star } from 'lucide-react';
+import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Briefcase, GraduationCap, FileBadge, Star } from 'lucide-react';
 import clsx from 'clsx';
 
 const HalamanDetailPegawai: React.FC = () => {
@@ -32,14 +32,7 @@ const HalamanDetailPegawai: React.FC = () => {
     return `${age} tahun`;
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -332,7 +325,7 @@ const HalamanDetailPegawai: React.FC = () => {
                 <div className="text-center py-4 text-red-500">Error: {errorPelatihan.message}</div>
               ) : pelatihan && pelatihan.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {pelatihan.map((item) => (
+                  {pelatihan.map((item: any) => (
                     <div 
                       key={item.id} 
                       className="border border-gray-200 dark:border-neutral-700 rounded-lg p-5 hover:shadow-md transition-shadow"

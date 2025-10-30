@@ -21,7 +21,7 @@ export const PegawaiRepository = {
 
   async findById(id: string) {
     const db = await openDb();
-    const row = await db.get('SELECT * FROM pegawai WHERE id = ?', id);
+    const row = await db.get('SELECT * FROM pegawai WHERE TRIM(id) = ?', id);
     if (!row) return null;
     return parseJsonFields([row])[0];
   },

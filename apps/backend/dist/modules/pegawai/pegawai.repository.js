@@ -19,7 +19,7 @@ exports.PegawaiRepository = {
     },
     async findById(id) {
         const db = await (0, db_1.openDb)();
-        const row = await db.get('SELECT * FROM pegawai WHERE id = ?', id);
+        const row = await db.get('SELECT * FROM pegawai WHERE TRIM(id) = ?', id);
         if (!row)
             return null;
         return parseJsonFields([row])[0];

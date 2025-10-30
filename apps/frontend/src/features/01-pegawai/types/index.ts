@@ -40,6 +40,7 @@ export interface RiwayatJabatan {
 export interface Pelatihan {
   id: number;
   pegawai_id: number;
+  employeeId?: number;
   nama_pelatihan: string;
   penyelenggara: string;
   tanggal_mulai: string; // ISO date string
@@ -47,4 +48,10 @@ export interface Pelatihan {
   nomor_sertifikat?: string;
   durasi?: string;
   deskripsi?: string;
+  // Optional English properties for compatibility
+  trainingName?: string;
+  organizer?: string;
+  startDate?: string;
+  endDate?: string;
+  certificate?: string;
 }

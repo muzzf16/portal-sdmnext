@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../shared/contexts/AuthContext';
 import { getEmployeeAttendanceSummary, getEmployeeWeeklyAttendance } from '../../../shared/services/attendanceAPI';
 import { getEmployeeApprovedLeaveCount } from '../../../shared/services/leaveAPI';
 import { getEmployeeLatestPayroll } from '../../../shared/services/payrollAPI';
@@ -7,8 +8,8 @@ import { getEmployeeRecentNotifications } from '../../../shared/services/notifik
 import { Attendance, Absensi, Notifikasi } from '../../../shared/types/types';
 
 const EmployeeDashboard: React.FC = () => {
-  // TODO: Replace with actual logged-in employee ID from AuthContext
-  const employeeId = 1; 
+  const { user } = useAuth();
+  const employeeId = user?.employeeid;
 
   const [attendanceSummary, setAttendanceSummary] = useState<{ totalDays: number; presentDays: number } | null>(null);
   const [loadingAttendanceSummary, setLoadingAttendanceSummary] = useState<boolean>(true);
@@ -39,6 +40,8 @@ const EmployeeDashboard: React.FC = () => {
   const [errorRecentNotifications, setErrorRecentNotifications] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!employeeId) return;
+
     const fetchAttendanceSummary = async () => {
       try {
         const summary = await getEmployeeAttendanceSummary(employeeId.toString());
@@ -110,6 +113,16 @@ const EmployeeDashboard: React.FC = () => {
     ? ((attendanceSummary.presentDays / attendanceSummary.totalDays) * 100).toFixed(0)
     : 'N/A';
 
+  const quickActions = [
+    { title: 'Profil Saya', path: `/dashboard/pegawai/${employeeId}/detailpegawai`, icon: '👤' },
+    { title: 'Absensi Saya', path: '/dashboard/absensi-saya', icon: '⏰' },
+    { title: 'Cuti Saya', path: '/dashboard/cuti-saya', icon: '🗓️' },
+    { title: 'Gaji Saya', path: '/dashboard/penggajian-saya', icon: '💰' },
+    { title: 'Kinerja Saya', path: '/dashboard/kinerja-saya', icon: '📊' },
+    { title: 'Pelatihan Saya', path: `/dashboard/pegawai/${employeeId}/pelatihan`, icon: '🎓' },
+    { title: 'Notifikasi', path: '/dashboard/notifikasi', icon: '🔔' }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       <main>
@@ -152,16 +165,7 @@ const EmployeeDashboard: React.FC = () => {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Akses Cepat</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { title: 'Profil Saya', path: '/dashboard/profile', icon: '👤' }, // TODO: Replace with dynamic employee ID
-              { title: 'Absensi Saya', path: '/dashboard/absensi-saya', icon: '⏰' },
-              { title: 'Riwayat Cuti', path: '/dashboard/cuti-saya', icon: '🗓️' },
-              { title: 'Gaji Saya', path: '/dashboard/penggajian-saya', icon: '💰' },
-              { title: 'Kinerja Saya', path: '/dashboard/kinerja-saya', icon: '📊' },
-              { title: 'Pengajuan Cuti', path: '/dashboard/cuti-saya', icon: '📝' }, // Mapped to general leave page
-              { title: 'Pelatihan Saya', path: '/dashboard/my-training', icon: '🎓' }, // TODO: Replace with dynamic employee ID
-              { title: 'Notifikasi', path: '/dashboard/notifikasi', icon: '🔔' }
-            ].map((action, index) => (
+            {quickActions.map((action, index) => (
               <Link 
                 key={index} 
                 to={action.path}
