@@ -143,7 +143,7 @@ const DashboardLayout: React.FC = () => {
             </button>
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-soft-shadow py-1 z-50">
-                <a href="/dashboard/pengaturan/profil" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
+                <a href={`/dashboard/pegawai/${user?.employeeid}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
                 <a href="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
                 <a href="#" onClick={logout} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
               </div>

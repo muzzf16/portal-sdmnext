@@ -6,6 +6,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  employeeid?: string; // Reference to the employee ID in the pegawai table
   avatarUrl?: string;
 }
 

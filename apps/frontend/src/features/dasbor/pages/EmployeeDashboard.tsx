@@ -114,7 +114,7 @@ const EmployeeDashboard: React.FC = () => {
     : 'N/A';
 
   const quickActions = [
-    { title: 'Profil Saya', path: `/dashboard/pegawai/${employeeId}/detailpegawai`, icon: '👤' },
+    { title: 'Profil Saya', path: `/dashboard/pegawai/${employeeId}`, icon: '👤' },
     { title: 'Absensi Saya', path: '/dashboard/absensi-saya', icon: '⏰' },
     { title: 'Cuti Saya', path: '/dashboard/cuti-saya', icon: '🗓️' },
     { title: 'Gaji Saya', path: '/dashboard/penggajian-saya', icon: '💰' },
