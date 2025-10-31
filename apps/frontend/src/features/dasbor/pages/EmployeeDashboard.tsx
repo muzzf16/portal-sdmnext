@@ -111,7 +111,7 @@ const EmployeeDashboard: React.FC = () => {
     { title: 'Cuti Saya', path: '/dashboard/cuti-saya', icon: '🗓️' },
     { title: 'Gaji Saya', path: '/dashboard/penggajian-saya', icon: '💰' },
     { title: 'Kinerja Saya', path: '/dashboard/kinerja-saya', icon: '📊' },
-    { title: 'Pelatihan Saya', path: `/dashboard/pegawai/${employeeId}/pelatihan`, icon: '🎓' },
+    { title: 'Pelatihan Saya', path: '/dashboard/pelatihan-saya', icon: '🎓' },
     { title: 'Notifikasi', path: '/dashboard/notifikasi', icon: '🔔' }
   ];
 

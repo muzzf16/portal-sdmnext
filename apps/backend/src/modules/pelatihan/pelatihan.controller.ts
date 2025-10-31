@@ -24,7 +24,12 @@ class PelatihanController {
   static async addPelatihan(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+      // If there's a file upload, handle it appropriately
       const pelatihanData = req.body;
+      if (req.file) {
+        // Add only the filename to the pelatihan data, not the full path
+        pelatihanData.nomor_sertifikat = req.file.filename;
+      }
       const newPelatihan = await PelatihanService.addPelatihan(id, pelatihanData);
       res.status(201).json(newPelatihan);
     } catch (error) {

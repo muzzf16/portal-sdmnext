@@ -6,7 +6,7 @@ import multer from 'multer';
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../frontend/public/avatars');
+    const uploadDir = path.join(__dirname, '../../public/avatars');
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 // Storage configuration for documents
 const documentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../frontend/public/documents');
+    const uploadDir = path.join(__dirname, '../../public/documents');
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });

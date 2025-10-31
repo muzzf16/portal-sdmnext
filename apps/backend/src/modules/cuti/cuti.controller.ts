@@ -22,6 +22,16 @@ class CutiController {
     }
   }
 
+  static async getPermintaanCutiByEmployeeId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { employeeId } = req.params;
+      const leaveRequests = await CutiService.getPermintaanCutiByEmployeeId(employeeId);
+      res.status(200).json(leaveRequests);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async submitPermintaanCuti(req: Request, res: Response, next: NextFunction) {
     try {
       const leaveRequestData = req.body;

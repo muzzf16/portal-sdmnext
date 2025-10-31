@@ -1,17 +1,36 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { Cuti } from '../types';
 import { ajukanPermintaanCuti } from '../api/cutiApi';
 
-const FormCuti: React.FC = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<Omit<Cuti, 'id' | 'employeeName' | 'status'>>();
+// Define the form data type (excluding id, employeeName, status, employeeId which are set by the system)
+type FormData = Omit<Cuti, 'id' | 'employeeName' | 'status' | 'employeeId'>;
 
-  const onSubmit = async (data: Omit<Cuti, 'id' | 'employeeName' | 'status'>) => {
+const FormCuti: React.FC = () => {
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
+  const { user } = useAuth();
+
+  const onSubmit = async (data: FormData) => {
+    if (!user) {
+      alert('Anda harus login untuk mengajukan cuti');
+      return;
+    }
+
     try {
-      await ajukanPermintaanCuti(data);
-      // Handle success
+      // Include the employee ID and name in the request
+      const requestData = {
+        ...data,
+        employeeId: user.employeeId,
+        employeeName: user.name,
+      };
+      
+      await ajukanPermintaanCuti(requestData);
+      alert('Permintaan cuti berhasil dikirim');
+      reset(); // Clear the form after successful submission
     } catch (error) {
-      // Handle error
+      console.error('Error submitting leave request:', error);
+      alert('Gagal mengirim permintaan cuti');
     }
   };
 

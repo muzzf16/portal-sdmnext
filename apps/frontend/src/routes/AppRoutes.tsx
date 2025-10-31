@@ -55,6 +55,7 @@ const HalamanKandidat = lazy(() => import('../features/07-perekrutan/pages/Halam
 
 // Training
 const HalamanPelatihan = lazy(() => import('../features/08-pelatihan/pages/HalamanPelatihan'));
+const PelatihanSaya = lazy(() => import('../features/08-pelatihan/pages/PelatihanSaya'));
 
 // Onboarding
 const HalamanOrientasi = lazy(() => import('../features/orientasi/pages/HalamanOrientasi'));
@@ -284,6 +285,13 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['employee']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanKinerjaSaya />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="pelatihan-saya" element={
+          <PrivateRoute allowedRoles={['employee']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <PelatihanSaya />
             </Suspense>
           </PrivateRoute>
         } />

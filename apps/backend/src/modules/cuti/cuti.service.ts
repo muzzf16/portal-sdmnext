@@ -26,6 +26,14 @@ class CutiService {
     }
   }
 
+  static async getPermintaanCutiByEmployeeId(employeeId: string) {
+    try {
+      return await PermintaanCutiRepository.findByEmployeeId(employeeId);
+    } catch (error: any) {
+      throw new AppError(`Error retrieving leave requests: ${error.message}`, 500);
+    }
+  }
+
   static async submitPermintaanCuti(requestData: any) {
     try {
       return await PermintaanCutiRepository.create(requestData);

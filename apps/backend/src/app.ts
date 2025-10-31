@@ -15,6 +15,7 @@ app.use('/api', routes);
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 app.use('/avatars', express.static(path.join(__dirname, '..', 'public', 'avatars')));
+app.use('/documents', express.static(path.join(__dirname, '..', 'public', 'documents')));
 
 app.use(errorHandler);
 

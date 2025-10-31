@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useSidebar } from '@/app/hooks/useSidebar';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Menu, X, Home, Users, Briefcase, DollarSign, Calendar, BarChart2, Settings, FileText, UserPlus, Award } from 'lucide-react';
@@ -18,8 +18,8 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
   const location = useLocation();
   const isActive = location.pathname === to; // Simplified active state for now
   return (
-    <a
-      href={to}
+    <Link
+      to={to}
       className={clsx(
         'flex items-center py-2 px-4 rounded-lg transition-colors duration-200',
         isActive ? 'bg-primary-700 text-white' : 'text-gray-300 hover:bg-primary-600 hover:text-white',
@@ -28,7 +28,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
     >
       {icon}
       {isSidebarOpen && <span className="ml-3 text-sm font-medium">{text}</span>}
-    </a>
+    </Link>
   );
 };
 
@@ -73,12 +73,12 @@ const DashboardLayout: React.FC = () => {
     { to: '/dashboard/laporan', icon: <FileText size={20} />, text: 'Laporan', roles: ['admin'] },
     { to: '/dashboard/pengaturan', icon: <Settings size={20} />, text: 'Pengaturan', roles: ['admin', 'employee'] }, 
     // Employee Specific (paths are dynamic)
-    { to: `/dashboard/pegawai/${user?.employeeid}` , icon: <Users size={20}/>, text: 'Profil Saya', roles: ['employee'] },
+    { to: `/dashboard/pegawai/${user?.employeeId}` , icon: <Users size={20}/>, text: 'Profil Saya', roles: ['employee'] },
     { to: '/dashboard/absensi-saya', icon: <Calendar size={20} />, text: 'Absensi Saya', roles: ['employee'] },
     { to: '/dashboard/cuti-saya', icon: <Briefcase size={20} />, text: 'Cuti Saya', roles: ['employee'] },
     { to: '/dashboard/penggajian-saya', icon: <DollarSign size={20} />, text: 'Gaji Saya', roles: ['employee'] },
     { to: '/dashboard/kinerja-saya', icon: <BarChart2 size={20} />, text: 'Kinerja Saya', roles: ['employee'] },
-    { to: `/dashboard/pegawai/${user?.employeeid}/pelatihan`, icon: <Award size={20} />, text: 'Pelatihan Saya', roles: ['employee'] },
+    { to: '/dashboard/pelatihan-saya', icon: <Award size={20} />, text: 'Pelatihan Saya', roles: ['employee'] },
   ];
 
   const navItems = allNavItems.filter(item => 
@@ -143,8 +143,8 @@ const DashboardLayout: React.FC = () => {
             </button>
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-soft-shadow py-1 z-50">
-                <a href={`/dashboard/pegawai/${user?.employeeid}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
-                <a href="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
+                <Link to={`/dashboard/pegawai/${user?.employeeId}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</Link>
+                <Link to="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
                 <a href="#" onClick={logout} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
               </div>
             )}

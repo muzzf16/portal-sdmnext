@@ -28,6 +28,7 @@ export const PelatihanRepository = {
   async create(employeeId: string, data: { nama_pelatihan: string, penyelenggara: string, tanggal_mulai: string, tanggal_selesai: string, nomor_sertifikat: string }) {
     const db = await openDb();
     const { nama_pelatihan, penyelenggara, tanggal_mulai, tanggal_selesai, nomor_sertifikat } = data;
+    
     await db.run(
       'INSERT INTO pelatihan (pegawai_id, nama_pelatihan, penyelenggara, tanggal_mulai, tanggal_selesai, nomor_sertifikat) VALUES (?, ?, ?, ?, ?, ?)',
       employeeId, nama_pelatihan, penyelenggara, tanggal_mulai, tanggal_selesai, nomor_sertifikat

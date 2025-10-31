@@ -20,7 +20,14 @@ class PelatihanService {
 
   static async addPelatihan(employeeId: string, pelatihanData: any) {
     try {
-      return await PelatihanRepository.create(employeeId, pelatihanData);
+      // Ensure the pelatihanData has the correct structure with the certificate field
+      const pelatihanWithEmployee = {
+        ...pelatihanData,
+        // If there's a file path in the request, it's already processed in the controller
+        // The repository will handle storing only the filename, not the full path
+      };
+
+      return await PelatihanRepository.create(employeeId, pelatihanWithEmployee);
     } catch (error: any) {
       throw new AppError(`Error adding pelatihan: ${error.message}`, 500);
     }
