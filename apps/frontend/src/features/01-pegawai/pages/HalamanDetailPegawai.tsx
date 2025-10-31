@@ -10,9 +10,15 @@ import clsx from 'clsx';
 
 const HalamanDetailPegawai: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { pegawai, loading, error } = usePegawai(id || '');
-  const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(id || '');
-  const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(id || '');
+  
+  // If there's no ID, show an error message
+  if (!id) {
+    return <div>ID pegawai tidak ditemukan</div>;
+  }
+  
+  const { pegawai, loading, error } = usePegawai(id);
+  const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(id);
+  const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(id);
   const [activeTab, setActiveTab] = useState('biodata');
 
   if (loading) return <div className="text-center py-8">Memuat...</div>;

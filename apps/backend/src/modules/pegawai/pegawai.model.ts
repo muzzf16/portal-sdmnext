@@ -1,6 +1,32 @@
 
 // src/modules/pegawai/pegawai.model.ts
 
+export interface Education {
+  level: string;
+  institution: string;
+  major: string;
+  graduationYear: number;
+}
+
+export interface WorkHistory {
+  company: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface TrainingCertificate {
+  name: string;
+  issuer: string;
+  issueDate: string;
+}
+
+export interface PayrollInfo {
+  baseSalary: number;
+  incomes: { id: string; name: string; amount: number }[];
+  deductions: { id: string; name: string; amount: number }[];
+}
+
 export interface Pegawai {
   id: string;
   nip: string;
@@ -22,12 +48,8 @@ export interface Pegawai {
   religion: string;
   maritalStatus: string;
   numberOfChildren: number;
-  educationHistory: any[];
-  workHistory: any[];
-  trainingCertificates: any[];
-  payrollInfo: {
-    baseSalary: number;
-    incomes: any[];
-    deductions: any[];
-  };
+  educationHistory: Education[];
+  workHistory: WorkHistory[];
+  trainingCertificates: TrainingCertificate[];
+  payrollInfo: PayrollInfo;
 }

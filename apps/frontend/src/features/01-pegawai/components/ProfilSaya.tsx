@@ -19,12 +19,14 @@ import clsx from 'clsx';
 
 const ProfilSaya: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  // For the employee profile page, we expect the employee ID to come from the URL
-  // but we also verify that the logged-in user is accessing their own profile
-  const currentEmployeeId = id || '';
-  const { pegawai, loading, error } = usePegawai(currentEmployeeId);
-  const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(currentEmployeeId);
-  const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(currentEmployeeId);
+  // If there's no ID, show an error message
+  if (!id) {
+    return <div>ID pegawai tidak ditemukan</div>;
+  }
+  
+  const { pegawai, loading, error } = usePegawai(id);
+  const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(id);
+  const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(id);
   const [activeTab, setActiveTab] = useState('biodata');
 
   if (loading) return <div className="text-center py-8">Memuat...</div>;
@@ -96,15 +98,13 @@ const ProfilSaya: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="mt-4 md:mt-0 flex space-x-3">
-                  <button 
-                    onClick={handlePrint}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-600"
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    Cetak Profil
-                  </button>
-                </div>
+                <button 
+                  onClick={handlePrint}
+                  className="mt-4 md:mt-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors flex items-center"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Cetak Profil PDF
+                </button>
               </div>
               
               {/* Contact Info */}

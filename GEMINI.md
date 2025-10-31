@@ -287,123 +287,262 @@ app.listen(PORT, () => console.log(`API running on ${PORT}`));
 
 ## 5. Database schema (sqlite3) — tabel inti
 
--- ==============================================
--- HRMS Database Schema (SQLite)
--- ==============================================
-PRAGMA foreign_keys = ON;
+1. Tabel Pegawai
 
--- 🧑‍💼 PEGAWAI
-CREATE TABLE IF NOT EXISTS pegawai (
-    id_pegawai INTEGER PRIMARY KEY AUTOINCREMENT,
-    nip TEXT UNIQUE NOT NULL,
-    nama_lengkap TEXT NOT NULL,
-    tempat_lahir TEXT,
-    tanggal_lahir DATE,
-    jenis_kelamin TEXT CHECK(jenis_kelamin IN ('L', 'P')),
-    alamat TEXT,
-    email TEXT,
-    no_hp TEXT,
-    agama TEXT,
-    status_perkawinan TEXT,
-    jumlah_anak INTEGER DEFAULT 0,
-    pendidikan_terakhir TEXT,
-    jabatan TEXT,
-    departemen TEXT,
-    status_kerja TEXT CHECK(status_kerja IN ('aktif','nonaktif')) DEFAULT 'aktif',
-    tanggal_masuk DATE,
-    tanggal_keluar DATE,
-    foto TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+| Kolom                | Tipe      | Keterangan                |
+| -------------------- | --------- | ------------------------- |
+| id                   | TEXT (PK) | ID unik pegawai           |
+| name                 | TEXT      | Nama lengkap              |
+| nip                  | TEXT      | Nomor Induk Pegawai       |
+| position             | TEXT      | Jabatan                   |
+| pangkat              | TEXT      | Pangkat/golongan pegawai  |
+| golongan             | TEXT      | Golongan                  |
+| department           | TEXT      | Departemen tempat bekerja |
+| joinDate             | TEXT      | Tanggal masuk             |
+| avatarUrl            | TEXT      | Foto profil               |
+| jenis_kelamin        | TEXT      | Jenis kelamin             |
+| leaveBalance         | INTEGER   | Sisa cuti                 |
+| isActive             | INTEGER   | Status aktif (1=aktif)    |
+| address              | TEXT      | Alamat                    |
+| phone                | TEXT      | Nomor telepon             |
+| pob                  | TEXT      | Tempat lahir              |
+| dob                  | TEXT      | Tanggal lahir             |
+| religion             | TEXT      | Agama                     |
+| maritalStatus        | TEXT      | Status perkawinan         |
+| numberOfChildren     | INTEGER   | Jumlah anak               |
+| educationHistory     | TEXT      | Riwayat pendidikan        |
+| workHistory          | TEXT      | Riwayat pekerjaan         |
+| trainingCertificates | TEXT      | Sertifikat pelatihan      |
+| payrollInfo          | TEXT      | Informasi gaji            |
+| email                | TEXT      | Email                     |
+| statusKaryawan       | TEXT      | Default `'aktif'`         |
+| tanggalKeluar        | TEXT      | Jika resign               |
+| createdAt            | DATETIME  | Timestamp pembuatan       |
 
--- 🕒 ABSENSI
-CREATE TABLE IF NOT EXISTS absensi (
-    id_absensi INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    tanggal DATE NOT NULL,
-    jam_masuk TIME,
-    jam_keluar TIME,
-    status_kehadiran TEXT CHECK(status_kehadiran IN ('hadir','izin','sakit','cuti','alpa')) DEFAULT 'hadir',
-    keterlambatan INTEGER DEFAULT 0,
-    lembur REAL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
+2. Tabel Pengguna
+| Kolom      | Tipe                   | Keterangan                  |
+| ---------- | ---------------------- | --------------------------- |
+| id         | TEXT (PK)              |                             |
+| name       | TEXT                   |                             |
+| email      | TEXT (unik)            |                             |
+| password   | TEXT                   |                             |
+| role       | TEXT                   | `'admin'` atau `'employee'` |
+| employeeId | TEXT (FK → pegawai.id) |                             |
+| createdAt  | DATETIME               |                             |
 
--- 💰 PENGGAJIAN
-CREATE TABLE IF NOT EXISTS penggajian (
-    id_gaji INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    periode TEXT NOT NULL, -- Format: YYYY-MM
-    gaji_pokok REAL DEFAULT 0,
-    tunjangan_transport REAL DEFAULT 0,
-    tunjangan_makan REAL DEFAULT 0,
-    tunjangan_jabatan REAL DEFAULT 0,
-    lembur REAL DEFAULT 0,
-    potongan_bpjs REAL DEFAULT 0,
-    potongan_pajak REAL DEFAULT 0,
-    potongan_pinjam REAL DEFAULT 0,
-    total_gaji_bersih REAL DEFAULT 0,
-    tanggal_pembayaran DATE,
-    metode_pembayaran TEXT CHECK(metode_pembayaran IN ('transfer','tunai')) DEFAULT 'transfer',
-    status TEXT CHECK(status IN ('dibayar','belum')) DEFAULT 'belum',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
+Relasi:
+🔗 pengguna.employeeId → pegawai.id
 
--- 📄 CUTI
-CREATE TABLE IF NOT EXISTS cuti (
-    id_cuti INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    jenis_cuti TEXT CHECK(jenis_cuti IN ('tahunan','sakit','pribadi','melahirkan')) DEFAULT 'tahunan',
-    tanggal_mulai DATE NOT NULL,
-    tanggal_selesai DATE NOT NULL,
-    alasan TEXT,
-    status_pengajuan TEXT CHECK(status_pengajuan IN ('menunggu','disetujui','ditolak')) DEFAULT 'menunggu',
-    id_atasan_penyetuju INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
 
--- ⚙️ PENILAIAN KINERJA
-CREATE TABLE IF NOT EXISTS penilaian_kinerja (
-    id_penilaian INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    periode TEXT NOT NULL, -- Format: YYYY-MM
-    aspek TEXT, -- JSON: {"disiplin":80,"tanggung_jawab":85,"teamwork":90,"produktifitas":88}
-    skor_total REAL,
-    komentar_supervisor TEXT,
-    rekomendasi TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
+3. Absensi
 
--- 📑 PELATIHAN
-CREATE TABLE IF NOT EXISTS pelatihan (
-    id_pelatihan INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    nama_pelatihan TEXT NOT NULL,
-    penyelenggara TEXT,
-    tanggal_mulai DATE,
-    tanggal_selesai DATE,
-    sertifikat TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
+| Kolom        | Tipe                     |
+| ------------ | ------------------------ |
+| id           | TEXT (PK)                |
+| employeeId   | TEXT (FK → pegawai.id)   |
+| employeeName | TEXT                     |
+| date         | TEXT                     |
+| clockIn      | TEXT                     |
+| clockOut     | TEXT                     |
+| status       | TEXT (default `'hadir'`) |
+| workDuration | TEXT                     |
+| notes        | TEXT                     |
+| created_at   | DATETIME                 |
 
--- 💳 PINJAMAN KARYAWAN
-CREATE TABLE IF NOT EXISTS pinjaman_karyawan (
-    id_pinjaman INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_pegawai INTEGER NOT NULL,
-    tanggal_pinjaman DATE NOT NULL,
-    jumlah REAL NOT NULL,
-    tenor INTEGER NOT NULL, -- dalam bulan
-    cicilan_perbulan REAL,
-    sisa_pinjaman REAL,
-    status_pinjaman TEXT CHECK(status_pinjaman IN ('aktif','lunas','menunggak')) DEFAULT 'aktif',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
-);
+
+4. permintaan cuti
+| Kolom              | Tipe                        |
+| ------------------ | --------------------------- |
+| id                 | TEXT (PK)                   |
+| employeeId         | TEXT (FK → pegawai.id)      |
+| employeeName       | TEXT                        |
+| leaveType          | TEXT                        |
+| startDate          | TEXT                        |
+| endDate            | TEXT                        |
+| jumlahHari         | INTEGER                     |
+| reason             | TEXT                        |
+| status             | TEXT (default `'menunggu'`) |
+| supportingDocument | TEXT                        |
+| rejectionReason    | TEXT                        |
+| createdAt          | DATETIME                    |
+
+
+5. penggajian
+
+| Kolom             | Tipe                   |
+| ----------------- | ---------------------- |
+| id                | TEXT (PK)              |
+| employeeId        | TEXT (FK → pegawai.id) |
+| employeeName      | TEXT                   |
+| period            | TEXT                   |
+| baseSalary        | REAL                   |
+| incomes           | TEXT                   |
+| deductions        | TEXT                   |
+| totalIncome       | REAL                   |
+| totalDeductions   | REAL                   |
+| netSalary         | REAL                   |
+| tanggalPembayaran | TEXT                   |
+| createdAt         | DATETIME               |
+
+6. penilaian_kinerja
+| Kolom               | Tipe                   |
+| ------------------- | ---------------------- |
+| id                  | TEXT (PK)              |
+| employeeId          | TEXT (FK → pegawai.id) |
+| employeeName        | TEXT                   |
+| period              | TEXT                   |
+| reviewerName        | TEXT                   |
+| reviewDate          | TEXT                   |
+| overallScore        | REAL                   |
+| status              | TEXT                   |
+| strengths           | TEXT                   |
+| areasForImprovement | TEXT                   |
+| employeeFeedback    | TEXT                   |
+| kpis                | TEXT                   |
+| penilaiId           | TEXT                   |
+| createdAt           | DATETIME               |
+
+
+
+7. kontrak
+
+| Kolom          | Tipe                   |
+| -------------- | ---------------------- |
+| id             | TEXT (PK)              |
+| employeeId     | TEXT (FK → pegawai.id) |
+| contractNumber | TEXT                   |
+| contractType   | TEXT                   |
+| startDate      | TEXT                   |
+| endDate        | TEXT                   |
+| status         | TEXT                   |
+| contractFile   | TEXT                   |
+| terms          | TEXT                   |
+| salary         | REAL                   |
+| notes          | TEXT                   |
+| createdAt      | DATETIME               |
+
+8. pelatihan
+
+| Kolom            | Tipe                   |
+| ---------------- | ---------------------- |
+| id               | INTEGER (PK)           |
+| pegawai_id       | TEXT (FK → pegawai.id) |
+| nama_pelatihan   | TEXT                   |
+| penyelenggara    | TEXT                   |
+| tanggal_mulai    | TEXT                   |
+| tanggal_selesai  | TEXT                   |
+| nomor_sertifikat | TEXT                   |
+
+
+9️⃣ riwayat_jabatan
+
+| Kolom             | Tipe                   |
+| ----------------- | ---------------------- |
+| id                | INTEGER (PK)           |
+| pegawai_id        | TEXT (FK → pegawai.id) |
+| jabatan_lama      | TEXT                   |
+| jabatan_baru      | TEXT                   |
+| tanggal_perubahan | TEXT                   |
+
+
+🔟 tugas_orientasi
+
+| Kolom       | Tipe                   |
+| ----------- | ---------------------- |
+| id          | INTEGER (PK)           |
+| employee_id | TEXT (FK → pegawai.id) |
+| task_name   | TEXT                   |
+| description | TEXT                   |
+| due_date    | TEXT                   |
+| completed   | INTEGER                |
+
+📨 notifikasi
+
+| Kolom       | Tipe                   |
+| ----------- | ---------------------- |
+| id          | INTEGER (PK)           |
+| employee_id | TEXT (FK → pegawai.id) |
+| message     | TEXT                   |
+| type        | TEXT                   |
+| is_read     | INTEGER                |
+| created_at  | DATETIME               |
+
+
+cuti
+
+| Kolom               | Tipe                      |
+| ------------------- | ------------------------- |
+| id_cuti             | INTEGER (PK)              |
+| id_pegawai          | INTEGER (FK → pegawai.id) |
+| jenis_cuti          | TEXT                      |
+| tanggal_mulai       | DATE                      |
+| tanggal_selesai     | DATE                      |
+| alasan              | TEXT                      |
+| status_pengajuan    | TEXT                      |
+| id_atasan_penyetuju | INTEGER                   |
+| created_at          | DATETIME                  |
+
+
+pinjaman_karyawan
+
+| Kolom            | Tipe                      |
+| ---------------- | ------------------------- |
+| id_pinjaman      | INTEGER (PK)              |
+| id_pegawai       | INTEGER (FK → pegawai.id) |
+| tanggal_pinjaman | DATE                      |
+| jumlah           | REAL                      |
+| tenor            | INTEGER                   |
+| cicilan_perbulan | REAL                      |
+| sisa_pinjaman    | REAL                      |
+| status_pinjaman  | TEXT                      |
+| created_at       | DATETIME                  |
+
+
+users
+
+| Kolom      | Tipe                    |
+| ---------- | ----------------------- |
+| id         | INTEGER (PK)            |
+| username   | TEXT                    |
+| email      | TEXT                    |
+| password   | TEXT                    |
+| role       | TEXT                    |
+| employeeId | TEXT (FK → pegawai.nip) |
+| avatarUrl  | TEXT                    |
+| created_at | DATETIME                |
+
+
+
+notifications
+
+| Kolom             | Tipe                    |
+| ----------------- | ----------------------- |
+| id                | TEXT (PK)               |
+| employee_id       | TEXT (FK → pegawai.nip) |
+| message           | TEXT                    |
+| type              | TEXT                    |
+| is_read           | INTEGER                 |
+| created_at        | DATETIME                |
+| scheduled_for     | DATETIME                |
+| delivery_channel  | TEXT                    |
+| related_entity    | TEXT                    |
+| related_entity_id | TEXT                    |
+
+
+pegawai.id ← pengguna.employeeId  
+pegawai.id ← absensi.employeeId  
+pegawai.id ← penggajian.employeeId  
+pegawai.id ← permintaan_cuti.employeeId  
+pegawai.id ← penilaian_kinerja.employeeId  
+pegawai.id ← kontrak.employeeId  
+pegawai.id ← pelatihan.pegawai_id  
+pegawai.id ← riwayat_jabatan.pegawai_id  
+pegawai.id ← tugas_orientasi.employee_id  
+pegawai.id ← notifikasi.employee_id  
+pegawai.id ← cuti.id_pegawai  
+pegawai.id ← pinjaman_karyawan.id_pegawai  
+pegawai.nip ← users.employeeId  
+pegawai.nip ← notifications.employee_id
 
 > NOTE: Buat migration/seed script untuk bikin tabel dan contoh data. Simpan SQL di `apps/backend/db/migrations` atau gunakan simple script JS untuk init DB.
 

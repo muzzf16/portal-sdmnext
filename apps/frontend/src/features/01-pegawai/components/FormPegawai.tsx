@@ -14,7 +14,7 @@ const FormPegawai: React.FC = () => {
   });
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "educationHistory"
+    name: "educationHistory" as const
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,23 +158,23 @@ const FormPegawai: React.FC = () => {
           {fields.map((item, index) => (
             <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border border-gray-200 dark:border-neutral-700 rounded-lg">
               <input
-                {...register(`educationHistory.${index}.level`)}
+                {...register(`educationHistory.${index}.level` as const)}
                 placeholder="Jenjang (e.g., S1)"
                 className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
               />
               <input
-                {...register(`educationHistory.${index}.schoolName`)}
+                {...register(`educationHistory.${index}.schoolName` as const)}
                 placeholder="Nama Sekolah"
                 className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
               />
               <input
-                {...register(`educationHistory.${index}.major`)}
+                {...register(`educationHistory.${index}.major` as const)}
                 placeholder="Jurusan"
                 className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
               />
               <div className="flex items-center">
                 <input
-                  {...register(`educationHistory.${index}.graduationYear`)}
+                  {...register(`educationHistory.${index}.graduationYear` as const)}
                   placeholder="Tahun Lulus"
                   className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
                 />

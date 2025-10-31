@@ -6,7 +6,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
-  employeeid?: string; // Reference to the employee ID in the pegawai table
+  employeeId?: string; // Reference to the employee ID in the pegawai table
   avatarUrl?: string;
 }
 
@@ -18,56 +18,97 @@ export interface Pengguna {
   name: string;
   email: string;
   role: string;
+  employeeId: string;
+}
+
+export interface Education {
+  level: string;
+  institution: string;
+  major: string;
+  graduationYear: number;
+}
+
+export interface WorkHistory {
+  company: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface TrainingCertificate {
+  name: string;
+  issuer: string;
+  issueDate: string;
+}
+
+export interface SalaryComponent {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+export interface PayrollInfo {
+  baseSalary: number;
+  incomes: SalaryComponent[];
+  deductions: SalaryComponent[];
 }
 
 /**
  * Employee interface for representing employee data
  */
 export interface Pegawai {
-  id: number; // Changed to number based on usage
+  id: string;
+  nip: string;
   name: string;
   email: string;
   position: string;
+  pangkat: string;
+  golongan: string;
   department: string;
   joinDate: string;
-  // Added for contract management
-  start_date?: string;   // English field name
-  end_date?: string;     // English field name
-  tanggal_masuk?: string; // Indonesian field name
-  tanggal_keluar?: string; // Indonesian field name
-  kontrak_berakhir?: string; // Indonesian field name for contract end
-  // Additional possible field names for compatibility
-  contractStartDate?: string;
-  contractEndDate?: string;
-  // Additional fields for charts and analytics
-  jenis_kelamin?: string; // Indonesian field name for gender ('L', 'P')
-  gender?: string;        // English field name for gender
-  pendidikan_terakhir?: string; // Indonesian field name for education
-  education?: string;     // English field name for education
+  avatarUrl: string;
+  jenis_kelamin: string; // Gender: 'L' for Laki-laki, 'P' for Perempuan
+  leaveBalance: number;
+  isActive: number;
+  address: string;
+  phone: string;
+  pob: string;
+  dob: string;
+  religion: string;
+  maritalStatus: string;
+  numberOfChildren: number;
+  educationHistory: Education[];
+  workHistory: WorkHistory[];
+  trainingCertificates: TrainingCertificate[];
+  payrollInfo: PayrollInfo;
+  tanggalKeluar?: string;
 }
 
 /**
  * Employment history interface
  */
 export interface RiwayatJabatan {
-  id: string;
-  pegawai_id: number;
+  id: number;
+  pegawai_id: string;
   jabatan_lama: string;
   jabatan_baru: string;
   tanggal_perubahan: string;
+  unit_kerja?: string;
 }
 
 /**
  * Training interface
  */
 export interface Pelatihan {
-  id: string;
-  pegawai_id: number;
+  id: number;
+  pegawai_id: string;
   nama_pelatihan: string;
   penyelenggara: string;
   tanggal_mulai: string;
   tanggal_selesai: string;
-  nomor_sertifikat: string;
+  nomor_sertifikat?: string;
+  durasi?: string;
+  deskripsi?: string;
 }
 
 /**
@@ -75,26 +116,26 @@ export interface Pelatihan {
  */
 export interface Notifikasi {
   id: number;
-  employee_id: number;
-  type: string;
-  title?: string; // Optional title property to avoid breaking changes
+  employee_id: string;
   message: string;
+  type: string; // e.g., 'info', 'warning', 'error', 'success'
   is_read: boolean;
-  created_at: string; // Required property
-  // For backward compatibility with English property names
-  createdAt?: string;
+  created_at: string;
+  scheduled_for?: string; // For scheduled notifications
+  delivery_channel: string; // e.g., 'in_app', 'email', 'sms'
+  related_entity?: string; // e.g., 'contract', 'leave', 'payroll', 'performance'
+  related_entity_id?: string; // ID of the related entity
 }
 
 /**
  * Onboarding task interface
  */
 export interface TugasOrientasi {
-  id: number; // Changed to number
-  employee_id: number;
+  id: number;
+  employee_id: string;
   task_name: string;
   description: string;
   due_date: string;
-  completed_date: string | null;
   completed: boolean;
 }
 
@@ -102,7 +143,7 @@ export interface TugasOrientasi {
  * Candidate interface for recruitment module
  */
 export interface Kandidat {
-  id: number; // Changed to number
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -113,33 +154,18 @@ export interface Kandidat {
 }
 
 /**
- * Attendance interface (English property names)
- */
-export interface Attendance {
-  id: string;
-  employee_id: number;
-  date: string;
-  clock_in: string;
-  clock_out: string;
-  status: string;
-  // For backward compatibility with Indonesian property names
-  tanggal: string;
-  jam_masuk: string;
-  jam_keluar: string;
-  status_kehadiran: string;
-}
-
-/**
- * Alternative attendance interface with Indonesian property names
- * (Keeping the original Absensi for backward compatibility)
+ * Absensi interface
  */
 export interface Absensi {
   id: string;
-  employee_id: number;
-  tanggal: string;
-  jam_masuk: string;
-  jam_keluar: string;
-  status_kehadiran: string;
+  employeeId: string;
+  employeeName: string;
+  date: string; // YYYY-MM-DD
+  clockIn: string; // HH:mm:ss
+  clockOut: string | null; // HH:mm:ss
+  status: string;
+  workDuration: string | null; // e.g., "8j 15m"
+  notes?: string;
 }
 
 /**
@@ -147,12 +173,15 @@ export interface Absensi {
  */
 export interface Penggajian {
   id: string;
-  employee_id: number;
-  period: string;
-  base_salary: number;
-  total_allowances: number;
-  total_deductions: number;
-  net_salary: number;
+  employeeId: string;
+  employeeName: string;
+  period: string; // e.g., "Juni 2024"
+  baseSalary: number;
+  incomes: SalaryComponent[];
+  deductions: SalaryComponent[];
+  totalIncome: number;
+  totalDeductions: number;
+  netSalary: number;
 }
 
 /**
@@ -160,25 +189,48 @@ export interface Penggajian {
  */
 export interface Kontrak {
   id: string;
+  employeeId: string;
   contractNumber: string;
-  contractType: string;
+  contractType: string; // e.g., 'permanent', 'temporary', 'contract'
   startDate: string;
   endDate: string;
-  status: string;
+  status: string; // e.g., 'active', 'expiring', 'expired', 'terminated'
+  contractFile?: string;
+  terms: string;
+  salary: number;
+  notes?: string;
+}
+
+export interface Kpi {
+  id: string;
+  metric: string;
+  target: string;
+  result: string;
+  weight: number;
+  score: number;
+  notes: string;
 }
 
 /**
  * Performance interface
  */
-export interface Kinerja {
+export interface PenilaianKinerja {
   id: string;
+  employeeId: string;
   employeeName: string;
+  period: string; // e.g., "Q3 2024"
+  reviewerName: string; // e.g., "Admin SDM"
+  reviewDate: string;
   overallScore: number;
   status: string;
+  strengths: string;
+  areasForImprovement: string;
+  employeeFeedback: string;
+  kpis: Kpi[];
 }
 
 /**
- * Application interface
+ * Application interface (assuming this is for recruitment applications)
  */
 export interface Lamaran {
   id: string;

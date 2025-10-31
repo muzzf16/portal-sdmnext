@@ -5,11 +5,11 @@ import { getEmployeeAttendanceSummary, getEmployeeWeeklyAttendance } from '../..
 import { getEmployeeApprovedLeaveCount } from '../../../shared/services/leaveAPI';
 import { getEmployeeLatestPayroll } from '../../../shared/services/payrollAPI';
 import { getEmployeeRecentNotifications } from '../../../shared/services/notifikasiAPI';
-import { Attendance, Absensi, Notifikasi } from '../../../shared/types/types';
+import { Absensi, Notifikasi, Penggajian } from '../../../shared/types/types';
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
-  const employeeId = user?.employeeid;
+  const employeeId = user?.employeeId;
 
   const [attendanceSummary, setAttendanceSummary] = useState<{ totalDays: number; presentDays: number } | null>(null);
   const [loadingAttendanceSummary, setLoadingAttendanceSummary] = useState<boolean>(true);
@@ -19,19 +19,11 @@ const EmployeeDashboard: React.FC = () => {
   const [loadingApprovedLeave, setLoadingApprovedLeave] = useState<boolean>(true);
   const [errorApprovedLeave, setErrorApprovedLeave] = useState<string | null>(null);
 
-  const [latestPayroll, setLatestPayroll] = useState<{
-    id: string;
-    employee_id: number;
-    period: string;
-    base_salary: number;
-    total_allowances: number;
-    total_deductions: number;
-    net_salary: number;
-  } | null>(null);
+  const [latestPayroll, setLatestPayroll] = useState<Penggajian | null>(null);
   const [loadingLatestPayroll, setLoadingLatestPayroll] = useState<boolean>(true);
   const [errorLatestPayroll, setErrorLatestPayroll] = useState<string | null>(null);
 
-  const [weeklyAttendance, setWeeklyAttendance] = useState<Attendance[]>([]);
+  const [weeklyAttendance, setWeeklyAttendance] = useState<Absensi[]>([]);
   const [loadingWeeklyAttendance, setLoadingWeeklyAttendance] = useState<boolean>(true);
   const [errorWeeklyAttendance, setErrorWeeklyAttendance] = useState<string | null>(null);
 
@@ -129,7 +121,7 @@ const EmployeeDashboard: React.FC = () => {
         <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Dashboard Karyawan</h2>
         {/* Personal Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {[
+          {[ 
             { 
               title: 'Sisa Cuti Tahun Ini', 
               value: loadingApprovedLeave ? '...' : errorApprovedLeave ? 'Error' : approvedLeaveCount !== null ? approvedLeaveCount.toString() : 'N/A', 
@@ -144,7 +136,7 @@ const EmployeeDashboard: React.FC = () => {
             },
             { 
               title: 'Gaji Terakhir', 
-              value: loadingLatestPayroll ? '...' : errorLatestPayroll ? 'Error' : latestPayroll?.net_salary ? `Rp ${latestPayroll.net_salary.toLocaleString()}` : 'N/A', 
+              value: loadingLatestPayroll ? '...' : errorLatestPayroll ? 'Error' : latestPayroll?.netSalary ? `Rp ${latestPayroll.netSalary.toLocaleString()}` : 'N/A', 
               unit: '', 
               icon: '💰' 
             }
@@ -189,19 +181,19 @@ const EmployeeDashboard: React.FC = () => {
               ) : errorWeeklyAttendance ? (
                 <div>Error: {errorWeeklyAttendance}</div>
               ) : weeklyAttendance.length > 0 ? (
-                weeklyAttendance.map((record: Attendance & Absensi, index) => (
+                weeklyAttendance.map((record: Absensi, index) => (
                   <div key={index} className="flex justify-between items-center py-2 border-b last:border-0">
                     <div>
-                      <p className="font-medium">{record.tanggal ? new Date(record.tanggal).toLocaleDateString('id-ID', { weekday: 'long' }) : 'N/A'}</p>
-                      <p className="text-sm text-gray-500">{record.tanggal ? new Date(record.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : 'N/A'}</p>
+                      <p className="font-medium">{record.date ? new Date(record.date).toLocaleDateString('id-ID', { weekday: 'long' }) : 'N/A'}</p>
+                      <p className="text-sm text-gray-500">{record.date ? new Date(record.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : 'N/A'}</p>
                     </div>
                     <div className="text-right">
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        record.status_kehadiran === 'hadir' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        record.status === 'hadir' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {record.status_kehadiran || 'N/A'}
+                        {record.status || 'N/A'}
                       </span>
-                      <p className="text-sm text-gray-500 mt-1">{record.jam_masuk || '--'} - {record.jam_keluar || '--'}</p>
+                      <p className="text-sm text-gray-500 mt-1">{record.clockIn || '--'} - {record.clockOut || '--'}</p>
                     </div>
                   </div>
                 ))
@@ -222,7 +214,7 @@ const EmployeeDashboard: React.FC = () => {
               ) : recentNotifications.length > 0 ? (
                 recentNotifications.map((notification: Notifikasi, index) => (
                   <div key={index} className="border-l-4 border-indigo-500 pl-4 py-1">
-                    <h3 className="font-medium text-gray-800">{notification.title || 'Notifikasi'}</h3>
+                    <h3 className="font-medium text-gray-800">{notification.message.substring(0, 50)}...</h3> {/* Use message as title, truncated */}
                     <p className="text-sm text-gray-600">{notification.message}</p>
                     <p className="text-xs text-gray-500 mt-1">
                       {notification.created_at ? new Date(notification.created_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}

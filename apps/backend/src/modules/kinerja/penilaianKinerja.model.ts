@@ -1,6 +1,16 @@
 
 // src/modules/kinerja/penilaianKinerja.model.ts
 
+export interface Kpi {
+  id: string;
+  metric: string;
+  target: string;
+  result: string;
+  weight: number;
+  score: number;
+  notes: string;
+}
+
 export interface PenilaianKinerja {
   id: string;
   employeeId: string;
@@ -13,5 +23,5 @@ export interface PenilaianKinerja {
   strengths: string;
   areasForImprovement: string;
   employeeFeedback: string;
-  kpis: any[];
+  kpis: Kpi[];
 }

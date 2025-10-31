@@ -38,8 +38,14 @@ export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>, photo?: File) 
     
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        if (key === 'educationHistory' && Array.isArray(value)) {
-          formData.append(key, JSON.stringify(value));
+        if (key === 'educationHistory') {
+          // Handle both string and array forms of educationHistory
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            // If it's already a string (JSON), pass it as is
+            formData.append(key, value.toString());
+          }
         } else {
           formData.append(key, value.toString());
         }
@@ -73,8 +79,14 @@ export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>, photo
     
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        if (key === 'educationHistory' && Array.isArray(value)) {
-          formData.append(key, JSON.stringify(value));
+        if (key === 'educationHistory') {
+          // Handle both string and array forms of educationHistory
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            // If it's already a string (JSON), pass it as is
+            formData.append(key, value.toString());
+          }
         } else {
           formData.append(key, value.toString());
         }

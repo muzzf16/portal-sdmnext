@@ -1,3 +1,11 @@
+// Education History type
+export interface EducationHistory {
+  level?: string;
+  schoolName?: string;
+  major?: string;
+  graduationYear?: string;
+}
+
 export interface Pegawai {
   id: number;
   nip: string;
@@ -20,7 +28,7 @@ export interface Pegawai {
   religion?: string;
   maritalStatus?: string;
   numberOfChildren?: number;
-  educationHistory?: string; // JSON string
+  educationHistory?: string | EducationHistory[]; // JSON string or array of objects
   workHistory?: string; // JSON string
   trainingCertificates?: string; // JSON string
   payrollInfo?: string; // JSON string
