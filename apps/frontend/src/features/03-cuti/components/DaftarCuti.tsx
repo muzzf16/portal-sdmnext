@@ -9,8 +9,9 @@ const DaftarCuti: React.FC = () => {
   const handleUpdateStatus = async (id: string, status: string) => {
     let reason: string | undefined;
     if (status === 'Ditolak') {
-        reason = prompt('Masukkan alasan penolakan:');
-        if (reason === null) return; // User cancelled the prompt
+        const inputReason = prompt('Masukkan alasan penolakan:');
+        if (inputReason === null) return; // User cancelled the prompt
+        reason = inputReason;
     }
 
     const confirmAction = status === 'Disetujui' ? 'approve' : 'reject';

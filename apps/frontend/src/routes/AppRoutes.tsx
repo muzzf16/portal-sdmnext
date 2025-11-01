@@ -30,7 +30,7 @@ const HalamanAbsensi = lazy(() => import('../features/02-absensi/pages/HalamanAb
 const HalamanAbsensiSaya = lazy(() => import('../features/02-absensi/pages/HalamanAbsensiSaya'));
 const HalamanLembur = lazy(() => import('../features/02-absensi/pages/HalamanLembur'));
 const HalamanLemburSaya = lazy(() => import('../features/02-absensi/pages/HalamanLemburSaya'));
-const HalamanAbsensiPegawai = lazy(() => import('../features/02-absensi/pages/HalamanAbsensiPegawai'));
+
 
 // Leave
 const HalamanCuti = lazy(() => import('../features/03-cuti/pages/HalamanCuti'));
@@ -169,13 +169,7 @@ const AppRoutes: React.FC = () => {
             </Suspense>
           </PrivateRoute>
         } />
-        <Route path="absensi/:id" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <HalamanAbsensiPegawai />
-            </Suspense>
-          </PrivateRoute>
-        } />
+
         <Route path="cuti" element={
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
