@@ -10,8 +10,8 @@ export const useDaftarLamaran = () => {
   useEffect(() => {
     const fetchLamaran = async () => {
       try {
-        const { data } = await getLamaran();
-        setDaftarLamaran(data);
+        const response = await getLamaran();
+        setDaftarLamaran(response.data);
       } catch (err) {
         setError(err as Error);
       }

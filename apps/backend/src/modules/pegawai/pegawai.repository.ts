@@ -61,7 +61,7 @@ export const PegawaiRepository = {
       workHistory: JSON.stringify(data.workHistory || []),
       trainingCertificates: JSON.stringify(data.trainingCertificates || []),
       payrollInfo: JSON.stringify(data.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] }),
-      tanggal_keluar: data.tanggal_keluar || null, // For turnover analysis
+      tanggalKeluar: data.tanggal_keluar || null, // For turnover analysis
     };
 
     const columns = Object.keys(pegawaiData);
@@ -82,7 +82,7 @@ export const PegawaiRepository = {
       'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone', 
       'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren', 
       'educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo',
-      'jenis_kelamin', 'tanggal_keluar'
+      'jenis_kelamin', 'tanggalKeluar'
     ];
 
     const fieldsToUpdate: any = {};
@@ -199,7 +199,7 @@ export const PegawaiRepository = {
   async getEmployeeReportData() {
     const db = await openDb();
     const rows = await db.all(`
-      SELECT id, nip, name, email, position, department, joinDate, jenis_kelamin, isActive, tanggal_keluar
+      SELECT id, nip, name, email, position, department, joinDate, jenis_kelamin, isActive, tanggalKeluar
       FROM pegawai
       ORDER BY name ASC
     `);

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getKandidat, buatKandidat, perbaruiKandidat, hapusKandidat } from '../../../shared/services/perekrutanAPI';
-import { Candidate } from '../../../shared/types/types';
+import { Kandidat } from '../../../shared/types/types';
 
 const HalamanKandidat: React.FC = () => {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [candidates, setCandidates] = useState<Kandidat[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [currentCandidate, setCurrentCandidate] = useState<Partial<Candidate> | null>(null);
+  const [currentCandidate, setCurrentCandidate] = useState<Partial<Kandidat> | null>(null);
 
   useEffect(() => {
     fetchCandidates();
@@ -15,7 +15,7 @@ const HalamanKandidat: React.FC = () => {
 
   const fetchCandidates = async () => {
     try {
-      const response = await getCandidates();
+      const response = await getKandidat();
       setCandidates(response.data);
     } catch (err) {
       setError('Gagal mengambil kandidat');
@@ -29,15 +29,15 @@ const HalamanKandidat: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleEditCandidate = (candidate: Candidate) => {
+  const handleEditCandidate = (candidate: Kandidat) => {
     setCurrentCandidate(candidate);
     setIsModalOpen(true);
   };
 
-  const handleDeleteCandidate = async (id: number) => {
+  const handleDeleteCandidate = async (id: string | number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus kandidat ini?')) {
       try {
-        await deleteCandidate(id);
+        await hapusKandidat(typeof id === 'string' ? parseInt(id, 10) : id);
         fetchCandidates();
       } catch (err) {
         setError('Gagal menghapus kandidat');
@@ -51,9 +51,9 @@ const HalamanKandidat: React.FC = () => {
 
     try {
       if (currentCandidate.id) {
-        await updateCandidate(currentCandidate.id, currentCandidate);
+        await perbaruiKandidat(typeof currentCandidate.id === 'string' ? parseInt(currentCandidate.id, 10) : currentCandidate.id as number, currentCandidate);
       } else {
-        await createCandidate(currentCandidate as Omit<Candidate, 'id'>);
+        await buatKandidat(currentCandidate as Omit<Kandidat, 'id'>);
       }
       fetchCandidates();
       setIsModalOpen(false);
@@ -64,7 +64,7 @@ const HalamanKandidat: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setCurrentCandidate((prev) => ({
+    setCurrentCandidate((prev: Partial<Kandidat> | null) => ({
       ...prev,
       [name]: value,
     }));

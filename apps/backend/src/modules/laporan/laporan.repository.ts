@@ -51,9 +51,9 @@ export const LaporanRepository = {
     
     // Get employees who left during the period
     const turnoverQuery = `
-      SELECT id, name, position, department, joinDate, tanggal_keluar as exitDate
+      SELECT id, name, position, department, joinDate, tanggalKeluar as exitDate
       FROM pegawai
-      WHERE tanggal_keluar BETWEEN ? AND ?
+      WHERE tanggalKeluar BETWEEN ? AND ?
         AND isActive = 0
     `;
     
@@ -62,8 +62,8 @@ export const LaporanRepository = {
     // Calculate turnover rate
     const totalEmployeesQuery = `
       SELECT COUNT(*) as total FROM pegawai
-      WHERE (joinDate <= ? OR tanggal_keluar IS NULL)
-        AND (tanggal_keluar > ? OR tanggal_keluar IS NULL)
+      WHERE (joinDate <= ? OR tanggalKeluar IS NULL)
+        AND (tanggalKeluar > ? OR tanggalKeluar IS NULL)
         AND isActive = 1
     `;
     
@@ -141,7 +141,7 @@ export const LaporanRepository = {
         p.joinDate,
         p.jenis_kelamin,
         p.isActive,
-        p.tanggal_keluar,
+        p.tanggalKeluar,
         COUNT(DISTINCT a.id) as totalAttendance,
         COUNT(DISTINCT l.id) as totalLeaveRequests,
         COUNT(DISTINCT pa.id) as totalPayrolls,
@@ -153,7 +153,7 @@ export const LaporanRepository = {
       LEFT JOIN penggajian pa ON p.id = pa.employeeId
       LEFT JOIN penilaian_kinerja pe ON p.id = pe.employeeId
       GROUP BY p.id, p.nip, p.name, p.email, p.position, p.department, p.joinDate, 
-               p.jenis_kelamin, p.isActive, p.tanggal_keluar
+               p.jenis_kelamin, p.isActive, p.tanggalKeluar
       ORDER BY p.name ASC
     `;
     
