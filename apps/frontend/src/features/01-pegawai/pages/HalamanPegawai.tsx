@@ -8,7 +8,9 @@ const HalamanPegawai: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
 
   return (
     <div className="dark:text-white">
@@ -28,12 +30,16 @@ const HalamanPegawai: React.FC = () => {
           Tambah Pegawai
         </button>
       </div>
-      <DaftarPegawai />
+      <DaftarPegawai onEmployeeAdded={() => window.location.reload()} />
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white font-serif">Form Tambah Pegawai</h2>
-            <FormPegawai />
+            <FormPegawai onEmployeeAdded={() => {
+              // Close the modal and refresh the employee list
+              closeModal();
+              window.location.reload();
+            }} />
             <div className="mt-6 flex justify-end">
               <button
                 onClick={closeModal}

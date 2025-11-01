@@ -8,13 +8,14 @@ const DaftarAbsensi: React.FC = () => {
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['Tanggal', 'Jam Masuk', 'Jam Keluar', 'Status', 'Durasi Kerja'];
+  const tableHeaders = ['Nama Pegawai', 'Tanggal', 'Jam Masuk', 'Jam Keluar', 'Status', 'Durasi Kerja'];
 
   return (
     <div className="mt-6">
       <Table headers={tableHeaders}>
         {absensi.map(record => (
           <tr key={record.id}>
+            <td className="py-4 px-6">{record.employeeName}</td>
             <td className="py-4 px-6">{record.date}</td>
             <td className="py-4 px-6">{record.clockIn || '-'}</td>
             <td className="py-4 px-6">{record.clockOut || '-'}</td>

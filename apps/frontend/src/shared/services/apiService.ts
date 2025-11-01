@@ -28,6 +28,46 @@ export interface ListParams {
   [key: string]: any;
 }
 
+// Transform snake_case to camelCase for frontend compatibility
+const transformToCamelCase = (data: any): any => {
+  if (data === null || typeof data !== 'object' || data instanceof Date) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => transformToCamelCase(item));
+  }
+
+  const transformed: any = {};
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      const camelCaseKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      transformed[camelCaseKey] = transformToCamelCase(data[key]);
+    }
+  }
+  return transformed;
+};
+
+// Transform camelCase to snake_case for API compatibility
+const transformToSnakeCase = (data: any): any => {
+  if (data === null || typeof data !== 'object' || data instanceof Date) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => transformToSnakeCase(item));
+  }
+
+  const transformed: any = {};
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      const snakeCaseKey = key.replace(/[A-Z]/g, (g) => `_${g.toLowerCase()}`);
+      transformed[snakeCaseKey] = transformToSnakeCase(data[key]);
+    }
+  }
+  return transformed;
+};
+
 /**
  * Generic API service class to standardize API calls across features
  * Provides CRUD operations with consistent response format
@@ -54,11 +94,18 @@ class ApiService<T = any> {
     });
     // Handle both standardized response format and direct array format
     if (Array.isArray(response.data)) {
+      // Transform response from snake_case to camelCase
+      const transformedData = response.data.map(item => transformToCamelCase(item));
       // If response.data is directly an array, wrap it in a standardized response
-      return { success: true, data: response.data } as ApiResponse<T[]>;
+      return { success: true, data: transformedData } as ApiResponse<T[]>;
     } else {
-      // If response is already in standardized format, return as is
-      return response.data as ApiResponse<T[]>;
+      // Transform response data if it's in standardized format
+      const standardResponse = response.data as ApiResponse<T[]>;
+      if (standardResponse.data && Array.isArray(standardResponse.data)) {
+        const transformedData = standardResponse.data.map(item => transformToCamelCase(item));
+        return { ...standardResponse, data: transformedData } as ApiResponse<T[]>;
+      }
+      return standardResponse;
     }
   }
 
@@ -71,11 +118,18 @@ class ApiService<T = any> {
     const response = await api.get<ApiResponse<T> | T>(`${this.endpoint}/${id}`);
     // Handle both standardized response format and direct object format
     if ((response.data as any).success !== undefined) {
-      // If response is already in standardized format, return as is
-      return response.data as ApiResponse<T>;
+      // Transform response data if it's in standardized format
+      const standardResponse = response.data as ApiResponse<T>;
+      if (standardResponse.data) {
+        const transformedData = transformToCamelCase(standardResponse.data);
+        return { ...standardResponse, data: transformedData } as ApiResponse<T>;
+      }
+      return standardResponse;
     } else {
+      // Transform response from snake_case to camelCase
+      const transformedData = transformToCamelCase(response.data);
       // If response.data is directly the object, wrap it in a standardized response
-      return { success: true, data: response.data as T };
+      return { success: true, data: transformedData as T };
     }
   }
 
@@ -85,14 +139,23 @@ class ApiService<T = any> {
    * @returns Promise containing the API response with the created resource
    */
   async create(data: Partial<T>): Promise<ApiResponse<T>> {
-    const response = await api.post<ApiResponse<T> | T>(this.endpoint, data);
+    // Transform request from camelCase to snake_case
+    const transformedData = transformToSnakeCase(data);
+    const response = await api.post<ApiResponse<T> | T>(this.endpoint, transformedData);
     // Handle both standardized response format and direct object format
     if ((response.data as any).success !== undefined) {
-      // If response is already in standardized format, return as is
-      return response.data as ApiResponse<T>;
+      // Transform response data if it's in standardized format
+      const standardResponse = response.data as ApiResponse<T>;
+      if (standardResponse.data) {
+        const transformedResponseData = transformToCamelCase(standardResponse.data);
+        return { ...standardResponse, data: transformedResponseData } as ApiResponse<T>;
+      }
+      return standardResponse;
     } else {
+      // Transform response from snake_case to camelCase
+      const transformedData = transformToCamelCase(response.data);
       // If response.data is directly the object, wrap it in a standardized response
-      return { success: true, data: response.data as T };
+      return { success: true, data: transformedData as T };
     }
   }
 
@@ -103,14 +166,23 @@ class ApiService<T = any> {
    * @returns Promise containing the API response with the updated resource
    */
   async update(id: string | number, data: Partial<T>): Promise<ApiResponse<T>> {
-    const response = await api.put<ApiResponse<T> | T>(`${this.endpoint}/${id}`, data);
+    // Transform request from camelCase to snake_case
+    const transformedData = transformToSnakeCase(data);
+    const response = await api.put<ApiResponse<T> | T>(`${this.endpoint}/${id}`, transformedData);
     // Handle both standardized response format and direct object format
     if ((response.data as any).success !== undefined) {
-      // If response is already in standardized format, return as is
-      return response.data as ApiResponse<T>;
+      // Transform response data if it's in standardized format
+      const standardResponse = response.data as ApiResponse<T>;
+      if (standardResponse.data) {
+        const transformedResponseData = transformToCamelCase(standardResponse.data);
+        return { ...standardResponse, data: transformedResponseData } as ApiResponse<T>;
+      }
+      return standardResponse;
     } else {
+      // Transform response from snake_case to camelCase
+      const transformedData = transformToCamelCase(response.data);
       // If response.data is directly the object, wrap it in a standardized response
-      return { success: true, data: response.data as T };
+      return { success: true, data: transformedData as T };
     }
   }
 

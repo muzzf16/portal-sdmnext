@@ -21,8 +21,8 @@ class AuthPenggunaController {
 
   static async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, email, password } = req.body;
-      const result = await AuthPenggunaService.register(name, email, password);
+      const { name, email, password, role } = req.body;
+      const result = await AuthPenggunaService.register(name, email, password, role);
       res.status(201).json(result);
     } catch (error) {
       next(error);

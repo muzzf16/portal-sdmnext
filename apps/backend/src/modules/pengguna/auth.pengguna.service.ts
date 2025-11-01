@@ -25,13 +25,13 @@ class AuthPenggunaService {
     }
   }
 
-  static async register(name: string, email: string, password: string) {
+  static async register(name: string, email: string, password: string, role?: string) {
     try {
       const user = await PenggunaRepository.create({
         name,
         email,
         password,
-        role: 'EMPLOYEE'
+        role: role?.toLowerCase() || 'employee'  // Gunakan role yang dikirim atau default ke 'employee'
       });
       
       return { message: 'Registration successful', userId: user.id };

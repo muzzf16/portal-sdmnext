@@ -30,58 +30,70 @@ export const PenggunaRepository = {
     const hashedPassword = await bcrypt.hash(userData.password, salt);
 
     const newUserId = `user-${Date.now()}`;
-    const newEmployeeId = `emp-${Date.now()}`;
     
-    // Create a new employee record
-    const newEmployeeData = {
-      id: newEmployeeId,
-      name: userData.name,
-      nip: `NIP${Date.now().toString().slice(-4)}`,
-      position: 'Staf Junior',
-      pangkat: 'Staf',
-      golongan: 'II/a',
-      department: 'Belum Ditentukan',
-      joinDate: new Date().toISOString().split('T')[0],
-      avatarUrl: `/avatars/default-avatar.jpg`,
-      leaveBalance: 18,
-      isActive: 1,
-      address: '',
-      phone: '',
-      pob: '',
-      dob: '',
-      religion: 'Lainnya',
-      maritalStatus: 'Lajang',
-      numberOfChildren: 0,
-      educationHistory: '[]',
-      workHistory: '[]',
-      trainingCertificates: '[]',
-      payrollInfo: JSON.stringify({ baseSalary: 5000000, incomes: [], deductions: [] })
-    };
-
     // Start transaction
     await db.run('BEGIN TRANSACTION');
     
     try {
-      // Insert employee
-      const empColumns = Object.keys(newEmployeeData);
-      const empPlaceholders = empColumns.map(() => '?').join(',');
-      await db.run(
-        `INSERT INTO pegawai (${empColumns.join(',')}) VALUES (${empPlaceholders})`,
-        Object.values(newEmployeeData)
-      );
-      
-      // Insert user
-      await db.run(
-        'INSERT INTO pengguna (id, name, email, password, role, employeeId) VALUES (?,?,?,?,?,?)',
-        [newUserId, userData.name, userData.email, hashedPassword, userData.role || 'EMPLOYEE', newEmployeeId]
-      );
+      if (userData.employeeId) {
+        // If employeeId is provided, link to existing employee
+        await db.run(
+          'INSERT INTO pengguna (id, name, email, password, role, employeeId) VALUES (?,?,?,?,?,?)',
+          [newUserId, userData.name, userData.email, hashedPassword, userData.role || 'employee', userData.employeeId]
+        );
+      } else {
+        // If no employeeId provided, create both user and employee record
+        const newEmployeeId = `emp-${Date.now()}`;
+        
+        // Create a new employee record
+        const newEmployeeData = {
+          id: newEmployeeId,
+          name: userData.name,
+          nip: `NIP${Date.now().toString().slice(-4)}`,
+          position: 'Staf Junior',
+          pangkat: 'Staf',
+          golongan: 'II/a',
+          department: 'Belum Ditentukan',
+          joinDate: new Date().toISOString().split('T')[0],
+          avatarUrl: `/avatars/default-avatar.jpg`,
+          leaveBalance: 18,
+          isActive: 1,
+          address: '',
+          phone: '',
+          pob: '',
+          dob: '',
+          religion: 'Lainnya',
+          maritalStatus: 'Lajang',
+          numberOfChildren: 0,
+          educationHistory: '[]',
+          workHistory: '[]',
+          trainingCertificates: '[]',
+          payrollInfo: JSON.stringify({ baseSalary: 5000000, incomes: [], deductions: [] })
+        };
+
+        // Insert employee
+        const empColumns = Object.keys(newEmployeeData);
+        const empPlaceholders = empColumns.map(() => '?').join(',');
+        await db.run(
+          `INSERT INTO pegawai (${empColumns.join(',')}) VALUES (${empPlaceholders})`,
+          Object.values(newEmployeeData)
+        );
+        
+        // Insert user
+        await db.run(
+          'INSERT INTO pengguna (id, name, email, password, role, employeeId) VALUES (?,?,?,?,?,?)',
+          [newUserId, userData.name, userData.email, hashedPassword, userData.role || 'employee', newEmployeeId]
+        );
+      }
       
       await db.run('COMMIT');
       
-      // Return the created user with employee details
+      // Return the created user with employee details (if any)
       const user = await db.get('SELECT * FROM pengguna WHERE id = ?', newUserId);
-      const employee = await PegawaiRepository.findById(newEmployeeId);
-      user.employeeDetails = employee;
+      if (user.employeeId) {
+        const employee = await PegawaiRepository.findById(user.employeeId);
+        user.employeeDetails = employee;
+      }
       
       const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword;

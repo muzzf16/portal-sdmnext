@@ -123,3 +123,44 @@ export const deletePegawai = async (id: string) => {
     throw error;
   }
 };
+
+export const createPegawaiWithUser = async (pegawai: Omit<Pegawai, 'id'>, photo?: File) => {
+  try {
+    const formData = new FormData();
+    
+    Object.entries(pegawai).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === 'educationHistory') {
+          // Handle both string and array forms of educationHistory
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            // If it's already a string (JSON), pass it as is
+            formData.append(key, value.toString());
+          }
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+    
+    if (photo) {
+      formData.append('photo', photo);
+    }
+    
+    const response = await api.post<Pegawai>(`${API_BASE}/with-user`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      return response.data as unknown as ApiResponse<Pegawai>;
+    } else {
+      return { success: true, data: response.data, message: undefined, meta: undefined } as ApiResponse<Pegawai>;
+    }
+  } catch (error) {
+    console.error('Error creating employee with user:', error);
+    throw error;
+  }
+};

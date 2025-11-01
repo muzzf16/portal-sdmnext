@@ -126,10 +126,10 @@ const HalamanLaporan: React.FC = () => {
             <tbody>
               {attendanceReport.map((att, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{att.employee_id}</td>
+                  <td className="py-2 px-4 border-b">{att.employeeId}</td>
                   <td className="py-2 px-4 border-b">{new Date(att.date).toLocaleDateString()}</td>
-                  <td className="py-2 px-4 border-b">{att.clock_in}</td>
-                  <td className="py-2 px-4 border-b">{att.clock_out}</td>
+                  <td className="py-2 px-4 border-b">{att.clockIn}</td>
+                  <td className="py-2 px-4 border-b">{att.clockOut}</td>
                 </tr>
               ))}
             </tbody>
@@ -146,20 +146,20 @@ const HalamanLaporan: React.FC = () => {
                 <th className="py-2 px-4 border-b">ID Pegawai</th>
                 <th className="py-2 px-4 border-b">Periode</th>
                 <th className="py-2 px-4 border-b">Gaji Pokok</th>
-                <th className="py-2 px-4 border-b">Tunjangan</th>
-                <th className="py-2 px-4 border-b">Potongan</th>
+                <th className="py-2 px-4 border-b">Total Pendapatan</th>
+                <th className="py-2 px-4 border-b">Total Potongan</th>
                 <th className="py-2 px-4 border-b">Gaji Bersih</th>
               </tr>
             </thead>
             <tbody>
               {payrollReport.map((pay, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{pay.employee_id}</td>
+                  <td className="py-2 px-4 border-b">{pay.employeeId}</td>
                   <td className="py-2 px-4 border-b">{pay.period}</td>
-                  <td className="py-2 px-4 border-b">{pay.base_salary}</td>
-                  <td className="py-2 px-4 border-b">{pay.total_allowances}</td>
-                  <td className="py-2 px-4 border-b">{pay.total_deductions}</td>
-                  <td className="py-2 px-4 border-b">{pay.net_salary}</td>
+                  <td className="py-2 px-4 border-b">{pay.baseSalary}</td>
+                  <td className="py-2 px-4 border-b">{pay.totalIncome}</td>
+                  <td className="py-2 px-4 border-b">{pay.totalDeductions}</td>
+                  <td className="py-2 px-4 border-b">{pay.netSalary}</td>
                 </tr>
               ))}
             </tbody>
