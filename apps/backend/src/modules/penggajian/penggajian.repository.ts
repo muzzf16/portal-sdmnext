@@ -73,16 +73,19 @@ export const PenggajianRepository = {
     const totalDeductions = data.deductions?.reduce((sum: number, ded: any) => sum + ded.amount, 0) || 0;
     const netSalary = data.baseSalary + totalIncome - totalDeductions;
     
+    // Create payroll data with only the fields that exist as columns in the database
+    // Exclude calculated fields like grossSalary that are not stored in the database
     const payrollData = {
-      ...data,
+      employeeId: data.employeeId,
+      employeeName: data.employeeName,
+      period: data.period,
+      baseSalary: data.baseSalary,
       incomes: JSON.stringify(data.incomes || []),
       deductions: JSON.stringify(data.deductions || []),
       totalIncome,
       totalDeductions,
       netSalary
     };
-
-    delete payrollData.id; // Prevent updating the primary key
 
     const setClause = Object.keys(payrollData).map(key => `${key} = ?`).join(', ');
     const values = [...Object.values(payrollData), id];

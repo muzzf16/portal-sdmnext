@@ -50,7 +50,7 @@ export const AbsensiRepository = {
       date: today,
       clockIn: clockInTime,
       clockOut: null,
-      status: isLate ? 'Terlambat' : 'Tepat Waktu',
+      status: isLate ? 'terlambat' : 'hadir', // Use 'terlambat' for late arrivals, 'hadir' for on-time
       workDuration: null
     };
 

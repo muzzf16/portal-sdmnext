@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS absensi (
     date TEXT,
     clockIn TEXT,
     clockOut TEXT,
-    status TEXT DEFAULT 'hadir',
+    status TEXT DEFAULT 'hadir' CHECK(status IN ('hadir','izin','sakit','cuti','alpa','terlambat', 'tidak masuk')),
     workDuration TEXT,
     notes TEXT,
-    created_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employeeId) REFERENCES pegawai(id)
 );
 
@@ -161,19 +161,22 @@ CREATE TABLE IF NOT EXISTS tugas_orientasi (
     FOREIGN KEY (employee_id) REFERENCES pegawai(id)
 );
 
--- 11. notifikasi
-CREATE TABLE IF NOT EXISTS notifikasi (
-    id INTEGER PRIMARY KEY,
+-- 11. notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
     employee_id TEXT,
     message TEXT,
     type TEXT,
     is_read INTEGER,
     created_at DATETIME,
+    scheduled_for DATETIME,
+    delivery_channel TEXT,
+    related_entity TEXT,
+    related_entity_id TEXT,
     FOREIGN KEY (employee_id) REFERENCES pegawai(id)
 );
 
-
--- 13. pinjaman_karyawan
+-- 12. pinjaman_karyawan
 CREATE TABLE IF NOT EXISTS pinjaman_karyawan (
     id_pinjaman INTEGER PRIMARY KEY,
     id_pegawai INTEGER,
@@ -187,7 +190,7 @@ CREATE TABLE IF NOT EXISTS pinjaman_karyawan (
     FOREIGN KEY (id_pegawai) REFERENCES pegawai(id)
 );
 
--- 14. users
+-- 13. users
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
     username TEXT,
@@ -198,19 +201,4 @@ CREATE TABLE IF NOT EXISTS users (
     avatarUrl TEXT,
     created_at DATETIME,
     FOREIGN KEY (employeeId) REFERENCES pegawai(nip)
-);
-
--- 15. notifikasi
-CREATE TABLE IF NOT EXISTS notifikasi (
-    id TEXT PRIMARY KEY,
-    employee_id TEXT,
-    message TEXT,
-    type TEXT,
-    is_read INTEGER,
-    created_at DATETIME,
-    scheduled_for DATETIME,
-    delivery_channel TEXT,
-    related_entity TEXT,
-    related_entity_id TEXT,
-    FOREIGN KEY (employee_id) REFERENCES pegawai(id)
 );
