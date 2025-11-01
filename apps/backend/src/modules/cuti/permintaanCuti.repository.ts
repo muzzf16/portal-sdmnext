@@ -40,6 +40,7 @@ export const PermintaanCutiRepository = {
   async create(data: any) {
     const db = await openDb();
     const newId = data.id || `cuti-${Date.now()}`;
+    const jumlahHari = calculateLeaveDuration(data.startDate, data.endDate);
     const request = {
       id: newId,
       employeeId: data.employeeId,
@@ -47,16 +48,17 @@ export const PermintaanCutiRepository = {
       leaveType: data.leaveType,
       startDate: data.startDate,
       endDate: data.endDate,
+      jumlahHari: jumlahHari,
       reason: data.reason,
-      status: 'Menunggu',
+      status: 'menunggu',
       supportingDocument: data.supportingDocument || null,
       rejectionReason: data.rejectionReason || null,
     };
 
     await db.run(
-      'INSERT INTO permintaan_cuti (id, employeeId, employeeName, leaveType, startDate, endDate, reason, status, supportingDocument, rejectionReason) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO permintaan_cuti (id, employeeId, employeeName, leaveType, startDate, endDate, jumlahHari, reason, status, supportingDocument, rejectionReason) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
       request.id, request.employeeId, request.employeeName, request.leaveType, 
-      request.startDate, request.endDate, request.reason, request.status, request.supportingDocument, request.rejectionReason
+      request.startDate, request.endDate, request.jumlahHari, request.reason, request.status, request.supportingDocument, request.rejectionReason
     );
 
     const newRow = await db.get('SELECT * FROM permintaan_cuti WHERE id = ?', newId);

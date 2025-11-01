@@ -128,6 +128,24 @@ export interface Notifikasi {
 }
 
 /**
+ * Leave Request interface
+ */
+export interface Cuti {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  jumlahHari?: number; // Calculated in backend, optional for frontend
+  reason: string;
+  status: string; // e.g., 'pending', 'approved', 'rejected'
+  supportingDocument?: string;
+  rejectionReason?: string;
+  createdAt: string;
+}
+
+/**
  * Onboarding task interface
  */
 export interface TugasOrientasi {

@@ -66,12 +66,12 @@ CREATE TABLE IF NOT EXISTS permintaan_cuti (
     leaveType TEXT,
     startDate TEXT,
     endDate TEXT,
-    jumlahHari INTEGER,
+    jumlahHari INTEGER NULL,
     reason TEXT,
     status TEXT DEFAULT 'menunggu',
     supportingDocument TEXT,
     rejectionReason TEXT,
-    createdAt DATETIME,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employeeId) REFERENCES pegawai(id)
 );
 
@@ -172,19 +172,6 @@ CREATE TABLE IF NOT EXISTS notifikasi (
     FOREIGN KEY (employee_id) REFERENCES pegawai(id)
 );
 
--- 12. cuti
-CREATE TABLE IF NOT EXISTS cuti (
-    id_cuti INTEGER PRIMARY KEY,
-    id_pegawai INTEGER,
-    jenis_cuti TEXT,
-    tanggal_mulai DATE,
-    tanggal_selesai DATE,
-    alasan TEXT,
-    status_pengajuan TEXT,
-    id_atasan_penyetuju INTEGER,
-    created_at DATETIME,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id)
-);
 
 -- 13. pinjaman_karyawan
 CREATE TABLE IF NOT EXISTS pinjaman_karyawan (
@@ -213,8 +200,8 @@ CREATE TABLE IF NOT EXISTS users (
     FOREIGN KEY (employeeId) REFERENCES pegawai(nip)
 );
 
--- 15. notifications
-CREATE TABLE IF NOT EXISTS notifications (
+-- 15. notifikasi
+CREATE TABLE IF NOT EXISTS notifikasi (
     id TEXT PRIMARY KEY,
     employee_id TEXT,
     message TEXT,
@@ -225,5 +212,5 @@ CREATE TABLE IF NOT EXISTS notifications (
     delivery_channel TEXT,
     related_entity TEXT,
     related_entity_id TEXT,
-    FOREIGN KEY (employee_id) REFERENCES pegawai(nip)
+    FOREIGN KEY (employee_id) REFERENCES pegawai(id)
 );

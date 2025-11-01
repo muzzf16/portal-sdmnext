@@ -4,16 +4,19 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { Cuti } from '../types';
 import { ajukanPermintaanCuti } from '../api/cutiApi';
 
+import { useToast } from '@/app/providers/ToastContext';
+
 // Define the form data type (excluding id, employeeName, status, employeeId which are set by the system)
 type FormData = Omit<Cuti, 'id' | 'employeeName' | 'status' | 'employeeId'>;
 
 const FormCuti: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
   const { user } = useAuth();
+  const { addToast } = useToast();
 
   const onSubmit = async (data: FormData) => {
     if (!user) {
-      alert('Anda harus login untuk mengajukan cuti');
+      addToast('Anda harus login untuk mengajukan cuti', 'error');
       return;
     }
 
@@ -26,11 +29,11 @@ const FormCuti: React.FC = () => {
       };
       
       await ajukanPermintaanCuti(requestData);
-      alert('Permintaan cuti berhasil dikirim');
+      addToast('Permintaan cuti berhasil dikirim', 'success');
       reset(); // Clear the form after successful submission
     } catch (error) {
       console.error('Error submitting leave request:', error);
-      alert('Gagal mengirim permintaan cuti');
+      addToast('Gagal mengirim permintaan cuti', 'error');
     }
   };
 
