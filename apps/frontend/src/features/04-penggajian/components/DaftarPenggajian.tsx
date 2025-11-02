@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDaftarPenggajian } from '../hooks/useDaftarPenggajian';
-import { Table } from '@/shared/components/ui';
+import { Table, Button } from '@/shared/components/ui';
+import FormInputGaji from './FormInputGaji';
 
 const DaftarPenggajian: React.FC = () => {
-  const { daftarPenggajian, loading, error } = useDaftarPenggajian();
+  const { daftarPenggajian, loading, error, fetchPenggajian } = useDaftarPenggajian();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleSuccess = () => {
+    setIsModalOpen(false);
+    fetchPenggajian();
+  };
 
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
@@ -13,6 +20,16 @@ const DaftarPenggajian: React.FC = () => {
 
   return (
     <div className="mt-6">
+      <div className="flex justify-end mb-4">
+        <Button onClick={() => setIsModalOpen(true)}>Input Gaji</Button>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <FormInputGaji onSuccess={handleSuccess} onCancel={() => setIsModalOpen(false)} />
+        </div>
+      )}
+
       <Table headers={tableHeaders}>
         {daftarPenggajian.map(penggajian => (
           <tr key={penggajian.id}>

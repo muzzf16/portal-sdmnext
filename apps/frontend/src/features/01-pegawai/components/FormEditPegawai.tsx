@@ -98,6 +98,14 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
             {errors.position && <span className="text-red-500 text-sm">{errors.position.message}</span>}
           </div>
           <div>
+            <label htmlFor="pangkat" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pangkat</label>
+            <input id="pangkat" {...register('pangkat')} className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700" />
+          </div>
+          <div>
+            <label htmlFor="golongan" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Golongan</label>
+            <input id="golongan" {...register('golongan')} className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700" />
+          </div>
+          <div>
             <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departemen</label>
             <input id="department" {...register('department', { required: 'Departemen wajib diisi' })} className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700" />
             {errors.department && <span className="text-red-500 text-sm">{errors.department.message}</span>}

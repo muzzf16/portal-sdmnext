@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usePenggajian } from '../hooks/usePenggajian';
 import { updatePenggajian } from '../api/penggajianApi';
 import { Penggajian } from '../types';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 interface DetailPenggajianProps {
   payrollId: string | undefined;
@@ -217,6 +219,16 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
 
   return (
     <div className="mt-6">
+      {/* Back Button */}
+      <div className="mb-6">
+        <Link 
+          to="/dashboard/penggajian" 
+          className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Kembali ke Daftar Penggajian
+        </Link>
+      </div>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
@@ -313,39 +325,39 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
                   formValues.incomes.map((income, index) => (
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       {editingComponentIndex?.type === 'income' && editingComponentIndex.index === index ? (
-                        <div className="flex-1 flex flex-col sm:flex-row">
-                          <input
-                            type="text"
-                            value={editingComponent?.name || ''}
-                            onChange={(e) => updateEditingComponent('name', e.target.value)}
-                            className="border rounded px-2 py-1 mr-2 mb-2 sm:mb-0 flex-1"
-                            placeholder="Nama tunjangan"
-                          />
-                          <div className="flex-1 flex">
-                            <span className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l text-gray-600">Rp</span>
+                        <div className="flex-1 flex flex-col gap-2">
                             <input
-                              type="number"
-                              value={editingComponent?.amount || 0}
-                              onChange={(e) => updateEditingComponent('amount', e.target.value)}
-                              className="border rounded-r px-2 py-1 w-full"
-                              placeholder="Jumlah"
+                              type="text"
+                              value={editingComponent?.name || ''}
+                              onChange={(e) => updateEditingComponent('name', e.target.value)}
+                              className="border rounded px-2 py-1 w-full"
+                              placeholder="Nama tunjangan"
                             />
+                            <div className="flex">
+                              <span className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l text-gray-600">Rp</span>
+                              <input
+                                type="number"
+                                value={editingComponent?.amount || 0}
+                                onChange={(e) => updateEditingComponent('amount', e.target.value)}
+                                className="border rounded-r px-2 py-1 w-full"
+                                placeholder="Jumlah"
+                              />
+                            </div>
+                            <div className="flex space-x-2 self-end">
+                              <button 
+                                onClick={saveComponentEdit}
+                                className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Simpan
+                              </button>
+                              <button 
+                                onClick={cancelComponentEdit}
+                                className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Batal
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex space-x-2 ml-2">
-                            <button 
-                              onClick={saveComponentEdit}
-                              className="bg-green-500 text-white px-3 py-1 rounded text-sm"
-                            >
-                              Simpan
-                            </button>
-                            <button 
-                              onClick={cancelComponentEdit}
-                              className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
-                            >
-                              Batal
-                            </button>
-                          </div>
-                        </div>
                       ) : (
                         <>
                           <div className="flex-1">
@@ -406,39 +418,39 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
                   formValues.deductions.map((deduction, index) => (
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       {editingComponentIndex?.type === 'deduction' && editingComponentIndex.index === index ? (
-                        <div className="flex-1 flex flex-col sm:flex-row">
-                          <input
-                            type="text"
-                            value={editingComponent?.name || ''}
-                            onChange={(e) => updateEditingComponent('name', e.target.value)}
-                            className="border rounded px-2 py-1 mr-2 mb-2 sm:mb-0 flex-1"
-                            placeholder="Nama potongan"
-                          />
-                          <div className="flex-1 flex">
-                            <span className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l text-gray-600">Rp</span>
+                        <div className="flex-1 flex flex-col gap-2">
                             <input
-                              type="number"
-                              value={editingComponent?.amount || 0}
-                              onChange={(e) => updateEditingComponent('amount', e.target.value)}
-                              className="border rounded-r px-2 py-1 w-full"
-                              placeholder="Jumlah"
+                              type="text"
+                              value={editingComponent?.name || ''}
+                              onChange={(e) => updateEditingComponent('name', e.target.value)}
+                              className="border rounded px-2 py-1 w-full"
+                              placeholder="Nama potongan"
                             />
+                            <div className="flex">
+                              <span className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l text-gray-600">Rp</span>
+                              <input
+                                type="number"
+                                value={editingComponent?.amount || 0}
+                                onChange={(e) => updateEditingComponent('amount', e.target.value)}
+                                className="border rounded-r px-2 py-1 w-full"
+                                placeholder="Jumlah"
+                              />
+                            </div>
+                            <div className="flex space-x-2 self-end">
+                              <button 
+                                onClick={saveComponentEdit}
+                                className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Simpan
+                              </button>
+                              <button 
+                                onClick={cancelComponentEdit}
+                                className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Batal
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex space-x-2 ml-2">
-                            <button 
-                              onClick={saveComponentEdit}
-                              className="bg-green-500 text-white px-3 py-1 rounded text-sm"
-                            >
-                              Simpan
-                            </button>
-                            <button 
-                              onClick={cancelComponentEdit}
-                              className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
-                            >
-                              Batal
-                            </button>
-                          </div>
-                        </div>
                       ) : (
                         <>
                           <div className="flex-1">

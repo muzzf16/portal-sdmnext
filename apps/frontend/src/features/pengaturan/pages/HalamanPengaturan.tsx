@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserCog, Building, Database, Users, Download, Upload, Key } from 'lucide-react';
 import clsx from 'clsx';
 import { DaftarPengguna } from '../components/DaftarPengguna';
@@ -6,8 +6,57 @@ import { UbahPasswordPengguna } from '../components/UbahPasswordPengguna';
 import { UbahRole } from '../components/UbahRole';
 import { ResetPassword } from '../components/ResetPassword';
 
+import { backupDatabase, restoreDatabase } from '@/shared/services/backup.service';
+import { updateCompanySettings } from '@/shared/services/company-settings.service';
+import { useCompanySettings } from '@/shared/contexts/CompanySettingsContext';
+
 const HalamanPengaturan: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'company' | 'backup'>('users');
+  const { settings, loading: settingsLoading, refetch } = useCompanySettings();
+  
+  const [companySettings, setCompanySettings] = useState<any>({});
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settings) {
+      setCompanySettings(settings);
+      if (settings.logo) {
+        setLogoPreview(settings.logo);
+      }
+    }
+  }, [settings]);
+
+  const handleBackup = () => {
+    backupDatabase().then((response) => {
+      alert(response.data.message);
+    });
+  };
+
+  const handleRestore = () => {
+    restoreDatabase().then((response) => {
+      alert(response.data.message);
+    });
+  };
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleUpdateCompanySettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateCompanySettings(companySettings, logoFile).then(() => {
+      alert('Pengaturan perusahaan berhasil diperbarui.');
+      refetch(); // Refetch settings to update context
+    }).catch(err => {
+      console.error(err);
+      alert('Gagal memperbarui pengaturan perusahaan.');
+    });
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -83,7 +132,8 @@ const HalamanPengaturan: React.FC = () => {
               Pengaturan Perusahaan
             </h2>
             
-            <form className="space-y-6">
+            {settingsLoading ? <p>Loading...</p> : (
+            <form className="space-y-6" onSubmit={handleUpdateCompanySettings}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -94,6 +144,8 @@ const HalamanPengaturan: React.FC = () => {
                     id="companyName"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700 dark:text-white"
                     placeholder="Masukkan nama perusahaan"
+                    value={companySettings.companyName || ''}
+                    onChange={(e) => setCompanySettings({ ...companySettings, companyName: e.target.value })}
                   />
                 </div>
                 
@@ -106,6 +158,8 @@ const HalamanPengaturan: React.FC = () => {
                     id="npwp"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700 dark:text-white"
                     placeholder="Masukkan nomor NPWP"
+                    value={companySettings.npwp || ''}
+                    onChange={(e) => setCompanySettings({ ...companySettings, npwp: e.target.value })}
                   />
                 </div>
                 
@@ -118,6 +172,8 @@ const HalamanPengaturan: React.FC = () => {
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700 dark:text-white"
                     placeholder="Masukkan alamat lengkap perusahaan"
+                    value={companySettings.address || ''}
+                    onChange={(e) => setCompanySettings({ ...companySettings, address: e.target.value })}
                   ></textarea>
                 </div>
                 
@@ -127,8 +183,12 @@ const HalamanPengaturan: React.FC = () => {
                   </label>
                   <div className="mt-1 flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="h-16 w-16 rounded-md bg-gray-200 dark:bg-neutral-700 flex items-center justify-center">
-                        <span className="text-gray-500 dark:text-gray-400">Logo</span>
+                      <div className="h-16 w-16 rounded-md bg-gray-200 dark:bg-neutral-700 flex items-center justify-center overflow-hidden">
+                        {logoPreview ? (
+                          <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain" />
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400">Logo</span>
+                        )}
                       </div>
                     </div>
                     <div className="ml-5">
@@ -138,7 +198,7 @@ const HalamanPengaturan: React.FC = () => {
                           className="relative cursor-pointer bg-white dark:bg-neutral-700 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500 dark:bg-neutral-700 dark:text-primary-400 dark:hover:text-primary-300"
                         >
                           <span>Upload file</span>
-                          <input id="logo-upload" name="logo-upload" type="file" className="sr-only" />
+                          <input id="logo-upload" name="logo-upload" type="file" className="sr-only" onChange={handleLogoChange} accept="image/png, image/jpeg" />
                         </label>
                         <p className="pl-1">atau drag and drop</p>
                       </div>
@@ -165,6 +225,7 @@ const HalamanPengaturan: React.FC = () => {
                 </button>
               </div>
             </form>
+            )}
           </div>
         )}
         
@@ -240,7 +301,7 @@ const HalamanPengaturan: React.FC = () => {
                     </div>
                   </div>
                   
-                  <button className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
+                  <button onClick={handleBackup} className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
                     Export Data Sekarang
                   </button>
                 </div>
@@ -312,7 +373,7 @@ const HalamanPengaturan: React.FC = () => {
                     </div>
                   </div>
                   
-                  <button className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
+                  <button onClick={handleRestore} className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
                     Import Data
                   </button>
                 </div>

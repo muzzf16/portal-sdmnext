@@ -8,6 +8,7 @@ export interface User {
   role: string;
   employeeId?: string; // Reference to the employee ID in the pegawai table
   avatarUrl?: string;
+  employeeDetails?: Pegawai; // Add this line
 }
 
 /**

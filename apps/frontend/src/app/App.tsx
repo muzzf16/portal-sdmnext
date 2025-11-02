@@ -5,6 +5,7 @@ import { AuthProvider } from '@/shared/contexts/AuthContext';
 import { NotificationProvider } from './providers/NotificationContext';
 import { ToastProvider } from './providers/ToastContext';
 import { DataProvider } from './providers/DataContext';
+import { CompanySettingsProvider } from '@/shared/contexts/CompanySettingsContext';
 import ReactQueryProvider from './providers/ReactQueryProvider';
 import I18nProvider from './providers/I18nProvider';
 
@@ -45,9 +46,11 @@ const App: React.FC = () => {
           <ToastProvider>
             <NotificationProvider>
               <AuthProvider>
-                <DataProvider>
-                  <AppRoutes />
-                </DataProvider>
+                <CompanySettingsProvider>
+                  <DataProvider>
+                    <AppRoutes />
+                  </DataProvider>
+                </CompanySettingsProvider>
               </AuthProvider>
             </NotificationProvider>
           </ToastProvider>

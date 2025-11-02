@@ -45,6 +45,8 @@ const DetailPegawai: React.FC<DetailPegawaiProps> = ({ employeeId }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
               <p><strong>NIP:</strong> {pegawai.nip}</p>
               <p><strong>Posisi:</strong> {pegawai.position}</p>
+              <p><strong>Pangkat:</strong> {pegawai.pangkat || '-'}</p>
+              <p><strong>Golongan:</strong> {pegawai.golongan || '-'}</p>
               <p><strong>Departemen:</strong> {pegawai.department}</p>
               <p><strong>Jenis Kelamin:</strong> 
                 {pegawai.jenis_kelamin === 'L' ? ' Laki-laki' : 

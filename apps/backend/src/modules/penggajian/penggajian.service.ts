@@ -1,5 +1,6 @@
 
 import { PenggajianRepository } from './penggajian.repository';
+import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import { AppError } from '../../utils/errors';
 
 class PenggajianService {
@@ -92,6 +93,43 @@ class PenggajianService {
         throw error;
       }
       throw new AppError(`Error adding salary component: ${error.message}`, 500);
+    }
+  }
+
+  static async runPayroll(period: string) {
+    try {
+      const employees = await PegawaiRepository.findAll();
+      const createdPayrolls = [];
+
+      for (const employee of employees) {
+        if (!employee.isActive) {
+          continue; // Skip inactive employees
+        }
+
+        const existingPayroll = await PenggajianRepository.findByEmployeeIdAndPeriod(employee.id, period);
+        if (existingPayroll) {
+          continue; // Skip if payroll for this period already exists
+        }
+
+        const payrollInfo = employee.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] };
+
+        const newPayrollData = {
+          employeeId: employee.id,
+          employeeName: employee.name,
+          period: period,
+          baseSalary: payrollInfo.baseSalary || 0,
+          incomes: payrollInfo.incomes || [],
+          deductions: payrollInfo.deductions || [],
+        };
+
+        const createdPayroll = await PenggajianRepository.create(newPayrollData);
+        createdPayrolls.push(createdPayroll);
+      }
+
+      return { message: `${createdPayrolls.length} payrolls created for period ${period}.`, data: createdPayrolls };
+
+    } catch (error: any) {
+      throw new AppError(`Error running payroll generation: ${error.message}`, 500);
     }
   }
 }

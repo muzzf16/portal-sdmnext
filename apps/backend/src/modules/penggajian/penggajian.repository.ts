@@ -35,6 +35,13 @@ export const PenggajianRepository = {
     return parseJsonFields(rows);
   },
 
+  async findByEmployeeIdAndPeriod(employeeId: string, period: string) {
+    const db = await openDb();
+    const row = await db.get('SELECT * FROM penggajian WHERE employeeId = ? AND period = ?', [employeeId, period]);
+    if (!row) return null;
+    return parseJsonFields([row])[0];
+  },
+
   async create(data: any) {
     const db = await openDb();
     const newId = data.id || `payroll-${Date.now()}`;

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useSidebar } from '@/app/hooks/useSidebar';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useCompanySettings } from '@/shared/contexts/CompanySettingsContext';
 import { Menu, X, Home, Users, Briefcase, DollarSign, Calendar, BarChart2, Settings, FileText, UserPlus, Award } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -16,7 +17,7 @@ interface NavItemProps {
 
 const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
   const location = useLocation();
-  const isActive = location.pathname === to; // Simplified active state for now
+  const isActive = location.pathname === to;
   return (
     <Link
       to={to}
@@ -34,10 +35,28 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
 
 const DashboardLayout: React.FC = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout, loading } = useAuth();
+  const { settings, loading: settingsLoading } = useCompanySettings();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  if (loading) {
+  const getAvatarUrl = () => {
+    if (user?.avatarUrl) {
+        if (user.avatarUrl.startsWith('http')) {
+            return user.avatarUrl;
+        }
+        return `${VITE_API_URL}${user.avatarUrl}`;
+    }
+    // Check for employee details as a fallback
+    if (user?.employeeDetails?.avatarUrl) {
+        if (user.employeeDetails.avatarUrl.startsWith('http')) {
+            return user.employeeDetails.avatarUrl;
+        }
+        return `${VITE_API_URL}${user.employeeDetails.avatarUrl}`;
+    }
+    return `${VITE_API_URL}/avatars/default-avatar.jpg`;
+  };
+
+  if (loading || settingsLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary-600"></div>
@@ -45,23 +64,8 @@ const DashboardLayout: React.FC = () => {
     );
   }
 
-  const getAvatarUrl = () => {
-    if (user?.avatarUrl) {
-      if (user.avatarUrl.startsWith('http')) {
-        return user.avatarUrl;
-      }
-      return `${VITE_API_URL}${user.avatarUrl}`;
-    }
-    return `${VITE_API_URL}/avatars/default-avatar.jpg`;
-  };
-
-  // Define base navigation items
   const allNavItems = [
-    // Shared
     { to: '/dashboard', icon: <Home size={20} />, text: 'Dashboard', roles: ['admin', 'employee'] },
-   
-
-    // Admin Only
     { to: '/dashboard/pegawai', icon: <Users size={20} />, text: 'Manajemen Pegawai', roles: ['admin'] },
     { to: '/dashboard/absensi', icon: <Calendar size={20} />, text: 'Manajemen Absensi', roles: ['admin'] },
     { to: '/dashboard/cuti', icon: <Briefcase size={20} />, text: 'Manajemen Cuti', roles: ['admin'] },
@@ -72,7 +76,6 @@ const DashboardLayout: React.FC = () => {
     { to: '/dashboard/pelatihan', icon: <Award size={20} />, text: 'Manajemen Pelatihan', roles: ['admin'] },
     { to: '/dashboard/laporan', icon: <FileText size={20} />, text: 'Laporan', roles: ['admin'] },
     { to: '/dashboard/pengaturan', icon: <Settings size={20} />, text: 'Pengaturan', roles: ['admin', 'employee'] }, 
-    // Employee Specific (paths are dynamic)
     { to: `/dashboard/pegawai/${user?.employeeId}` , icon: <Users size={20}/>, text: 'Profil Saya', roles: ['employee'] },
     { to: '/dashboard/absensi-saya', icon: <Calendar size={20} />, text: 'Absensi Saya', roles: ['employee'] },
     { to: '/dashboard/cuti-saya', icon: <Briefcase size={20} />, text: 'Cuti Saya', roles: ['employee'] },
@@ -87,7 +90,6 @@ const DashboardLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Sidebar */}
       <aside
         className={clsx(
           'fixed inset-y-0 left-0 z-50 flex flex-col bg-primary-800 transition-all duration-300 shadow-soft-shadow',
@@ -95,7 +97,19 @@ const DashboardLayout: React.FC = () => {
         )}
       >
         <div className="flex items-center justify-center h-16 bg-primary-900 text-white text-2xl font-bold border-b border-primary-700">
-          {isSidebarOpen ? 'Portal_SDM' : 'H'}
+          {isSidebarOpen ? (
+            settings?.logo ? (
+                <img
+                  className="h-8 w-auto"
+                  src={settings.logo}
+                  alt={settings.companyName || 'Company Logo'}
+                />
+            ) : (
+              settings?.companyName || 'Portal_SDM'
+            )
+          ) : (
+            'H'
+          )}
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2">
           {navItems.map((item) => (
@@ -116,19 +130,19 @@ const DashboardLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div
         className={clsx(
           'flex-1 flex flex-col transition-all duration-300 bg-neutral-50 dark:bg-neutral-900',
           isSidebarOpen ? 'ml-64' : 'ml-20'
         )}
       >
-        {/* Header */}
         <header className="flex items-center justify-between h-16 px-6 bg-white dark:bg-gray-800 shadow-soft-shadow z-40">
           <button onClick={toggleSidebar} className="text-gray-500 dark:text-gray-300 focus:outline-none">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-          <h1 className="text-xl font-semibold text-gray-800 dark:text-white">PT BPR BAPERA BATANG</h1> {/* Placeholder for page title */}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {settings?.companyName || 'Dashboard'}
+            </h1>
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -151,7 +165,6 @@ const DashboardLayout: React.FC = () => {
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 p-6 overflow-y-auto">
           <Outlet />
         </main>

@@ -111,6 +111,14 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
             {errors.position && <span className="text-red-500 text-sm dark:text-red-400">{errors.position.message}</span>}
           </div>
           <div>
+            <label htmlFor="pangkat" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pangkat</label>
+            <input id="pangkat" {...registerForm('pangkat')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+          </div>
+          <div>
+            <label htmlFor="golongan" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Golongan</label>
+            <input id="golongan" {...registerForm('golongan')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+          </div>
+          <div>
             <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departemen</label>
             <input id="department" {...registerForm('department', { required: 'Departemen wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
             {errors.department && <span className="text-red-500 text-sm dark:text-red-400">{errors.department.message}</span>}

@@ -99,6 +99,14 @@ export const printEmployeeProfile = (employeeData: any) => {
               <div class="info-value">${employeeData.position || '-'}</div>
             </div>
             <div class="info-row">
+              <div class="info-label">Pangkat:</div>
+              <div class="info-value">${employeeData.pangkat || '-'}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Golongan:</div>
+              <div class="info-value">${employeeData.golongan || '-'}</div>
+            </div>
+            <div class="info-row">
               <div class="info-label">Tanggal Bergabung:</div>
               <div class="info-value">${employeeData.joinDate ? new Date(employeeData.joinDate).toLocaleDateString('id-ID') : '-'}</div>
             </div>

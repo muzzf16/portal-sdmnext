@@ -274,6 +274,16 @@ const ProfilSaya: React.FC = () => {
                     </div>
                     
                     <div className="flex">
+                      <div className="w-1/3 text-sm font-medium text-gray-500 dark:text-gray-400">Pangkat</div>
+                      <div className="w-2/3 text-sm text-gray-900 dark:text-white">{pegawai.pangkat || '-'}</div>
+                    </div>
+
+                    <div className="flex">
+                      <div className="w-1/3 text-sm font-medium text-gray-500 dark:text-gray-400">Golongan</div>
+                      <div className="w-2/3 text-sm text-gray-900 dark:text-white">{pegawai.golongan || '-'}</div>
+                    </div>
+
+                    <div className="flex">
                       <div className="w-1/3 text-sm font-medium text-gray-500 dark:text-gray-400">Departemen</div>
                       <div className="w-2/3 text-sm text-gray-900 dark:text-white">{pegawai.department}</div>
                     </div>

@@ -73,6 +73,19 @@ class PenggajianController {
       next(error);
     }
   }
+
+  static async runPayroll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { period } = req.body;
+      if (!period) {
+        return res.status(400).json({ message: 'Period is required' });
+      }
+      const result = await PenggajianService.runPayroll(period);
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default PenggajianController;

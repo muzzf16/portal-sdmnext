@@ -9,6 +9,7 @@ router.get('/:id', PenggajianController.getPenggajianById);
 router.get('/employee/:id', PenggajianController.getPenggajianByEmployeeId);
 router.post('/', PenggajianController.createPenggajian);
 router.put('/:id', PenggajianController.updatePenggajian);
+router.post('/run', PenggajianController.runPayroll);
 router.delete('/:id', PenggajianController.deletePenggajian);
 router.post('/:id/components', PenggajianController.addSalaryComponent);
 

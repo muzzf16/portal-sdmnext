@@ -69,7 +69,7 @@ const DaftarPegawai: React.FC = () => {
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['Foto','Nama', 'NIP', 'Posisi', 'Departemen', 'Status', 'Aksi'];
+  const tableHeaders = ['Foto', 'Nama', 'NIP', 'Posisi', 'Pangkat', 'Golongan', 'Departemen', 'Status', 'Aksi'];
 
   return (
     <div className="mt-6">
@@ -182,6 +182,8 @@ const DaftarPegawai: React.FC = () => {
               <td className="py-4 px-6 font-medium text-gray-900 dark:text-white">{p.name}</td>
               <td className="py-4 px-6">{p.nip}</td>
               <td className="py-4 px-6">{p.position || '-'}</td>
+              <td className="py-4 px-6">{p.pangkat || '-'}</td>
+              <td className="py-4 px-6">{p.golongan || '-'}</td>
               <td className="py-4 px-6">{p.department || '-'}</td>
               <td className="py-4 px-6">
                 <Badge variant={p.isActive === false ? 'danger' : 'success'}>

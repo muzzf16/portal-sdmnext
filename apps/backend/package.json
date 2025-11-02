@@ -8,7 +8,9 @@
     "start": "node dist/server.js",
     "build": "tsc",
     "migrate": "ts-node db/migrate.ts",
-    "seed": "ts-node db/seed.ts"
+    "seed": "ts-node db/seed.ts",
+    "reset": "ts-node db/reset.ts",
+    "seed:company-settings": "ts-node db/seed-company-settings.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
