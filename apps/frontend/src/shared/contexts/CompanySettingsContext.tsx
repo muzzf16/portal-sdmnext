@@ -4,6 +4,7 @@ import { getCompanySettings as getCompanySettingsApi } from '../services/company
 interface CompanySettings {
   companyName?: string;
   logo?: string;
+  address?: string;
   // add other settings if needed
 }
 

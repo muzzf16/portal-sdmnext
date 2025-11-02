@@ -96,11 +96,11 @@ const DashboardLayout: React.FC = () => {
           isSidebarOpen ? 'w-64' : 'w-20',
         )}
       >
-        <div className="flex items-center justify-center h-16 bg-primary-900 text-white text-2xl font-bold border-b border-primary-700">
+        <div className="flex items-center justify-center h-auto bg-primary-900 text-white text-2xl font-bold border-b border-primary-700 py-2">
           {isSidebarOpen ? (
             settings?.logo ? (
                 <img
-                  className="h-8 w-auto"
+                  className="h-12 w-auto"
                   src={settings.logo}
                   alt={settings.companyName || 'Company Logo'}
                 />
@@ -143,6 +143,11 @@ const DashboardLayout: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {settings?.companyName || 'Dashboard'}
             </h1>
+            {settings?.address && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {settings.address}
+              </p>
+            )}
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}

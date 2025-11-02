@@ -16,6 +16,13 @@ export const updateSettings = async (req: Request, res: Response, next: NextFunc
     const settingsData = req.body;
     if (req.file) {
       settingsData.logo = `/logos/${req.file.filename}`;
+    } else if (settingsData.logo && settingsData.logo.includes('http')) {
+      try {
+        const url = new URL(settingsData.logo);
+        settingsData.logo = url.pathname;
+      } catch (e) {
+        console.error('Invalid URL for logo, skipping modification:', settingsData.logo);
+      }
     }
     await service.updateSettings(settingsData);
     res.sendStatus(200);
