@@ -122,6 +122,11 @@ export const PenggunaRepository = {
     return userWithoutPassword;
   },
 
+  async findAdminUsers() {
+    const db = await openDb();
+    return db.all("SELECT * FROM pengguna WHERE role = 'admin'");
+  },
+
   async update(id: string, data: any) {
     const db = await openDb();
     const result = await db.run(

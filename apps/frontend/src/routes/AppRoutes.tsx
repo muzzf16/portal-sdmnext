@@ -68,6 +68,7 @@ const HalamanNotifikasi = lazy(() => import('../features/10-notifikasi/pages/Hal
 
 // Settings
 const HalamanPengaturan = lazy(() => import('../features/pengaturan/pages/HalamanPengaturan'));
+const HalamanPerubahanData = lazy(() => import('../features/pengaturan/pages/HalamanPerubahanData'));
 
 // Private Route
 import PrivateRoute from '../shared/components/PrivateRoute';
@@ -304,9 +305,16 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="pengaturan" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanPengaturan />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="perubahan-data" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <HalamanPerubahanData />
             </Suspense>
           </PrivateRoute>
         } />

@@ -4,6 +4,7 @@ import { usePegawai } from '../hooks/usePegawai';
 import { useRiwayatJabatan } from '../hooks/useRiwayatJabatan';
 import { usePelatihan } from '../hooks/usePelatihan';
 import { printEmployeeProfile } from '../utils/printProfile';
+import RequestChangeModal from './RequestChangeModal';
 import { 
   User, 
   Building, 
@@ -28,6 +29,7 @@ const ProfilSaya: React.FC = () => {
   const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(id);
   const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(id);
   const [activeTab, setActiveTab] = useState('biodata');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (loading) return <div className="text-center py-8">Memuat...</div>;
   if (error) return <div className="text-center py-8 text-red-500">Error: {error.message}</div>;
@@ -104,6 +106,13 @@ const ProfilSaya: React.FC = () => {
                 >
                   <Printer className="h-4 w-4 mr-2" />
                   Cetak Profil PDF
+                </button>
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="mt-4 md:mt-0 md:ml-4 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 dark:bg-secondary-700 dark:hover:bg-secondary-600 transition-colors flex items-center"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ajukan Perubahan Data
                 </button>
               </div>
               
@@ -417,6 +426,12 @@ const ProfilSaya: React.FC = () => {
           )}
         </div>
       </div>
+
+      <RequestChangeModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        employeeId={id}
+      />
     </div>
   );
 };

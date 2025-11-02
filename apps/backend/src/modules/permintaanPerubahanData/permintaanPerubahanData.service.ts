@@ -1,80 +1,49 @@
+import * as repository from './permintaanPerubahanData.repository';
+import { DataChangeRequest } from './permintaanPerubahanData.model';
+import NotifikasiService from '../notifikasi/notifikasi.service';
+import { PenggunaRepository } from '../pengguna/pengguna.repository';
+import { PegawaiRepository } from '../pegawai/pegawai.repository';
 
-import { PermintaanPerubahanDataRepository } from './permintaanPerubahanData.repository';
-import { AppError } from '../../utils/errors';
+export const createChangeRequest = async (request: DataChangeRequest): Promise<number | undefined> => {
+  const newRequestId = await repository.createRequest(request);
 
-class PermintaanPerubahanDataService {
-  static async getAllPermintaanPerubahanData() {
-    try {
-      return await PermintaanPerubahanDataRepository.findAll();
-    } catch (error: any) {
-      throw new AppError(`Error retrieving data change requests: ${error.message}`, 500);
+  // Create notification for all admins
+  if (newRequestId) {
+    const admins = await PenggunaRepository.findAdminUsers();
+    const employee = await PegawaiRepository.findById(request.employeeId);
+
+    for (const admin of admins) {
+      await NotifikasiService.createNotifikasi({
+        employee_id: admin.employeeId, // Notify the admin
+        message: `Pegawai ${employee?.name} mengajukan permintaan perubahan data.`,
+        type: 'info',
+        related_entity: 'data_change_request',
+        related_entity_id: newRequestId.toString(),
+      });
     }
   }
 
-  static async getPermintaanPerubahanDataById(id: string) {
-    try {
-      const request = await PermintaanPerubahanDataRepository.findById(id);
-      if (!request) {
-        throw new AppError('Data change request not found', 404);
-      }
-      return request;
-    } catch (error: any) {
-      if (error.message === 'Data change request not found') {
-        throw error;
-      }
-      throw new AppError(`Error retrieving data change request: ${error.message}`, 500);
-    }
-  }
+  return newRequestId;
+};
 
-  static async getPermintaanPerubahanDataByEmployeeId(employeeId: string) {
-    try {
-      return await PermintaanPerubahanDataRepository.findByEmployeeId(employeeId);
-    } catch (error: any) {
-      throw new AppError(`Error retrieving data change requests for employee: ${error.message}`, 500);
-    }
-  }
+export const getAllChangeRequests = async (): Promise<DataChangeRequest[]> => {
+  return repository.findAllRequests();
+};
 
-  static async getPendingPermintaanPerubahanData() {
-    try {
-      return await PermintaanPerubahanDataRepository.findPending();
-    } catch (error: any) {
-      throw new AppError(`Error retrieving pending data change requests: ${error.message}`, 500);
+export const processChangeRequest = async (id: number, status: string, reviewedBy: string, reviewNotes: string): Promise<void> => {
+    const request = await repository.findRequestById(id);
+    if (!request) {
+        throw new Error('Request not found');
     }
-  }
 
-  static async createPermintaanPerubahanData(requestData: any) {
-    try {
-      return await PermintaanPerubahanDataRepository.create(requestData);
-    } catch (error: any) {
-      throw new AppError(`Error creating data change request: ${error.message}`, 500);
-    }
-  }
+    await repository.updateRequestStatus(id, status, reviewedBy, reviewNotes);
 
-  static async updatePermintaanPerubahanDataStatus(id: string, status: string) {
-    try {
-      return await PermintaanPerubahanDataRepository.updateStatus(id, status);
-    } catch (error: any) {
-      if (error.message === 'Data change request not found') {
-        throw new AppError('Data change request not found', 404);
-      }
-      throw new AppError(`Error updating data change request status: ${error.message}`, 500);
-    }
-  }
-
-  static async deletePermintaanPerubahanData(id: string) {
-    try {
-      const deleted = await PermintaanPerubahanDataRepository.delete(id);
-      if (!deleted) {
-        throw new AppError('Data change request not found', 404);
-      }
-      return { message: 'Data change request deleted successfully' };
-    } catch (error: any) {
-      if (error.message === 'Data change request not found') {
-        throw error;
-      }
-      throw new AppError(`Error deleting data change request: ${error.message}`, 500);
-    }
-  }
-}
-
-export default PermintaanPerubahanDataService;
+    // Notify the employee who made the request
+    await NotifikasiService.createNotifikasi({
+        employee_id: request.employeeId,
+        message: `Permintaan perubahan data Anda telah di-${status}.`,
+        type: status === 'approved' ? 'success' : 'error',
+        related_entity: 'data_change_request',
+        related_entity_id: id.toString(),
+    });
+};

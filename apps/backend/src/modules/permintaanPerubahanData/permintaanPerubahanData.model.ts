@@ -1,11 +1,10 @@
-
-// src/modules/permintaanPerubahanData/permintaanPerubahanData.model.ts
-
-export interface PermintaanPerubahanData {
-  id: string;
+export interface DataChangeRequest {
+  id?: number;
   employeeId: string;
-  employeeName: string;
-  requestDate: string;
-  message: string;
-  status: string;
+  requestedChanges: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+  updatedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
 }
