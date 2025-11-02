@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from '../modules/pengguna/auth.pengguna.routes';
+import penggunaRoutes from '../modules/pengguna/pengguna.routes';
 import employeeRoutes from '../modules/pegawai/pegawai.routes';
 import leaveRoutes from '../modules/cuti/cuti.routes';
 import attendanceRoutes from '../modules/absensi/absensi.routes';
@@ -18,6 +19,7 @@ import uploadRoutes from './upload';
 const router = Router();
 
 router.use('/auth', authRoutes);
+router.use('/users', penggunaRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/leave-requests', leaveRoutes);
 router.use('/attendance', attendanceRoutes);

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { UserCog, Building, Database, Users, Download, Upload, Key } from 'lucide-react';
 import clsx from 'clsx';
+import { DaftarPengguna } from '../components/DaftarPengguna';
+import { UbahPasswordPengguna } from '../components/UbahPasswordPengguna';
+import { UbahRole } from '../components/UbahRole';
+import { ResetPassword } from '../components/ResetPassword';
 
 const HalamanPengaturan: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'company' | 'backup'>('users');
@@ -63,141 +67,12 @@ const HalamanPengaturan: React.FC = () => {
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Add User Card */}
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-6 border border-primary-200 dark:border-primary-800 hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary-100 dark:bg-primary-900/30 p-4 rounded-full mb-4">
-                    <UserCog className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-primary-800 dark:text-primary-200 mb-2">Tambah Akun Baru</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                    Buat akun baru untuk pengguna sistem
-                  </p>
-                  <button className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
-                    Tambah Pengguna
-                  </button>
-                </div>
-              </div>
-              
-              {/* Change Role Card */}
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-6 border border-primary-200 dark:border-primary-800 hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary-100 dark:bg-primary-900/30 p-4 rounded-full mb-4">
-                    <Users className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-primary-800 dark:text-primary-200 mb-2">Ubah Role Pengguna</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                    Mengubah peran dan hak akses pengguna
-                  </p>
-                  <button className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
-                    Ubah Role
-                  </button>
-                </div>
-              </div>
-              
-              {/* Reset Password Card */}
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-6 border border-primary-200 dark:border-primary-800 hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-primary-100 dark:bg-primary-900/30 p-4 rounded-full mb-4">
-                    <Key className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-primary-800 dark:text-primary-200 mb-2">Reset Password</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                    Reset password pengguna yang lupa kata sandi
-                  </p>
-                  <button className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors">
-                    Reset Password
-                  </button>
-                </div>
-              </div>
+              <UbahRole />
+              <ResetPassword />
+              <UbahPasswordPengguna />
             </div>
             
-            {/* User Management Table */}
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Daftar Pengguna</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
-                  <thead className="bg-gray-50 dark:bg-neutral-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
-                    {/* Sample user data */}
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                              <span className="text-indigo-800 dark:text-indigo-200 font-medium">A</span>
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">Admin User</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">admin@example.com</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200">
-                          Administrator
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200">
-                          Aktif
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
-                          Edit
-                        </button>
-                        <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
-                          Hapus
-                        </button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                              <span className="text-indigo-800 dark:text-indigo-200 font-medium">U</span>
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">User</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">user@example.com</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
-                          Employee
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200">
-                          Aktif
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
-                          Edit
-                        </button>
-                        <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
-                          Hapus
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DaftarPengguna />
           </div>
         )}
         
