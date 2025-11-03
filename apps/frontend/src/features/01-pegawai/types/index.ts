@@ -28,7 +28,7 @@ export interface Pegawai {
   religion?: string;
   maritalStatus?: string;
   numberOfChildren?: number;
-  educationHistory?: string | EducationHistory[]; // JSON string or array of objects
+  educationHistory?: EducationHistory[];
   workHistory?: string; // JSON string
   trainingCertificates?: string; // JSON string
   payrollInfo?: string; // JSON string

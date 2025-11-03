@@ -107,11 +107,13 @@ const DaftarPegawai: React.FC = () => {
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-neutral-700">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
+              <label htmlFor="filter-position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
               <select
+                id="filter-position"
                 value={filterPosition}
                 onChange={(e) => setFilterPosition(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                title="Pilih Posisi"
               >
                 <option value="">Semua Posisi</option>
                 {positions.map(position => (
@@ -121,11 +123,13 @@ const DaftarPegawai: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Kerja</label>
+              <label htmlFor="filter-department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Kerja</label>
               <select
+                id="filter-department"
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                title="Pilih Unit Kerja"
               >
                 <option value="">Semua Unit</option>
                 {departments.map(dept => (
@@ -135,11 +139,13 @@ const DaftarPegawai: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <label htmlFor="filter-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <select
+                id="filter-status"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                title="Pilih Status Pegawai"
               >
                 <option value="">Semua Status</option>
                 <option value="aktif">Aktif</option>

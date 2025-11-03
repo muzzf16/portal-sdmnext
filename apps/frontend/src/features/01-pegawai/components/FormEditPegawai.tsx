@@ -170,7 +170,7 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
               <input {...register(`educationHistory.${index}.major` as const)} placeholder="Jurusan" className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white" />
               <div className="flex items-center">
                 <input {...register(`educationHistory.${index}.graduationYear` as const)} placeholder="Tahun Lulus" className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white" />
-                <button type="button" onClick={() => remove(index)} className="ml-2 text-red-500 hover:text-red-700"><X size={18} /></button>
+                <button type="button" onClick={() => remove(index)} className="ml-2 text-red-500 hover:text-red-700" title="Hapus Pendidikan" aria-label="Hapus Pendidikan"><X size={18} /></button>
               </div>
             </div>
           ))}
@@ -197,6 +197,8 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
                   type="button"
                   onClick={removePhoto}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  title="Hapus Foto"
+                  aria-label="Hapus Foto"
                 >
                   <X size={14} />
                 </button>
@@ -214,7 +216,9 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
                 accept="image/*"
                 onChange={handlePhotoChange}
                 className="hidden"
+                title="Unggah Foto Profil"
               />
+              <label htmlFor="photo" className="sr-only">Unggah Foto Profil</label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}

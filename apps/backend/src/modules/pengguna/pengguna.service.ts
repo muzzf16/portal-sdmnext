@@ -17,7 +17,7 @@ class PenggunaService {
         { expiresIn: '24h' }
       );
       
-      return { token, user };
+      return { accessToken: token, user };
     } catch (error: any) {
       throw new AppError(`Authentication failed: ${error.message}`, 401);
     }

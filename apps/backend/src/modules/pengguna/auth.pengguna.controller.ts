@@ -8,10 +8,10 @@ class AuthPenggunaController {
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
-      const { token, user } = await AuthPenggunaService.login(email, password);
+      const { accessToken, user } = await AuthPenggunaService.login(email, password);
       
       res.status(200).json({ 
-        token,
+        accessToken,
         user
       });
     } catch (error) {

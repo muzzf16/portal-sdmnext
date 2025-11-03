@@ -1,9 +1,27 @@
 export interface EducationHistory {
-  id?: string;
   level: string;
   institution: string;
   major: string;
   graduationYear: number;
+}
+
+export interface WorkHistory {
+  company: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface TrainingCertificate {
+  name: string;
+  issuer: string;
+  issueDate: string;
+}
+
+export interface PayrollInfo {
+  baseSalary: number;
+  incomes: { id: string; name: string; amount: number }[];
+  deductions: { id: string; name: string; amount: number }[];
 }
 
 export interface Pegawai {
@@ -27,9 +45,9 @@ export interface Pegawai {
   maritalStatus?: string;
   numberOfChildren?: number;
   educationHistory: EducationHistory[];
-  workHistory?: string;
-  trainingCertificates?: string;
-  payrollInfo?: string;
+  workHistory: WorkHistory[];
+  trainingCertificates: TrainingCertificate[];
+  payrollInfo: PayrollInfo;
   email: string;
   statusKaryawan?: string;
   tanggalKeluar?: string;
