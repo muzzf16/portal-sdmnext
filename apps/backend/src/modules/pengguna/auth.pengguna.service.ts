@@ -11,12 +11,12 @@ class AuthPenggunaService {
       
       // Generate JWT token
       const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
+        { userId: user.id, email: user.email, role: user.role, employeeId: user.employeeId },
         config.jwtSecret,
         { expiresIn: '24h' }
       );
       
-      return { token, user };
+      return { accessToken: token, user };
     } catch (error: any) {
       if (error.message === 'User not found.' || error.message === 'Invalid credentials.') {
         throw new AppError(error.message, 401);

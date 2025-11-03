@@ -81,8 +81,10 @@ class PenggajianService {
       }
 
       if (component.type === 'income') {
+        payroll.incomes = payroll.incomes || [];
         payroll.incomes.push({ name: component.name, amount: component.amount });
       } else {
+        payroll.deductions = payroll.deductions || [];
         payroll.deductions.push({ name: component.name, amount: component.amount });
       }
 

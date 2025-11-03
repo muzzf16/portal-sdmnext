@@ -3,7 +3,7 @@ import PenggajianService from './penggajian.service';
 import { Request, Response, NextFunction } from 'express';
 
 class PenggajianController {
-  static async getAllPenggajian(req: Request, res: Response, next: NextFunction) {
+  static async getAllPenggajian(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const payrolls = await PenggajianService.getAllPenggajian();
       res.status(200).json(payrolls);
@@ -12,7 +12,7 @@ class PenggajianController {
     }
   }
 
-  static async getPenggajianById(req: Request, res: Response, next: NextFunction) {
+  static async getPenggajianById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
       const payroll = await PenggajianService.getPenggajianById(id);
@@ -22,7 +22,7 @@ class PenggajianController {
     }
   }
 
-  static async getPenggajianByEmployeeId(req: Request, res: Response, next: NextFunction) {
+  static async getPenggajianByEmployeeId(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
       const payrolls = await PenggajianService.getPenggajianByEmployeeId(id);
@@ -32,7 +32,7 @@ class PenggajianController {
     }
   }
 
-  static async createPenggajian(req: Request, res: Response, next: NextFunction) {
+  static async createPenggajian(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const payrollData = req.body;
       const newPayroll = await PenggajianService.createPenggajian(payrollData);
@@ -42,7 +42,7 @@ class PenggajianController {
     }
   }
 
-  static async updatePenggajian(req: Request, res: Response, next: NextFunction) {
+  static async updatePenggajian(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
       const payrollData = req.body;
@@ -53,7 +53,7 @@ class PenggajianController {
     }
   }
 
-  static async deletePenggajian(req: Request, res: Response, next: NextFunction) {
+  static async deletePenggajian(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
       const result = await PenggajianService.deletePenggajian(id);
@@ -63,7 +63,7 @@ class PenggajianController {
     }
   }
 
-  static async addSalaryComponent(req: Request, res: Response, next: NextFunction) {
+  static async addSalaryComponent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
       const componentData = req.body;
@@ -74,11 +74,12 @@ class PenggajianController {
     }
   }
 
-  static async runPayroll(req: Request, res: Response, next: NextFunction) {
+  static async runPayroll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { period } = req.body;
       if (!period) {
-        return res.status(400).json({ message: 'Period is required' });
+        res.status(400).json({ message: 'Period is required' });
+        return;
       }
       const result = await PenggajianService.runPayroll(period);
       res.status(201).json(result);

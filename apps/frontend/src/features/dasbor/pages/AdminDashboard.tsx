@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getEmployees, getEmployeeGenderData, getEmployeeEducationData } from '../../../shared/services/employeeAPI';
 import { getTodayAttendanceCount } from '../../../shared/services/attendanceAPI';
 import { getPendingLeaveRequestsCount } from '../../../shared/services/leaveAPI';
@@ -7,10 +7,14 @@ import { getExpiringContractsCount } from '../../../shared/services/kontrakAPI';
 import { Users, Clock, Calendar, FileText, Eye, BarChart3, DollarSign, UserCheck, File } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card } from '@/shared/components/ui';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 const COLORS = ['#0088FE', '#FF8042', '#00C49F', '#FFBB28'];
 
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const [totalEmployees, setTotalEmployees] = useState<number | null>(null);
   const [loadingEmployees, setLoadingEmployees] = useState<boolean>(true);
   const [errorEmployees, setErrorEmployees] = useState<string | null>(null);
@@ -34,11 +38,20 @@ const AdminDashboard: React.FC = () => {
   const [errorCharts, setErrorCharts] = useState<string | null>(null);
 
   useEffect(() => {
+    const handleApiError = (error: any, setError: (m: string) => void, label: string) => {
+      if (error?.response?.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
+      setError(`Failed to fetch ${label}.`);
+      // eslint-disable-next-line no-console
+      console.error(`Error fetching ${label}:`, error);
+    };
+
     const fetchTotalEmployees = async () => {
       try {
         const response = await getEmployees();
-        console.log('Employee API response (dashboard):', response); // Debug log
-        // Handle both old and new response formats
         const employeesData = Array.isArray(response)
           ? response
           : (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data))
@@ -46,11 +59,9 @@ const AdminDashboard: React.FC = () => {
             : (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data?.data))
               ? (response as any).data.data
               : [];
-        console.log('Employee data (dashboard):', employeesData); // Debug log
         setTotalEmployees(employeesData.length);
       } catch (error) {
-        setErrorEmployees('Failed to fetch total employees.');
-        console.error('Error fetching total employees:', error);
+        handleApiError(error, setErrorEmployees, 'total employees');
       } finally {
         setLoadingEmployees(false);
       }
@@ -61,8 +72,7 @@ const AdminDashboard: React.FC = () => {
         const count = await getTodayAttendanceCount();
         setTodayAttendanceCount(count);
       } catch (error) {
-        setErrorTodayAttendance('Failed to fetch today\'s attendance.');
-        console.error('Error fetching today\'s attendance:', error);
+        handleApiError(error, setErrorTodayAttendance, "today's attendance");
       } finally {
         setLoadingTodayAttendance(false);
       }
@@ -73,8 +83,7 @@ const AdminDashboard: React.FC = () => {
         const count = await getPendingLeaveRequestsCount();
         setPendingLeaveRequestsCount(count);
       } catch (error) {
-        setErrorPendingLeaveRequests('Failed to fetch pending leave requests.');
-        console.error('Error fetching pending leave requests:', error);
+        handleApiError(error, setErrorPendingLeaveRequests, 'pending leave requests');
       } finally {
         setLoadingPendingLeaveRequests(false);
       }
@@ -85,8 +94,7 @@ const AdminDashboard: React.FC = () => {
         const count = await getExpiringContractsCount();
         setExpiringContractsCount(count);
       } catch (error) {
-        setErrorExpiringContracts('Failed to fetch expiring contracts.');
-        console.error('Error fetching expiring contracts:', error);
+        handleApiError(error, setErrorExpiringContracts, 'expiring contracts');
       } finally {
         setLoadingExpiringContracts(false);
       }
@@ -94,23 +102,19 @@ const AdminDashboard: React.FC = () => {
 
     const fetchChartData = async () => {
       try {
-        // Fetch chart data in parallel
         const [genderResponse, educationResponse] = await Promise.all([
           getEmployeeGenderData(),
           getEmployeeEducationData()
         ]);
-        
         setGenderData(genderResponse);
         setEducationData(educationResponse);
       } catch (error) {
-        setErrorCharts('Failed to fetch chart data.');
-        console.error('Error fetching chart data:', error);
+        handleApiError(error, setErrorCharts, 'chart data');
       } finally {
         setLoadingCharts(false);
       }
     };
 
-    // Run all fetch functions together
     Promise.all([
       fetchTotalEmployees(),
       fetchTodayAttendance(),
@@ -118,6 +122,7 @@ const AdminDashboard: React.FC = () => {
       fetchExpiringContracts(),
       fetchChartData()
     ]).catch(error => {
+      // eslint-disable-next-line no-console
       console.error('An error occurred during initial data fetching:', error);
       setLoadingEmployees(false);
       setLoadingTodayAttendance(false);
@@ -125,7 +130,7 @@ const AdminDashboard: React.FC = () => {
       setLoadingExpiringContracts(false);
       setLoadingCharts(false);
     });
-  }, []);
+  }, [logout, navigate]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -165,8 +170,8 @@ const AdminDashboard: React.FC = () => {
           ].map((stat, index) => (
             <div key={index} className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl shadow transition-transform duration-300 hover:scale-[1.02]">
               <div className="flex items-center">
-                <div className={`p-3 rounded-lg ${stat.color} bg-opacity-10 dark:bg-opacity-20`}>
-                  <stat.icon size={24} className={stat.color} />
+                <div className={`p-3 rounded-lg ${stat.color} bg-opacity-10 dark:bg-opacity-20`} aria-hidden="true">
+                  <stat.icon size={24} className={stat.color} aria-hidden="true" />
                 </div>
                 <div className="ml-4">
                   <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</p>
@@ -193,7 +198,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
+                <PieChart aria-label="Chart Distribusi Gender">
                   <Pie
                     data={genderData}
                     cx="50%"
@@ -203,7 +208,7 @@ const AdminDashboard: React.FC = () => {
                     fill="#8884d8"
                     dataKey="value"
                     label={(props) => {
-                      const { name, percent } = props;
+                      const { name, percent } = props as any;
                       return `${name} ${(Number(percent) * 100).toFixed(0)}%`;
                     }}
                   >
@@ -235,6 +240,7 @@ const AdminDashboard: React.FC = () => {
                   margin={{
                     top: 5, right: 30, left: 20, bottom: 5,
                   }}
+                  aria-label="Chart Distribusi Pendidikan"
                 >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                   <XAxis dataKey="name" className="text-sm text-gray-600 dark:text-gray-300" />
@@ -266,10 +272,12 @@ const AdminDashboard: React.FC = () => {
                 key={index} 
                 to={action.path}
                 className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-lg shadow text-center hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+                title={action.title}
+                aria-label={action.title}
               >
-                <div className="flex justify-center mb-3">
+                <div className="flex justify-center mb-3" aria-hidden="true">
                   <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400">
-                    <action.icon size={24} />
+                    <action.icon size={24} aria-hidden="true" />
                   </div>
                 </div>
                 <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm md:text-base">{action.title}</h3>
@@ -282,9 +290,9 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Aktivitas Terbaru</h2>
-            <button className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center">
+            <button className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center" title="Lihat Semua Aktivitas" aria-label="Lihat Semua Aktivitas">
               <span>Lihat Semua</span>
-              <Eye size={16} className="ml-1" />
+              <Eye size={16} className="ml-1" aria-hidden="true" />
             </button>
           </div>
           <div className="space-y-4">
@@ -295,7 +303,7 @@ const AdminDashboard: React.FC = () => {
               { action: 'Kontrak karyawan diperpanjang', user: 'Dodi Hidayat', time: '3 jam yang lalu' }
             ].map((activity, index) => (
               <div key={index} className="flex items-start border-b border-gray-100 dark:border-neutral-700 pb-3 last:border-0 last:pb-0">
-                <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3">
+                <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3" aria-hidden="true">
                   <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400"></div>
                 </div>
                 <div className="flex-1">

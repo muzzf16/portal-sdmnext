@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { getEmployeeAttendanceSummary, getEmployeeWeeklyAttendance } from '../../../shared/services/attendanceAPI';
 import { getEmployeeApprovedLeaveCount } from '../../../shared/services/leaveAPI';
@@ -8,8 +8,18 @@ import { getEmployeeRecentNotifications } from '../../../shared/services/notifik
 import { Absensi, Notifikasi, Penggajian } from '../../../shared/types/types';
 
 const EmployeeDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate ? useNavigate() : (() => {}); // pastikan useNavigate jika AppContext pakai react-router v6
   const employeeId = user?.employeeId;
+
+  // Render jika employeeId tidak ada (prevent looping fetch error)
+  if (!employeeId) {
+    return (
+      <div className="text-center p-8 text-gray-500">
+        Data pegawai tidak ditemukan atau tidak valid. Silakan login ulang atau hubungi admin.
+      </div>
+    );
+  }
 
   const [attendanceSummary, setAttendanceSummary] = useState<{ totalDays: number; presentDays: number } | null>(null);
   const [loadingAttendanceSummary, setLoadingAttendanceSummary] = useState<boolean>(true);
@@ -34,13 +44,22 @@ const EmployeeDashboard: React.FC = () => {
   useEffect(() => {
     if (!employeeId) return;
 
+    const handleApiError = (error: any, setError: (msg: string) => void, apiName: string) => {
+      if (error.response && error.response.status === 401) {
+        logout();
+        navigate && navigate('/login');
+        return;
+      }
+      setError(`Gagal mendapatkan data ${apiName}.`);
+      console.error(`Error fetching ${apiName}:`, error);
+    };
+    
     const fetchAttendanceSummary = async () => {
       try {
         const summary = await getEmployeeAttendanceSummary(employeeId.toString());
         setAttendanceSummary(summary);
       } catch (error) {
-        setErrorAttendanceSummary('Failed to fetch attendance summary.');
-        console.error('Error fetching attendance summary:', error);
+        handleApiError(error, setErrorAttendanceSummary, 'kehadiran');
       } finally {
         setLoadingAttendanceSummary(false);
       }
@@ -51,8 +70,7 @@ const EmployeeDashboard: React.FC = () => {
         const count = await getEmployeeApprovedLeaveCount(employeeId.toString());
         setApprovedLeaveCount(count);
       } catch (error) {
-        setErrorApprovedLeave('Failed to fetch approved leave count.');
-        console.error('Error fetching approved leave count:', error);
+        handleApiError(error, setErrorApprovedLeave, 'cuti');
       } finally {
         setLoadingApprovedLeave(false);
       }
@@ -63,8 +81,7 @@ const EmployeeDashboard: React.FC = () => {
         const payroll = await getEmployeeLatestPayroll(employeeId.toString());
         setLatestPayroll(payroll);
       } catch (error) {
-        setErrorLatestPayroll('Failed to fetch latest payroll.');
-        console.error('Error fetching latest payroll:', error);
+        handleApiError(error, setErrorLatestPayroll, 'penggajian');
       } finally {
         setLoadingLatestPayroll(false);
       }
@@ -75,8 +92,7 @@ const EmployeeDashboard: React.FC = () => {
         const attendance = await getEmployeeWeeklyAttendance(employeeId.toString());
         setWeeklyAttendance(attendance);
       } catch (error) {
-        setErrorWeeklyAttendance('Failed to fetch weekly attendance.');
-        console.error('Error fetching weekly attendance:', error);
+        handleApiError(error, setErrorWeeklyAttendance, 'rekap mingguan');
       } finally {
         setLoadingWeeklyAttendance(false);
       }
@@ -87,8 +103,7 @@ const EmployeeDashboard: React.FC = () => {
         const notifications = await getEmployeeRecentNotifications(employeeId.toString());
         setRecentNotifications(notifications);
       } catch (error) {
-        setErrorRecentNotifications('Failed to fetch recent notifications.');
-        console.error('Error fetching recent notifications:', error);
+        handleApiError(error, setErrorRecentNotifications, 'notifikasi');
       } finally {
         setLoadingRecentNotifications(false);
       }

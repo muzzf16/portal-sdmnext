@@ -33,28 +33,46 @@ export const PenilaianKinerjaRepository = {
   async create(data: any) {
     const db = await openDb();
     // Calculate overall score based on KPIs
-    const totalWeight = data.kpis.reduce((sum: number, kpi: any) => sum + kpi.weight, 0) || 1;
-    const weightedScore = data.kpis.reduce((sum: number, kpi: any) => sum + (kpi.score * kpi.weight), 0);
-    const overallScore = parseFloat((weightedScore / totalWeight).toFixed(2));
+    const kpis = data.kpis || [];
+    let overallScore = 0; // Default to 0 if no KPIs
+    
+    if (kpis.length > 0) {
+      const totalWeight = kpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 0), 0);
+      // Avoid division by zero - if totalWeight is 0, use the count of KPIs as the denominator
+      const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
+      const weightedScore = kpis.reduce((sum: number, kpi: any) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
+      
+      overallScore = parseFloat((weightedScore / effectiveWeight).toFixed(2));
+    }
+    
+    // Get employee name if not provided
+    let employeeName = data.employeeName || '';
+    if (!employeeName && data.employeeId) {
+      const employeeDb = await openDb();
+      const employee = await employeeDb.get('SELECT name FROM pegawai WHERE id = ?', data.employeeId);
+      employeeName = employee ? employee.name : '';
+    }
     
     const newId = data.id || `pr-${Date.now()}`;
     const reviewData = {
       id: newId,
       employeeId: data.employeeId,
-      employeeName: data.employeeName,
+      employeeName,
       period: data.period,
       reviewerName: data.reviewerName,
       reviewDate: data.reviewDate,
       overallScore,
-      status: data.status,
+      status: data.status || 'Draft',
       strengths: data.strengths,
       areasForImprovement: data.areasForImprovement,
       employeeFeedback: data.employeeFeedback,
-      kpis: JSON.stringify(data.kpis)
+      kpis: JSON.stringify(kpis),
+      penilaiId: data.penilaiId || null, // Store as null if not provided
+      createdAt: new Date().toISOString()
     };
 
     await db.run(
-      'INSERT INTO penilaian_kinerja (id, employeeId, employeeName, period, reviewerName, reviewDate, overallScore, status, strengths, areasForImprovement, employeeFeedback, kpis) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO penilaian_kinerja (id, employeeId, employeeName, period, reviewerName, reviewDate, overallScore, status, strengths, areasForImprovement, employeeFeedback, kpis, penilaiId, createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       Object.values(reviewData)
     );
 
@@ -65,14 +83,23 @@ export const PenilaianKinerjaRepository = {
   async update(id: string, data: any) {
     const db = await openDb();
     // Calculate overall score based on KPIs
-    const totalWeight = data.kpis.reduce((sum: number, kpi: any) => sum + kpi.weight, 0) || 1;
-    const weightedScore = data.kpis.reduce((sum: number, kpi: any) => sum + (kpi.score * kpi.weight), 0);
-    const overallScore = parseFloat((weightedScore / totalWeight).toFixed(2));
+    const kpis = data.kpis || [];
+    let overallScore = 0; // Default to 0 if no KPIs
+    
+    if (kpis.length > 0) {
+      const totalWeight = kpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 0), 0);
+      // Avoid division by zero - if totalWeight is 0, use the count of KPIs as the denominator
+      const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
+      const weightedScore = kpis.reduce((sum: number, kpi: any) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
+      
+      overallScore = parseFloat((weightedScore / effectiveWeight).toFixed(2));
+    }
     
     const reviewData = {
       ...data,
       overallScore,
-      kpis: JSON.stringify(data.kpis)
+      kpis: JSON.stringify(kpis),
+      status: data.status || 'Draft'  // Ensure status is set even if not provided
     };
 
     delete reviewData.id; // Prevent updating the primary key

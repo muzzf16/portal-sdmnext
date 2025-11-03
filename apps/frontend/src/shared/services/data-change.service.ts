@@ -1,7 +1,7 @@
 import api from './api';
 
-export const submitDataChangeRequest = (requestedChanges: string) => {
-  return api.post('/data-change-requests', { requestedChanges });
+export const submitDataChangeRequest = (employeeId: string, requestedChanges: string) => {
+  return api.post('/data-change-requests', { employeeId, requestedChanges });
 };
 
 export const getDataChangeRequests = () => {

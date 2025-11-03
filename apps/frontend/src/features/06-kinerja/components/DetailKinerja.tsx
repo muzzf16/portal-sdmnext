@@ -22,6 +22,8 @@ const DetailKinerja: React.FC<DetailKinerjaProps> = ({ performanceId }) => {
         <h2 className="text-2xl font-bold text-primary-dark-blue mb-4">{kinerja.employeeName} - {kinerja.period}</h2>
         <p><strong>Skor Keseluruhan:</strong> {kinerja.overallScore}</p>
         <p><strong>Status:</strong> {kinerja.status}</p>
+        {kinerja.penilaiId && <p><strong>ID Penilai:</strong> {kinerja.penilaiId}</p>}
+        {kinerja.createdAt && <p><strong>Tanggal Dibuat:</strong> {new Date(kinerja.createdAt).toLocaleString()}</p>}
         {/* Add more performance details here */}
       </div>
     </div>

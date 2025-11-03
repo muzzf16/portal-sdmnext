@@ -38,12 +38,14 @@ const HalamanDetailPegawai: React.FC = () => {
     return `${age} tahun`;
   };
 
-
+  const handleWindowPrint = () => {
+    window.print();
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-6 print:hidden">
         <Link 
           to="/dashboard/pegawai" 
           className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors"
@@ -54,7 +56,7 @@ const HalamanDetailPegawai: React.FC = () => {
       </div>
 
       {/* Employee Header */}
-      <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md overflow-hidden mb-6">
+      <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md overflow-hidden mb-6 print:hidden">
         <div className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row">
             {/* Profile Picture */}
@@ -96,14 +98,27 @@ const HalamanDetailPegawai: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Print Button */}
-                <button 
-                  onClick={() => printEmployeeProfile(pegawai)}
-                  className="mt-4 md:mt-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors flex items-center"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Cetak Profil PDF
-                </button>
+                {/* Print Buttons */}
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handleWindowPrint}
+                    className="mt-4 md:mt-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors flex items-center"
+                    title="Cetak Profil PDF"
+                    aria-label="Cetak Profil PDF"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Cetak Profil PDF
+                  </button>
+                  <button 
+                    onClick={handleWindowPrint}
+                    className="mt-4 md:mt-0 px-4 py-2 bg-white text-primary-700 border border-primary-600 rounded-lg hover:bg-primary-50 dark:bg-neutral-800 dark:text-primary-300 dark:border-primary-400 dark:hover:bg-neutral-700 transition-colors flex items-center"
+                    title="Cetak Halaman"
+                    aria-label="Cetak Halaman"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Cetak Halaman
+                  </button>
+                </div>
               </div>
               
               {/* Contact Info */}
@@ -126,8 +141,8 @@ const HalamanDetailPegawai: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md overflow-hidden mb-6">
+      {/* Tabs (hidden on print) */}
+      <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md overflow-hidden mb-6 print:hidden">
         <div className="border-b border-gray-200 dark:border-neutral-700">
           <nav className="flex overflow-x-auto -mb-px">
             {[
@@ -145,8 +160,10 @@ const HalamanDetailPegawai: React.FC = () => {
                     ? 'border-primary-500 text-primary-600 dark:text-primary-400 dark:border-primary-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-neutral-600'
                 )}
+                title={tab.label}
+                aria-label={tab.label}
               >
-                <tab.icon className="h-5 w-5 mr-2" />
+                <tab.icon className="h-5 w-5 mr-2" aria-hidden="true" />
                 {tab.label}
               </button>
             ))}
@@ -399,6 +416,126 @@ const HalamanDetailPegawai: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* PRINT-ONLY CV SECTION */}
+      <div className="hidden print:block font-sans">
+        <div className="flex">
+          {/* Left Column (Sidebar) */}
+          <div className="w-1/3 bg-gray-800 text-white p-8">
+            {/* Profile Picture */}
+            <div className="flex justify-center mb-8">
+              {pegawai.avatarUrl ? (
+                <img src={pegawai.avatarUrl} alt={pegawai.name} className="w-32 h-32 rounded-full object-cover border-4 border-gray-700" />
+              ) : (
+                <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center border-4 border-gray-600">
+                  <span className="text-5xl font-bold text-gray-400">{pegawai.name.charAt(0).toUpperCase()}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Contact Info */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold border-b-2 border-primary-500 pb-2 mb-4">Kontak</h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center">
+                  <Mail className="h-4 w-4 mr-3 flex-shrink-0" />
+                  <span>{pegawai.email || '-'}</span>
+                </div>
+                <div className="flex items-center">
+                  <Phone className="h-4 w-4 mr-3 flex-shrink-0" />
+                  <span>{pegawai.phone || '-'}</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-3 flex-shrink-0" />
+                  <span>{pegawai.address || '-'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Education */}
+            {pegawai.educationHistory && pegawai.educationHistory.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold border-b-2 border-primary-500 pb-2 mb-4">Pendidikan</h2>
+                <div className="space-y-4 text-sm">
+                  {pegawai.educationHistory.map((edu, index) => (
+                    <div key={index}>
+                      <p className="font-semibold">{edu.institution}</p>
+                      <p className="text-gray-300">{edu.level} - {edu.major}</p>
+                      <p className="text-gray-400 text-xs">{edu.graduationYear}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column (Main Content) */}
+          <div className="w-2/3 p-8">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-gray-800">{pegawai.name}</h1>
+              <p className="text-xl text-gray-600">{pegawai.position}</p>
+            </div>
+
+            {/* Profile Summary */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-300 pb-2 mb-4">Profil</h2>
+              <p className="text-sm text-gray-700 leading-relaxed">
+                Seorang profesional yang berdedikasi dengan pengalaman sebagai {pegawai.position} di {pegawai.department}. 
+                Memiliki komitmen untuk memberikan kontribusi terbaik bagi perusahaan. 
+                Bergabung sejak {pegawai.joinDate ? new Date(pegawai.joinDate).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}.
+              </p>
+            </div>
+
+            {/* Work History */}
+            {(riwayatJabatan && riwayatJabatan.length > 0) || (pegawai.workHistory && pegawai.workHistory.length > 0) ? (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-300 pb-2 mb-4">Riwayat Pekerjaan</h2>
+                <div className="space-y-6">
+                  {pegawai.workHistory && pegawai.workHistory.length > 0 ? (
+                    pegawai.workHistory.map((job, index) => (
+                      <div key={index} className="flex">
+                        <div className="w-1/4 text-sm text-gray-600">
+                          {job.startDate ? new Date(job.startDate).getFullYear() : ''} - {job.endDate ? new Date(job.endDate).getFullYear() : 'Sekarang'}
+                        </div>
+                        <div className="w-3/4">
+                          <h3 className="text-md font-semibold text-gray-800">{job.position}</h3>
+                          <p className="text-sm text-gray-600">{job.company}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : riwayatJabatan.map((job, index) => (
+                     <div key={index} className="flex">
+                        <div className="w-1/4 text-sm text-gray-600">
+                          {job.tanggal_perubahan ? new Date(job.tanggal_perubahan).toLocaleDateString('id-ID') : '-'}
+                        </div>
+                        <div className="w-3/4">
+                          <h3 className="text-md font-semibold text-gray-800">{job.jabatan_baru}</h3>
+                          <p className="text-sm text-gray-600">Jabatan Sebelumnya: {job.jabatan_lama}</p>
+                        </div>
+                      </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Training & Certificates */}
+            {pelatihan && pelatihan.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-300 pb-2 mb-4">Pelatihan & Sertifikasi</h2>
+                <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
+                  {pelatihan.map((item: any) => (
+                    <li key={item.id}>
+                      <span className="font-semibold">{item.nama_pelatihan || item.trainingName}</span> oleh {item.penyelenggara || item.organizer} 
+                      ({item.tanggal_mulai || item.startDate ? new Date(item.tanggal_mulai || item.startDate).getFullYear() : ''})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

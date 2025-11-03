@@ -1,6 +1,6 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { Pegawai } from '../types';
+import { Pegawai, EducationHistory } from '../types';
 import { createPegawaiWithUser } from '../api/employeeApi';
 import { isValidEmail, isValidName, sanitizeText } from '../../../shared/utils/validation';
 import clsx from 'clsx';
@@ -11,14 +11,11 @@ interface FormPegawaiProps {
 }
 
 const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
-  const { register: registerForm, control, handleSubmit, formState: { errors }, setError } = useForm<Omit<Pegawai, 'id'>>({
-    defaultValues: {
-      educationHistory: []
-    }
+  const { register: registerForm, control, handleSubmit, setError, formState: { errors } } = useForm<Pegawai>({
+    defaultValues: { educationHistory: [] as EducationHistory[] }
   });
   const { fields, append, remove } = useFieldArray({
-    control,
-    name: "educationHistory" as const
+    control, name: 'educationHistory'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -176,8 +173,8 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
         {/* Education History Section */}
         <div>
           <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Riwayat Pendidikan</h3>
-          {fields.map((item, index) => (
-            <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border border-gray-200 dark:border-neutral-700 rounded-lg">
+          {fields.map((_, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border border-gray-200 dark:border-neutral-700 rounded-lg">
               <input
                 {...registerForm(`educationHistory.${index}.level` as const)}
                 placeholder="Jenjang (e.g., S1)"
@@ -199,7 +196,7 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
                   placeholder="Tahun Lulus"
                   className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors border border-gray-300 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
                 />
-                <button type="button" onClick={() => remove(index)} className="ml-2 text-red-500 hover:text-red-700">
+                <button type="button" onClick={() => remove(index)} className="ml-2 text-red-500 hover:text-red-700" title="Hapus Pendidikan" aria-label="Hapus Pendidikan">
                   <X size={18} />
                 </button>
               </div>
@@ -228,6 +225,8 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
                   type="button"
                   onClick={removePhoto}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  title="Hapus Foto"
+                  aria-label="Hapus Foto"
                 >
                   <X size={14} />
                 </button>
@@ -245,7 +244,9 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
                 accept="image/*"
                 onChange={handlePhotoChange}
                 className="hidden"
+                title="Unggah Foto Profil"
               />
+              <label htmlFor="photo" className="sr-only">Unggah Foto Profil</label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -262,6 +263,15 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
               </p>
             </div>
           </div>
+        </div>
+        
+        {/* Job History Information Section */}
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h3 className="text-lg font-medium text-blue-800 dark:text-blue-200 mb-2">Riwayat Jabatan</h3>
+          <p className="text-gray-700 dark:text-gray-300 text-sm">
+            Riwayat jabatan karyawan akan dikelola secara terpisah. Setelah menambahkan karyawan, 
+            Anda dapat menambahkan riwayat jabatan melalui menu Kontrak & Jabatan di dashboard masing-masing pegawai.
+          </p>
         </div>
         
         <button

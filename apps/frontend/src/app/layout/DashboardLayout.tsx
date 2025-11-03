@@ -26,6 +26,8 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text, isSidebarOpen }) => {
         isActive ? 'bg-primary-700 text-white' : 'text-gray-300 hover:bg-primary-600 hover:text-white',
         !isSidebarOpen && 'justify-center'
       )}
+      title={!isSidebarOpen ? text : undefined}
+      aria-label={text}
     >
       {icon}
       {isSidebarOpen && <span className="ml-3 text-sm font-medium">{text}</span>}
@@ -104,12 +106,13 @@ const DashboardLayout: React.FC = () => {
                   className="h-12 w-auto"
                   src={settings.logo}
                   alt={settings.companyName || 'Company Logo'}
+                  title={settings.companyName || 'Company Logo'}
                 />
             ) : (
               settings?.companyName || 'Portal_SDM'
             )
           ) : (
-            'H'
+            <span title={settings?.companyName || 'Portal_SDM'}>H</span>
           )}
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2">
@@ -124,6 +127,8 @@ const DashboardLayout: React.FC = () => {
               'flex items-center w-full py-2 px-4 rounded-lg text-gray-300 hover:bg-primary-600 hover:text-white transition-colors duration-200',
               !isSidebarOpen && 'justify-center'
             )}
+            title="Logout"
+            aria-label="Logout"
           >
             <X size={20} />
             {isSidebarOpen && <span className="ml-3 text-sm font-medium">Logout</span>}
@@ -138,7 +143,7 @@ const DashboardLayout: React.FC = () => {
         )}
       >
         <header className="flex items-center justify-between h-16 px-6 bg-white dark:bg-gray-800 shadow-soft-shadow z-40">
-          <button onClick={toggleSidebar} className="text-gray-500 dark:text-gray-300 focus:outline-none">
+          <button onClick={toggleSidebar} className="text-gray-500 dark:text-gray-300 focus:outline-none" title="Toggle Sidebar" aria-label="Buka/Tutup Sidebar">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -153,6 +158,8 @@ const DashboardLayout: React.FC = () => {
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
               className="flex items-center space-x-2 focus:outline-none"
+              title="Menu Pengguna"
+              aria-label="Menu Pengguna"
             >
               <img
                 className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
@@ -165,7 +172,7 @@ const DashboardLayout: React.FC = () => {
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-soft-shadow py-1 z-50">
                 <Link to={`/dashboard/pegawai/${user?.employeeId}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</Link>
                 <Link to="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
-                <a href="#" onClick={logout} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
+                <button type="button" onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" title="Logout" aria-label="Logout">Logout</button>
               </div>
             )}
           </div>

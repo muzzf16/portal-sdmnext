@@ -7,6 +7,9 @@ export interface Kontrak {
   endDate: string;
   contractType: string;
   status: string;
-  documentUrl: string;
+  contractFile: string;
+  terms: string;
+  salary: number;
   notes: string;
+  createdAt: string;
 }

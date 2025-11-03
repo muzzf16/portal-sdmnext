@@ -11,4 +11,6 @@ export interface Kinerja {
   areasForImprovement: string;
   employeeFeedback: string;
   kpis: any[];
+  penilaiId?: string;
+  createdAt?: string;
 }
