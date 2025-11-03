@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { usePegawai } from '../hooks/usePegawai';
 import { useRiwayatJabatan } from '../hooks/useRiwayatJabatan';
 import { usePelatihan } from '../hooks/usePelatihan';
-import { printEmployeeProfile } from '../utils/printProfile';
+import { generateEmployeePDF } from '../utils/generateEmployeePDF';
 import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Briefcase, GraduationCap, FileBadge, Star } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -40,6 +40,17 @@ const HalamanDetailPegawai: React.FC = () => {
 
   const handleWindowPrint = () => {
     window.print();
+  };
+
+  const handleGeneratePDF = async () => {
+    if (pegawai) {
+      try {
+        await generateEmployeePDF(pegawai, riwayatJabatan || [], pelatihan || []);
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        // Optionally, you might want to show an error notification here
+      }
+    }
   };
 
   return (
@@ -84,7 +95,7 @@ const HalamanDetailPegawai: React.FC = () => {
                   <p className="text-lg text-gray-600 dark:text-gray-300 mt-1">{pegawai.position}</p>
                   
                   <div className="flex items-center mt-3">
-                    {pegawai.isActive === false ? (
+                    {pegawai.isActive === 0 || pegawai.statusKaryawan === 'nonaktif' ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
                         <FileText className="h-4 w-4 mr-1" />
                         Nonaktif
@@ -101,13 +112,13 @@ const HalamanDetailPegawai: React.FC = () => {
                 {/* Print Buttons */}
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={handleWindowPrint}
+                    onClick={handleGeneratePDF}
                     className="mt-4 md:mt-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors flex items-center"
-                    title="Cetak Profil PDF"
-                    aria-label="Cetak Profil PDF"
+                    title="Unduh Profil PDF"
+                    aria-label="Unduh Profil PDF"
                   >
                     <Printer className="h-4 w-4 mr-2" />
-                    Cetak Profil PDF
+                    Unduh Profil PDF
                   </button>
                   <button 
                     onClick={handleWindowPrint}
@@ -282,7 +293,7 @@ const HalamanDetailPegawai: React.FC = () => {
                   <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Status Kepegawaian</div>
                     <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
-                      {pegawai.isActive !== false ? 'Aktif' : 'Nonaktif'}
+                      {pegawai.isActive !== 0 && pegawai.statusKaryawan !== 'nonaktif' ? 'Aktif' : 'Nonaktif'}
                     </div>
                   </div>
                   <div className="flex">
@@ -494,8 +505,8 @@ const HalamanDetailPegawai: React.FC = () => {
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-300 pb-2 mb-4">Riwayat Pekerjaan</h2>
                 <div className="space-y-6">
-                  {pegawai.workHistory && pegawai.workHistory.length > 0 ? (
-                    pegawai.workHistory.map((job, index) => (
+                  {pegawai.workHistory && Array.isArray(pegawai.workHistory) && pegawai.workHistory.length > 0 ? (
+                    JSON.parse(pegawai.workHistory).map((job: any, index: number) => (
                       <div key={index} className="flex">
                         <div className="w-1/4 text-sm text-gray-600">
                           {job.startDate ? new Date(job.startDate).getFullYear() : ''} - {job.endDate ? new Date(job.endDate).getFullYear() : 'Sekarang'}
