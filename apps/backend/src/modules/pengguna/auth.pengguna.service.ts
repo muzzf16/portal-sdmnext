@@ -11,7 +11,7 @@ class AuthPenggunaService {
       
       // Generate JWT token
       const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
+        { userId: user.id, email: user.email, role: user.role, employeeId: user.employeeId },
         config.jwtSecret,
         { expiresIn: '24h' }
       );

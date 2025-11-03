@@ -2,7 +2,7 @@
 import { openDb } from '../../config/db';
 import { CompanySettings } from './company-settings.model';
 
-export const getCompanySettings = async (): Promise<CompanySettings> => {
+export const getCompanySettings = async (): Promise<CompanySettings | undefined> => {
   const db = await openDb();
   return db.get('SELECT * FROM company_settings LIMIT 1');
 };

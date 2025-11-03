@@ -2,7 +2,7 @@
 import { getCompanySettings, updateCompanySettings } from './company-settings.repository';
 import { CompanySettings } from './company-settings.model';
 
-export const getSettings = async (): Promise<CompanySettings> => {
+export const getSettings = async (): Promise<CompanySettings | undefined> => {
   return getCompanySettings();
 };
 

@@ -30,11 +30,13 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const restrictTo = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const restrictTo = (...roles: string[]): ((req: Request, res: Response, next: NextFunction) => void) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     // @ts-ignore
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'You do not have permission to perform this action' });
+    const userRole = req.user?.role;
+    if (!userRole || !roles.includes(userRole)) {
+      res.status(403).json({ success: false, message: 'You do not have permission to perform this action' });
+      return;
     }
     next();
   };

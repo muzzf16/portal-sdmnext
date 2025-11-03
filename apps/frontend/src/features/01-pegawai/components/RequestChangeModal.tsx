@@ -15,7 +15,7 @@ const RequestChangeModal: React.FC<Props> = ({ isOpen, onClose, employeeId }) =>
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await submitDataChangeRequest(requestedChanges);
+      await submitDataChangeRequest(employeeId, requestedChanges);
       alert('Permintaan perubahan data berhasil dikirim.');
       onClose();
       setRequestedChanges('');
