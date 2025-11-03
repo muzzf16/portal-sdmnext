@@ -45,6 +45,10 @@ class KontrakController {
   static async createContract(req: Request, res: Response, next: NextFunction) {
     try {
       const contractData = req.body;
+      // If there's an uploaded file, add its path to the contract data
+      if (req.file) {
+        contractData.contractFile = `/documents/${req.file.filename}`;
+      }
       const newContract = await KontrakService.createContract(contractData);
       res.status(201).json({
         success: true,

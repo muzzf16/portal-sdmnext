@@ -69,7 +69,7 @@ const DaftarPegawai: React.FC = () => {
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['Foto', 'Nama', 'NIP', 'Posisi', 'Pangkat', 'Golongan', 'Departemen', 'Status', 'Aksi'];
+  const tableHeaders = ['Foto', 'Nama', 'NIP', 'Posisi', 'Pangkat', 'Golongan', 'Departemen', 'Status', 'Riwayat Jabatan', 'Aksi'];
 
   return (
     <div className="mt-6">
@@ -189,6 +189,15 @@ const DaftarPegawai: React.FC = () => {
                 <Badge variant={p.isActive === false ? 'danger' : 'success'}>
                   {p.isActive === false ? 'Nonaktif' : 'Aktif'}
                 </Badge>
+              </td>
+              <td className="py-4 px-6 text-center">
+                <Link 
+                  to={`/dashboard/pegawai/${p.id}/riwayat-jabatan`} 
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  title="Lihat Riwayat Jabatan"
+                >
+                  Lihat
+                </Link>
               </td>
               <td className="py-4 px-6">
                 <div className="flex items-center space-x-2">

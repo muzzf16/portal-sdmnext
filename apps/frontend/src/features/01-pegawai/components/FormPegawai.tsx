@@ -264,6 +264,15 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
           </div>
         </div>
         
+        {/* Job History Information Section */}
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h3 className="text-lg font-medium text-blue-800 dark:text-blue-200 mb-2">Riwayat Jabatan</h3>
+          <p className="text-gray-700 dark:text-gray-300 text-sm">
+            Riwayat jabatan karyawan akan dikelola secara terpisah. Setelah menambahkan karyawan, 
+            Anda dapat menambahkan riwayat jabatan melalui menu Kontrak & Jabatan di dashboard masing-masing pegawai.
+          </p>
+        </div>
+        
         <button
           type="submit"
           disabled={isSubmitting}
