@@ -27,7 +27,7 @@ export interface Pelatihan {
   penyelenggara: string;
   tanggal_mulai: string;
   tanggal_selesai: string;
-  nomor_sertifikat: string;
+  nomor_sertifikat?: string;
 }
 
 export interface Candidate {
