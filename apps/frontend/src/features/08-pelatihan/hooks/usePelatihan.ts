@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPelatihan, getPelatihanByEmployeeId } from '../api/pelatihanApi';
-import { Pelatihan } from '../types';
+import { Pelatihan } from '../../../shared/types/types';
 import { useAuth } from '@/shared/contexts/AuthContext';
 
 export const usePelatihan = () => {
@@ -22,13 +22,13 @@ export const usePelatihan = () => {
       
       // Map the response to use English field names expected in this module
       const mappedData = (response.data || []).map(item => ({
-        id: Number(item.id) || Number(item.id),
-        employeeId: Number(item.pegawai_id) || Number(item.employeeId),
-        trainingName: item.nama_pelatihan || item.trainingName,
-        organizer: item.penyelenggara || item.organizer,
-        startDate: item.tanggal_mulai || item.startDate,
-        endDate: item.tanggal_selesai || item.endDate,
-        certificate: item.nomor_sertifikat || item.certificate,
+        id: Number(item.id),
+        pegawai_id: String(item.pegawai_id || item.employeeId),
+        nama_pelatihan: item.nama_pelatihan || item.trainingName,
+        penyelenggara: item.penyelenggara || item.organizer,
+        tanggal_mulai: item.tanggal_mulai || item.startDate,
+        tanggal_selesai: item.tanggal_selesai || item.endDate,
+        nomor_sertifikat: item.nomor_sertifikat || item.certificate,
       } as Pelatihan));
       setPelatihan(mappedData);
     } catch (err) {

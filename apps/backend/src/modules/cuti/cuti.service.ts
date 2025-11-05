@@ -3,9 +3,9 @@ import { PermintaanCutiRepository } from './permintaanCuti.repository';
 import { AppError } from '../../utils/errors';
 
 class CutiService {
-  static async getAllPermintaanCuti() {
+  static async getAllPermintaanCuti(query: any) {
     try {
-      return await PermintaanCutiRepository.findAll();
+      return await PermintaanCutiRepository.findAll(query);
     } catch (error: any) {
       throw new AppError(`Error retrieving leave requests: ${error.message}`, 500);
     }

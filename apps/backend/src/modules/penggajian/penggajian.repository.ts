@@ -16,9 +16,30 @@ const parseJsonFields = (rows: any[]) => {
 };
 
 export const PenggajianRepository = {
-  async findAll() {
+  async findAll(query: any = {}) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM penggajian');
+    let sql = 'SELECT * FROM penggajian';
+    const params: any[] = [];
+    const whereClauses: string[] = [];
+
+    if (query.employeeId) {
+      whereClauses.push('employeeId = ?');
+      params.push(query.employeeId);
+    }
+    if (query.search) {
+      whereClauses.push('employeeName LIKE ?');
+      params.push(`%${query.search}%`);
+    }
+    if (query.period) {
+      whereClauses.push('period = ?');
+      params.push(query.period);
+    }
+
+    if (whereClauses.length > 0) {
+      sql += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    const rows = await db.all(sql, params);
     return parseJsonFields(rows);
   },
 

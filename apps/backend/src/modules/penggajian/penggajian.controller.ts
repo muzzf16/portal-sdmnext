@@ -5,7 +5,8 @@ import { Request, Response, NextFunction } from 'express';
 class PenggajianController {
   static async getAllPenggajian(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const payrolls = await PenggajianService.getAllPenggajian();
+      const query = req.query;
+      const payrolls = await PenggajianService.getAllPenggajian(query);
       res.status(200).json(payrolls);
     } catch (error) {
       next(error);

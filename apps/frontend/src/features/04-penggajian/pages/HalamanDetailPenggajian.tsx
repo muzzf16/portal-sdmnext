@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import DetailPenggajian from '../components/DetailPenggajian';
+import { DetailPenggajian } from '../components/DetailPenggajian';
 
 const HalamanDetailPenggajian: React.FC = () => {
   const { id } = useParams<{ id: string }>();

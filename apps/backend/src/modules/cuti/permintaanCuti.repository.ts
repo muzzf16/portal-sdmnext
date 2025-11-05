@@ -18,9 +18,22 @@ const calculateLeaveDuration = (startDate: string, endDate: string): number => {
 };
 
 export const PermintaanCutiRepository = {
-  async findAll() {
+  async findAll(query: any = {}) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM permintaan_cuti');
+    let sql = 'SELECT * FROM permintaan_cuti';
+    const params: any[] = [];
+    const whereClauses: string[] = [];
+
+    if (query.employeeId) {
+      whereClauses.push('employeeId = ?');
+      params.push(query.employeeId);
+    }
+
+    if (whereClauses.length > 0) {
+      sql += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    const rows = await db.all(sql, params);
     return parseJsonFields(rows);
   },
 

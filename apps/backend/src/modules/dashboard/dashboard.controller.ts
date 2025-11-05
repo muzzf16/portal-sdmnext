@@ -6,8 +6,21 @@ import { PenggajianRepository } from '../penggajian/penggajian.repository';
 import { PenilaianKinerjaRepository } from '../kinerja/penilaianKinerja.repository';
 import { KontrakRepository } from '../kontrak/kontrak.repository';
 import { AppError } from '../../utils/errors';
+import DashboardService from './dashboard.service';
 
 class DashboardController {
+  static async getRecentActivity(req: Request, res: Response, next: NextFunction) {
+    try {
+      const activities = await DashboardService.getRecentActivity();
+      res.status(200).json({
+        success: true,
+        data: activities,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getAdminDashboardData(req: Request, res: Response, next: NextFunction) {
     try {
       // Get all dashboard data in parallel

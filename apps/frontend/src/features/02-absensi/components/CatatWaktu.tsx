@@ -4,9 +4,10 @@ import { clockIn, clockOut } from '../api/absensiApi';
 interface CatatWaktuProps {
   employeeId: string;
   employeeName: string;
+  onSuccess: () => void;
 }
 
-const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName }) => {
+const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName, onSuccess }) => {
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +16,7 @@ const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName }) => 
     try {
       await clockIn(employeeId, employeeName);
       setIsClockedIn(true);
+      onSuccess();
     } catch (error) {
       // Handle error
     }
@@ -26,6 +28,7 @@ const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName }) => 
     try {
       await clockOut(employeeId);
       setIsClockedIn(false);
+      onSuccess();
     } catch (error) {
       // Handle error
     }

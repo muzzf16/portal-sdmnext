@@ -51,8 +51,8 @@ const TambahPelatihanForm: React.FC<TambahPelatihanFormProps> = ({ onPelatihanAd
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      setError('Anda harus login untuk menambahkan pelatihan');
+    if (!user || !user.employeeId) {
+      setError('ID pegawai tidak ditemukan. Silakan login ulang.');
       return;
     }
     

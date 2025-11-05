@@ -9,6 +9,8 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { Card } from '@/shared/components/ui';
 import { useAuth } from '@/shared/contexts/AuthContext';
 
+import { getRecentActivity } from '../../../shared/services/dashboardAPI';
+
 const COLORS = ['#0088FE', '#FF8042', '#00C49F', '#FFBB28'];
 
 const AdminDashboard: React.FC = () => {
@@ -36,6 +38,10 @@ const AdminDashboard: React.FC = () => {
   const [educationData, setEducationData] = useState<{ name: string; employees: number }[]>([]);
   const [loadingCharts, setLoadingCharts] = useState<boolean>(true);
   const [errorCharts, setErrorCharts] = useState<string | null>(null);
+
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loadingRecentActivity, setLoadingRecentActivity] = useState<boolean>(true);
+  const [errorRecentActivity, setErrorRecentActivity] = useState<string | null>(null);
 
   useEffect(() => {
     const handleApiError = (error: any, setError: (m: string) => void, label: string) => {
@@ -115,12 +121,24 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
+    const fetchRecentActivity = async () => {
+      try {
+        const response = await getRecentActivity();
+        setRecentActivity(response.data.data);
+      } catch (error) {
+        handleApiError(error, setErrorRecentActivity, 'recent activity');
+      } finally {
+        setLoadingRecentActivity(false);
+      }
+    };
+
     Promise.all([
       fetchTotalEmployees(),
       fetchTodayAttendance(),
       fetchPendingLeaveRequests(),
       fetchExpiringContracts(),
-      fetchChartData()
+      fetchChartData(),
+      fetchRecentActivity(),
     ]).catch(error => {
       // eslint-disable-next-line no-console
       console.error('An error occurred during initial data fetching:', error);
@@ -129,6 +147,7 @@ const AdminDashboard: React.FC = () => {
       setLoadingPendingLeaveRequests(false);
       setLoadingExpiringContracts(false);
       setLoadingCharts(false);
+      setLoadingRecentActivity(false);
     });
   }, [logout, navigate]);
 
@@ -296,22 +315,23 @@ const AdminDashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {[ 
-              { action: 'Pegawai baru ditambahkan', user: 'Budi Santoso', time: '2 menit yang lalu' },
-              { action: 'Pengajuan cuti disetujui', user: 'Ani Lestari', time: '15 menit yang lalu' },
-              { action: 'Gaji bulan ini diproses', user: 'Sistem', time: '1 jam yang lalu' },
-              { action: 'Kontrak karyawan diperpanjang', user: 'Dodi Hidayat', time: '3 jam yang lalu' }
-            ].map((activity, index) => (
-              <div key={index} className="flex items-start border-b border-gray-100 dark:border-neutral-700 pb-3 last:border-0 last:pb-0">
-                <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3" aria-hidden="true">
-                  <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400"></div>
+            {loadingRecentActivity ? (
+              <p>Loading recent activity...</p>
+            ) : errorRecentActivity ? (
+              <p className="text-red-500">{errorRecentActivity}</p>
+            ) : (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-start border-b border-gray-100 dark:border-neutral-700 pb-3 last:border-0 last:pb-0">
+                  <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3" aria-hidden="true">
+                    <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400"></div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-800 dark:text-gray-200">{activity.action}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{activity.user} • {new Date(activity.time).toLocaleString('id-ID')}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-800 dark:text-gray-200">{activity.action}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{activity.user} • {activity.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </main>

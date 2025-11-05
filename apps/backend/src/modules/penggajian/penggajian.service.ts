@@ -5,9 +5,9 @@ import { AppError } from '../../utils/errors';
 import PDFDocument from 'pdfkit';
 
 class PenggajianService {
-  static async getAllPenggajian() {
+  static async getAllPenggajian(query: any) {
     try {
-      return await PenggajianRepository.findAll();
+      return await PenggajianRepository.findAll(query);
     } catch (error: any) {
       throw new AppError(`Error retrieving payrolls: ${error.message}`, 500);
     }

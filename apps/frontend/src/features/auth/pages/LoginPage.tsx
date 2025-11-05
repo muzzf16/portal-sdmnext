@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useCompanySettings } from '@/shared/contexts/CompanySettingsContext';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ const LoginPage: React.FC = () => {
   
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { settings } = useCompanySettings();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +52,15 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
         <div className="text-center">
           <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-indigo-100">
-            <span className="text-3xl">💼</span>
+            {settings?.logo ? (
+              <img
+                className="h-full w-full object-contain"
+                src={settings.logo}
+                alt={settings.companyName || 'Company Logo'}
+              />
+            ) : (
+              <span className="text-3xl">💼</span>
+            )}
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             Masuk ke Akun Anda

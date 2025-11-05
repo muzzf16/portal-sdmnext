@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDaftarPenggajian } from '../hooks/useDaftarPenggajian';
-import { Table, Button } from '@/shared/components/ui';
+import { Table, Button, Input, Select } from '@/shared/components/ui';
 import FormInputGaji from './FormInputGaji';
 
 const DaftarPenggajian: React.FC = () => {
-  const { daftarPenggajian, loading, error, fetchPenggajian } = useDaftarPenggajian();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('');
+  const { daftarPenggajian, loading, error, fetchPenggajian } = useDaftarPenggajian(searchTerm, filterPeriod);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSuccess = () => {
     setIsModalOpen(false);
     fetchPenggajian();
   };
+
+  const availablePeriods = [...new Set(daftarPenggajian.map(p => p.period))];
 
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
@@ -20,7 +24,27 @@ const DaftarPenggajian: React.FC = () => {
 
   return (
     <div className="mt-6">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-4">
+          <Input
+            id="search"
+            label="Cari Nama Pegawai"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari..."
+          />
+          <Select
+            id="filter-period"
+            label="Filter Periode"
+            value={filterPeriod}
+            onChange={(e) => setFilterPeriod(e.target.value)}
+            options={[
+              { value: '', label: 'Semua Periode' },
+              ...availablePeriods.map(p => ({ value: p, label: p }))
+            ]}
+          />
+        </div>
         <Button onClick={() => setIsModalOpen(true)}>Input Gaji</Button>
       </div>
 

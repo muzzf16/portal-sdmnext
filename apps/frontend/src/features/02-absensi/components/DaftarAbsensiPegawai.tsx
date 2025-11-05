@@ -1,17 +1,13 @@
 import React from 'react';
-import { useAbsensiPegawai } from '../hooks/useAbsensiPegawai';
+import { Absensi } from '../types';
 
 interface DaftarAbsensiPegawaiProps {
-  employeeId: string | undefined;
+  absensi: Absensi[];
+  loading: boolean;
+  error: Error | null;
 }
 
-const DaftarAbsensiPegawai: React.FC<DaftarAbsensiPegawaiProps> = ({ employeeId }) => {
-  if (!employeeId) {
-    return <div>Pegawai tidak ditemukan</div>;
-  }
-
-  const { absensi, loading, error } = useAbsensiPegawai(employeeId);
-
+const DaftarAbsensiPegawai: React.FC<DaftarAbsensiPegawaiProps> = ({ absensi, loading, error }) => {
   if (loading) return <div>Memuat...</div>;
   if (error) return <div>Error: {error.message}</div>;
 

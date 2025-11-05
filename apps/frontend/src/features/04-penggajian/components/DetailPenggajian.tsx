@@ -1,13 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePenggajian } from '../hooks/usePenggajian';
+import { updatePenggajian } from '../api/penggajianApi';
+import { Penggajian } from '../types';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 interface DetailPenggajianProps {
   payrollId: string | undefined;
 }
 
-const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
+interface FormValues {
+  baseSalary: number;
+  incomes: { name: string; amount: number }[];
+  deductions: { name: string; amount: number }[];
+}
+
+export const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
+  const { user } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formValues, setFormValues] = useState<FormValues>({
+    baseSalary: 0,
+    incomes: [],
+    deductions: []
+  });
+  const [editingComponentIndex, setEditingComponentIndex] = useState<{ type: 'income' | 'deduction', index: number } | null>(null);
+  const [editingComponent, setEditingComponent] = useState<{ name: string; amount: number } | null>(null);
 
   if (!payrollId) {
     return <div className="flex justify-center items-center h-64">
@@ -15,12 +33,168 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
     </div>;
   }
 
-  const { penggajian, loading, error } = usePenggajian(payrollId);
+  const { penggajian, loading, error, setPenggajian } = usePenggajian(payrollId);
+
+  useEffect(() => {
+    if (penggajian) {
+      setFormValues({
+        baseSalary: penggajian.baseSalary,
+        incomes: [...penggajian.incomes],
+        deductions: [...penggajian.deductions]
+      });
+    }
+  }, [penggajian]);
+
+  const handleEditClick = () => {
+    if (penggajian) {
+      setIsEditing(true);
+      setFormValues({
+        baseSalary: penggajian.baseSalary,
+        incomes: [...penggajian.incomes],
+        deductions: [...penggajian.deductions]
+      });
+    }
+  };
+
+  const handleSaveClick = async () => {
+    if (!penggajian) return;
+
+    try {
+      // Send only the fields that should be stored in the database
+      const updatedPayrollData = {
+        employeeId: penggajian.employeeId,
+        employeeName: penggajian.employeeName,
+        period: penggajian.period,
+        baseSalary: formValues.baseSalary,
+        incomes: formValues.incomes,
+        deductions: formValues.deductions
+      };
+
+      const { data: updatedPayroll } = await updatePenggajian(penggajian.id, updatedPayrollData);
+      setPenggajian(updatedPayroll);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update payroll', error);
+      alert('Gagal memperbarui penggajian');
+    }
+  };
+
+  const handleCancelClick = () => {
+    if (penggajian) {
+      setFormValues({
+        baseSalary: penggajian.baseSalary,
+        incomes: [...penggajian.incomes],
+        deductions: [...penggajian.deductions]
+      });
+    }
+    setIsEditing(false);
+    setEditingComponentIndex(null);
+    setEditingComponent(null);
+  };
+
+  const handleBaseSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormValues(prev => ({
+      ...prev,
+      baseSalary: Number(e.target.value)
+    }));
+  };
+
+  const addIncome = () => {
+    setFormValues(prev => ({
+      ...prev,
+      incomes: [...prev.incomes, { name: '', amount: 0 }]
+    }));
+    const newIndex = formValues.incomes.length;
+    setEditingComponentIndex({ type: 'income', index: newIndex });
+    setEditingComponent({ name: '', amount: 0 });
+  };
+
+  const addDeduction = () => {
+    setFormValues(prev => ({
+      ...prev,
+      deductions: [...prev.deductions, { name: '', amount: 0 }]
+    }));
+    const newIndex = formValues.deductions.length;
+    setEditingComponentIndex({ type: 'deduction', index: newIndex });
+    setEditingComponent({ name: '', amount: 0 });
+  };
+
+  const updateIncome = (index: number, field: 'name' | 'amount', value: string | number) => {
+    setFormValues(prev => {
+      const updatedIncomes = [...prev.incomes];
+      updatedIncomes[index] = {
+        ...updatedIncomes[index],
+        [field]: typeof value === 'string' ? value : Number(value)
+      };
+      return { ...prev, incomes: updatedIncomes };
+    });
+  };
+
+  const updateDeduction = (index: number, field: 'name' | 'amount', value: string | number) => {
+    setFormValues(prev => {
+      const updatedDeductions = [...prev.deductions];
+      updatedDeductions[index] = {
+        ...updatedDeductions[index],
+        [field]: typeof value === 'string' ? value : Number(value)
+      };
+      return { ...prev, deductions: updatedDeductions };
+    });
+  };
+
+  const deleteIncome = (index: number) => {
+    setFormValues(prev => {
+      const updatedIncomes = [...prev.incomes];
+      updatedIncomes.splice(index, 1);
+      return { ...prev, incomes: updatedIncomes };
+    });
+  };
+
+  const deleteDeduction = (index: number) => {
+    setFormValues(prev => {
+      const updatedDeductions = [...prev.deductions];
+      updatedDeductions.splice(index, 1);
+      return { ...prev, deductions: updatedDeductions };
+    });
+  };
+
+  const startEditingComponent = (type: 'income' | 'deduction', index: number) => {
+    const component = type === 'income' ? formValues.incomes[index] : formValues.deductions[index];
+    setEditingComponentIndex({ type, index });
+    setEditingComponent({ ...component });
+  };
+
+  const saveComponentEdit = () => {
+    if (editingComponentIndex && editingComponent) {
+      if (editingComponentIndex.type === 'income') {
+        updateIncome(editingComponentIndex.index, 'name', editingComponent.name);
+        updateIncome(editingComponentIndex.index, 'amount', editingComponent.amount);
+      } else {
+        updateDeduction(editingComponentIndex.index, 'name', editingComponent.name);
+        updateDeduction(editingComponentIndex.index, 'amount', editingComponent.amount);
+      }
+      setEditingComponentIndex(null);
+      setEditingComponent(null);
+    }
+  };
+
+  const cancelComponentEdit = () => {
+    setEditingComponentIndex(null);
+    setEditingComponent(null);
+  };
+
+  const updateEditingComponent = (field: 'name' | 'amount', value: string) => {
+    if (editingComponent) {
+      setEditingComponent({
+        ...editingComponent,
+        [field]: field === 'amount' ? Number(value) : value
+      });
+    }
+  };
 
   // Calculate totals
-  const totalIncome = penggajian?.incomes.reduce((sum, income) => sum + income.amount, 0) || 0;
-  const totalDeductions = penggajian?.deductions.reduce((sum, deduction) => sum + deduction.amount, 0) || 0;
-  const grossSalary = (penggajian?.baseSalary || 0) + totalIncome;
+  const totalIncome = formValues.incomes.reduce((sum, income) => sum + income.amount, 0);
+  const totalDeductions = formValues.deductions.reduce((sum, deduction) => sum + deduction.amount, 0);
+  const grossSalary = formValues.baseSalary + totalIncome;
   const netSalary = grossSalary - totalDeductions;
 
   if (loading) return (
@@ -65,7 +239,33 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
               <h2 className="text-2xl font-bold">{penggajian.employeeName}</h2>
               <p className="text-blue-100">{penggajian.period}</p>
             </div>
-            
+            {user?.role === 'admin' && (
+              <div className="flex space-x-3">
+                {!isEditing ? (
+                  <button 
+                    onClick={handleEditClick} 
+                    className="bg-white text-blue-600 hover:bg-blue-50 font-medium py-2 px-4 rounded-lg shadow transition duration-200"
+                  >
+                    Edit Penggajian
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={handleSaveClick} 
+                      className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow transition duration-200"
+                    >
+                      Simpan Perubahan
+                    </button>
+                    <button 
+                      onClick={handleCancelClick} 
+                      className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow transition duration-200"
+                    >
+                      Batal
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
         
@@ -75,7 +275,16 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="text-gray-500 text-sm">Gaji Pokok</p>
               <p className="text-xl font-bold text-gray-800">
-                  `Rp ${penggajian.baseSalary.toLocaleString()}`
+                {isEditing && user?.role === 'admin' ? (
+                  <input
+                    type="number"
+                    value={formValues.baseSalary}
+                    onChange={handleBaseSalaryChange}
+                    className="w-full border rounded px-2 py-1 text-gray-800"
+                  />
+                ) : (
+                  `Rp ${formValues.baseSalary.toLocaleString()}`
+                )}
               </p>
             </div>
             
@@ -103,14 +312,57 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
             <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Tunjangan</h3>
+                {isEditing && user?.role === 'admin' && (
+                  <button 
+                    onClick={addIncome}
+                    className="flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
+                  >
+                    <span className="mr-1">+</span> Tambah Tunjangan
+                  </button>
+                )}
               </div>
               
               <div className="space-y-3">
-                {penggajian.incomes.length === 0 ? (
+                {formValues.incomes.length === 0 ? (
                   <p className="text-gray-500 italic">Belum ada tunjangan</p>
                 ) : (
-                  penggajian.incomes.map((income, index) => (
+                  formValues.incomes.map((income, index) => (
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      {editingComponentIndex?.type === 'income' && editingComponentIndex.index === index && user?.role === 'admin' ? (
+                        <div className="flex-1 flex flex-col gap-2">
+                            <input
+                              type="text"
+                              value={editingComponent?.name || ''}
+                              onChange={(e) => updateEditingComponent('name', e.target.value)}
+                              className="w-full border rounded px-2 py-1 text-gray-800"
+                              placeholder="Nama tunjangan"
+                            />
+                            <div className="flex">
+                              <span className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l text-gray-600">Rp</span>
+                              <input
+                                type="number"
+                                value={editingComponent?.amount || 0}
+                                onChange={(e) => updateEditingComponent('amount', e.target.value)}
+                                className="border rounded-r px-2 py-1 w-full"
+                                placeholder="Jumlah"
+                              />
+                            </div>
+                            <div className="flex space-x-2 self-end">
+                              <button 
+                                onClick={saveComponentEdit}
+                                className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Simpan
+                              </button>
+                              <button 
+                                onClick={cancelComponentEdit}
+                                className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          </div>
+                      ) : (
                         <>
                           <div className="flex-1">
                             <p className="font-medium text-gray-800">{income.name}</p>
@@ -118,8 +370,31 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
                           </div>
                           <div className="flex items-center">
                             <span className="font-semibold text-green-600 mr-4">Rp {income.amount.toLocaleString()}</span>
+                            {isEditing && user?.role === 'admin' && (
+                              <div className="flex space-x-1">
+                                <button 
+                                  onClick={() => startEditingComponent('income', index)}
+                                  className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100"
+                                  title="Edit"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  onClick={() => deleteIncome(index)}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
+                                  title="Hapus"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </>
+                      )}
                     </div>
                   ))
                 )}
@@ -130,14 +405,57 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
             <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Potongan</h3>
+                {isEditing && user?.role === 'admin' && (
+                  <button 
+                    onClick={addDeduction}
+                    className="flex items-center text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    <span className="mr-1">+</span> Tambah Potongan
+                  </button>
+                )}
               </div>
               
               <div className="space-y-3">
-                {penggajian.deductions.length === 0 ? (
+                {formValues.deductions.length === 0 ? (
                   <p className="text-gray-500 italic">Belum ada potongan</p>
                 ) : (
-                  penggajian.deductions.map((deduction, index) => (
+                  formValues.deductions.map((deduction, index) => (
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      {editingComponentIndex?.type === 'deduction' && editingComponentIndex.index === index && user?.role === 'admin' ? (
+                        <div className="flex-1 flex flex-col gap-2">
+                            <input
+                              type="text"
+                              value={editingComponent?.name || ''}
+                              onChange={(e) => updateEditingComponent('name', e.target.value)}
+                              className="w-full border rounded px-2 py-1 text-gray-800"
+                              placeholder="Nama potongan"
+                            />
+                            <div className="flex">
+                              <span className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l text-gray-600">Rp</span>
+                              <input
+                                type="number"
+                                value={editingComponent?.amount || 0}
+                                onChange={(e) => updateEditingComponent('amount', e.target.value)}
+                                className="border rounded-r px-2 py-1 w-full"
+                                placeholder="Jumlah"
+                              />
+                            </div>
+                            <div className="flex space-x-2 self-end">
+                              <button 
+                                onClick={saveComponentEdit}
+                                className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Simpan
+                              </button>
+                              <button 
+                                onClick={cancelComponentEdit}
+                                className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          </div>
+                      ) : (
                         <>
                           <div className="flex-1">
                             <p className="font-medium text-gray-800">{deduction.name}</p>
@@ -145,8 +463,31 @@ const DetailPenggajian: React.FC<DetailPenggajianProps> = ({ payrollId }) => {
                           </div>
                           <div className="flex items-center">
                             <span className="font-semibold text-red-600 mr-4">Rp {deduction.amount.toLocaleString()}</span>
+                            {isEditing && user?.role === 'admin' && (
+                              <div className="flex space-x-1">
+                                <button 
+                                  onClick={() => startEditingComponent('deduction', index)}
+                                  className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100"
+                                  title="Edit"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  onClick={() => deleteDeduction(index)}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
+                                  title="Hapus"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </>
+                      )}
                     </div>
                   ))
                 )}

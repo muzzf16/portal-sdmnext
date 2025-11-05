@@ -101,16 +101,21 @@ const DashboardLayout: React.FC = () => {
       >
         <div className="flex items-center justify-center h-auto bg-primary-900 text-white text-2xl font-bold border-b border-primary-700 py-2">
           {isSidebarOpen ? (
-            settings?.logo ? (
-                <img
-                  className="h-12 w-auto"
-                  src={settings.logo}
-                  alt={settings.companyName || 'Company Logo'}
-                  title={settings.companyName || 'Company Logo'}
-                />
-            ) : (
-              settings?.companyName || 'Portal_SDM'
-            )
+            <div className="text-center">
+              {settings?.logo ? (
+                  <img
+                    className="h-12 w-auto mx-auto mb-1"
+                    src={settings.logo}
+                    alt={settings.companyName || 'Company Logo'}
+                    title={settings.companyName || 'Company Logo'}
+                  />
+              ) : (
+                <span className="text-xl">{settings?.companyName || 'Portal_SDM'}</span>
+              )}
+              {settings?.address && (
+                <p className="text-xs text-primary-200 mt-1">{settings.address}</p>
+              )}
+            </div>
           ) : (
             <span title={settings?.companyName || 'Portal_SDM'}>H</span>
           )}
@@ -120,6 +125,10 @@ const DashboardLayout: React.FC = () => {
             <NavItem key={item.to} {...item} isSidebarOpen={isSidebarOpen} />
           ))}
         </nav>
+        <div className="p-4 text-center text-xs text-primary-200 border-t border-primary-700">
+          {settings?.companyName && <p className="font-bold">{settings.companyName}</p>}
+          {settings?.address && <p>{settings.address}</p>}
+        </div>
         <div className="p-4 border-t border-primary-700">
           <button
             onClick={logout}
@@ -146,14 +155,16 @@ const DashboardLayout: React.FC = () => {
           <button onClick={toggleSidebar} className="text-gray-500 dark:text-gray-300 focus:outline-none" title="Toggle Sidebar" aria-label="Buka/Tutup Sidebar">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {settings?.companyName || 'Dashboard'}
-            </h1>
-            {settings?.address && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {settings.address}
-              </p>
-            )}
+            <div className="flex flex-col items-center">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {settings?.companyName || 'Dashboard'}
+              </h1>
+              {settings?.address && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {settings.address}
+                </p>
+              )}
+            </div>
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}

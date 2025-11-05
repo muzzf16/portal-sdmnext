@@ -8,7 +8,7 @@ interface FormInputGajiProps {
   onCancel: () => void;
 }
 
-const FormInputGaji: React.FC<FormInputGajiProps> = ({ onSuccess, onCancel }) => {
+const FormInputGaji: React.FC<FormInputGajiProps> = ({ onSuccess, onCancel }) => { // Force re-evaluation
   const [period, setPeriod] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +37,9 @@ const FormInputGaji: React.FC<FormInputGajiProps> = ({ onSuccess, onCancel }) =>
         <h2 className="text-xl font-bold mb-4">Input Gaji Bulanan</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-            <label htmlFor="period" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Periode (YYYY-MM)
-            </label>
             <Input
             id="period"
+            label="Periode (YYYY-MM)"
             type="text"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
