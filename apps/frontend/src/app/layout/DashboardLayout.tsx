@@ -76,10 +76,10 @@ const DashboardLayout: React.FC = () => {
     { to: '/dashboard/kinerja', icon: <BarChart2 size={20} />, text: 'Manajemen Kinerja', roles: ['admin'] },
     { to: '/dashboard/perekrutan', icon: <UserPlus size={20} />, text: 'Perekrutan', roles: ['admin'] },
     { to: '/dashboard/pelatihan', icon: <Award size={20} />, text: 'Manajemen Pelatihan', roles: ['admin'] },
-    { to: '/dashboard/laporan', icon: <FileText size={20} />, text: 'Laporan', roles: ['admin'] },
-    { to: '/dashboard/perubahan-data', icon: <FileText size={20} />, text: 'Perubahan Data', roles: ['admin'] },
-    { to: '/dashboard/pengaturan', icon: <Settings size={20} />, text: 'Pengaturan', roles: ['admin', 'employee'] }, 
-    { to: `/dashboard/pegawai/${user?.employeeId}` , icon: <Users size={20}/>, text: 'Profil Saya', roles: ['employee'] },
+        { to: '/dashboard/laporan', icon: <FileText size={20} />, text: 'Laporan', roles: ['admin'] },
+        { to: '/dashboard/perubahan-data', icon: <FileText size={20} />, text: 'Perubahan Data', roles: ['admin'] },
+        { to: '/dashboard/pengaturan', icon: <Settings size={20} />, text: 'Pengaturan', roles: ['admin'] }, 
+        { to: `/dashboard/pegawai/${user?.employeeId}` , icon: <Users size={20}/>, text: 'Profil Saya', roles: ['employee'] },
     { to: '/dashboard/absensi-saya', icon: <Calendar size={20} />, text: 'Absensi Saya', roles: ['employee'] },
     { to: '/dashboard/cuti-saya', icon: <Briefcase size={20} />, text: 'Cuti Saya', roles: ['employee'] },
     { to: '/dashboard/penggajian-saya', icon: <DollarSign size={20} />, text: 'Gaji Saya', roles: ['employee'] },
@@ -170,9 +170,11 @@ const DashboardLayout: React.FC = () => {
             </button>
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-soft-shadow py-1 z-50">
-                <Link to={`/dashboard/pegawai/${user?.employeeId}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</Link>
-                <Link to="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
-                <button type="button" onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" title="Logout" aria-label="Logout">Logout</button>
+                                <Link to={`/dashboard/pegawai/${user?.employeeId}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</Link>
+                                {user?.role === 'admin' && (
+                                  <Link to="/dashboard/pengaturan" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
+                                )}
+                                <button type="button" onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" title="Logout" aria-label="Logout">Logout</button>
               </div>
             )}
           </div>

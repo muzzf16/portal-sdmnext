@@ -12,31 +12,42 @@ const processPegawaiData = (pegawaiData: any): Pegawai => {
     processedData.avatarUrl = `${VITE_API_URL}${processedData.avatarUrl}`;
   }
 
-  // Parse JSON string fields
-  try {
-    if (typeof processedData.educationHistory === 'string') {
-      processedData.educationHistory = JSON.parse(processedData.educationHistory);
+  // Safely parse JSON string fields
+  const fieldsToParse = ['educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo'];
+
+  fieldsToParse.forEach(field => {
+    if (typeof processedData[field] === 'string') {
+      if (processedData[field] === '[object Object]') {
+        // Handle corrupted data
+        if (field === 'payrollInfo') {
+          processedData[field] = {};
+        } else {
+          processedData[field] = [];
+        }
+      } else {
+        try {
+          processedData[field] = JSON.parse(processedData[field]);
+        } catch (e) {
+          console.error(`Failed to parse JSON for field ${field}:`, e);
+          // Assign a default value based on the expected type
+          if (field === 'payrollInfo') {
+            processedData[field] = {};
+          } else {
+            processedData[field] = [];
+          }
+        }
+      }
+    } else if (processedData[field] === null || processedData[field] === undefined) {
+        if (field === 'payrollInfo') {
+            processedData[field] = {};
+        } else {
+            processedData[field] = [];
+        }
     }
-    if (typeof processedData.workHistory === 'string') {
-      processedData.workHistory = JSON.parse(processedData.workHistory);
-    }
-    if (typeof processedData.trainingCertificates === 'string') {
-      processedData.trainingCertificates = JSON.parse(processedData.trainingCertificates);
-    }
-    if (typeof processedData.payrollInfo === 'string') {
-      processedData.payrollInfo = JSON.parse(processedData.payrollInfo);
-    }
-  } catch (e) {
-    console.error('Failed to parse JSON fields for pegawai:', e);
-    // Set to empty arrays/object on parsing failure to prevent crashes
-    processedData.educationHistory = Array.isArray(processedData.educationHistory) ? processedData.educationHistory : [];
-    processedData.workHistory = Array.isArray(processedData.workHistory) ? processedData.workHistory : [];
-    processedData.trainingCertificates = Array.isArray(processedData.trainingCertificates) ? processedData.trainingCertificates : [];
-    processedData.payrollInfo = typeof processedData.payrollInfo === 'object' ? processedData.payrollInfo : {};
-  }
+  });
 
   return processedData as Pegawai;
-}; 
+};
 
 export const usePegawai = (id: string) => {
   const [pegawai, setPegawai] = useState<Pegawai | null>(null);

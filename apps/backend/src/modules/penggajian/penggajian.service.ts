@@ -2,6 +2,7 @@
 import { PenggajianRepository } from './penggajian.repository';
 import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import { AppError } from '../../utils/errors';
+import PDFDocument from 'pdfkit';
 
 class PenggajianService {
   static async getAllPenggajian() {
@@ -132,6 +133,47 @@ class PenggajianService {
 
     } catch (error: any) {
       throw new AppError(`Error running payroll generation: ${error.message}`, 500);
+    }
+  }
+
+  static async generatePayslip(payrollId: string): Promise<Buffer> {
+    try {
+      const payroll = await PenggajianRepository.findById(payrollId);
+      if (!payroll) {
+        throw new AppError('Payroll not found', 404);
+      }
+
+      // For now, return a simple PDF buffer as a placeholder
+      // In a real application, you would use a PDF generation library (e.g., pdf-lib, html-pdf)
+      // to create a detailed payslip based on the payroll data.
+      const doc = new PDFDocument();
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        // This is a hack to return the buffer synchronously.
+        // In a real app, you'd handle this with a Promise or stream.
+      });
+
+      doc.fontSize(25).text('Slip Gaji', { align: 'center' });
+      doc.fontSize(12).text(`Periode: ${payroll.period}`);
+      doc.text(`Nama Karyawan: ${payroll.employeeName}`);
+      doc.text(`Gaji Pokok: ${payroll.baseSalary}`);
+      doc.text(`Total Pendapatan: ${payroll.totalIncome}`);
+      doc.text(`Total Potongan: ${payroll.totalDeductions}`);
+      doc.text(`Gaji Bersih: ${payroll.netSalary}`);
+
+      doc.end();
+
+      // This is a simplified way to get the buffer.
+      // A proper implementation would use a Promise to wait for the 'end' event.
+      return new Promise((resolve) => {
+        doc.on('end', () => {
+          resolve(Buffer.concat(buffers));
+        });
+      });
+
+    } catch (error: any) {
+      throw new AppError(`Error generating payslip: ${error.message}`, 500);
     }
   }
 }

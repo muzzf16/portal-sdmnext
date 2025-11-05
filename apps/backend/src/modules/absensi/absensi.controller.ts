@@ -5,7 +5,8 @@ import { Request, Response, NextFunction } from 'express';
 class AbsensiController {
   static async getAllAttendanceRecords(req: Request, res: Response, next: NextFunction) {
     try {
-      const attendanceRecords = await AbsensiService.getAllAttendanceRecords();
+      const query = req.query;
+      const attendanceRecords = await AbsensiService.getAllAttendanceRecords(query);
       res.status(200).json(attendanceRecords);
     } catch (error) {
       next(error);

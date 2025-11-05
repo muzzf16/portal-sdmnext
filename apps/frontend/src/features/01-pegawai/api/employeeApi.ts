@@ -36,15 +36,15 @@ export const createPegawai = async (pegawai: Omit<Pegawai, 'id'>, photo?: File) 
   try {
     const formData = new FormData();
     
+    const fieldsToStringify = ['educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo'];
+
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        if (key === 'educationHistory') {
-          // Handle both string and array forms of educationHistory
-          if (Array.isArray(value)) {
+        if (fieldsToStringify.includes(key)) {
+          if (typeof value === 'object') {
             formData.append(key, JSON.stringify(value));
           } else {
-            // If it's already a string (JSON), pass it as is
-            formData.append(key, value.toString());
+            formData.append(key, value as string);
           }
         } else {
           formData.append(key, value.toString());
@@ -77,15 +77,15 @@ export const updatePegawai = async (id: string, pegawai: Partial<Pegawai>, photo
   try {
     const formData = new FormData();
     
+    const fieldsToStringify = ['educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo'];
+
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        if (key === 'educationHistory') {
-          // Handle both string and array forms of educationHistory
-          if (Array.isArray(value)) {
+        if (fieldsToStringify.includes(key)) {
+          if (typeof value === 'object') {
             formData.append(key, JSON.stringify(value));
           } else {
-            // If it's already a string (JSON), pass it as is
-            formData.append(key, value.toString());
+            formData.append(key, value as string);
           }
         } else {
           formData.append(key, value.toString());
@@ -128,15 +128,15 @@ export const createPegawaiWithUser = async (pegawai: Omit<Pegawai, 'id'>, photo?
   try {
     const formData = new FormData();
     
+    const fieldsToStringify = ['educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo'];
+
     Object.entries(pegawai).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        if (key === 'educationHistory') {
-          // Handle both string and array forms of educationHistory
-          if (Array.isArray(value)) {
+        if (fieldsToStringify.includes(key)) {
+          if (typeof value === 'object') {
             formData.append(key, JSON.stringify(value));
           } else {
-            // If it's already a string (JSON), pass it as is
-            formData.append(key, value.toString());
+            formData.append(key, value as string);
           }
         } else {
           formData.append(key, value.toString());

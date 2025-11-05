@@ -8,9 +8,30 @@ const parseJsonFields = (rows: any[]) => {
 };
 
 export const AbsensiRepository = {
-  async findAll() {
+  async findAll(query: any = {}) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM absensi');
+    let sql = 'SELECT * FROM absensi';
+    const params: any[] = [];
+    const whereClauses: string[] = [];
+
+    if (query.employeeId) {
+      whereClauses.push('employeeId = ?');
+      params.push(query.employeeId);
+    }
+    if (query.startDate) {
+      whereClauses.push('date >= ?');
+      params.push(query.startDate);
+    }
+    if (query.endDate) {
+      whereClauses.push('date <= ?');
+      params.push(query.endDate);
+    }
+
+    if (whereClauses.length > 0) {
+      sql += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    const rows = await db.all(sql, params);
     return parseJsonFields(rows);
   },
 

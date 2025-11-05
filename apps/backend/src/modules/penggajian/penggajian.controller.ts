@@ -87,6 +87,19 @@ class PenggajianController {
       next(error);
     }
   }
+
+  static async downloadPayslip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const payslipBuffer = await PenggajianService.generatePayslip(id); // This method needs to be created in the service
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=payslip-${id}.pdf`);
+      res.send(payslipBuffer);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default PenggajianController;

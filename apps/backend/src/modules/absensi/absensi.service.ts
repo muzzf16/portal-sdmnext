@@ -3,9 +3,9 @@ import { AbsensiRepository } from './absensi.repository';
 import { AppError } from '../../utils/errors';
 
 class AbsensiService {
-  static async getAllAttendanceRecords() {
+  static async getAllAttendanceRecords(query: any) {
     try {
-      return await AbsensiRepository.findAll();
+      return await AbsensiRepository.findAll(query);
     } catch (error: any) {
       throw new AppError(`Error retrieving attendance records: ${error.message}`, 500);
     }

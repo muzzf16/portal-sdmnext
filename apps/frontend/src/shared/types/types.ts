@@ -258,21 +258,7 @@ export interface Lamaran {
   status: string;
 }
 
-// Extended interfaces for employee details
-export interface RiwayatJabatan {
-  id: number;
-  pegawai_id: number;
-  jabatan_lama: string;
-  jabatan_baru: string;
-  tanggal_perubahan: string;
-  unit_kerja?: string;
-}
 
-export interface Pelatihan {
-  id: number;
-  durasi?: string;
-  deskripsi?: string;
-}
 
 export interface DataChangeRequest {
   id: number;

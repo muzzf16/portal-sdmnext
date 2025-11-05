@@ -14,17 +14,17 @@ const HalamanPelatihanPegawai: React.FC = () => {
     const fetchPelatihan = async () => {
       try {
         const response = await getPelatihan(id as string);
-        // Map the response to handle both naming conventions (English and Indonesian)
-        const mappedData = (response.data || []).map(item => {
-          return {
-            id: Number(item.id) || Number(item.id),
-            pegawai_id: Number(item.pegawai_id) || Number(item.employeeId),
+        const mappedData = (response.data || []).map((item: any) => {
+          const pelatihanItem: Pelatihan = {
+            id: Number(item.id),
+            pegawai_id: String(item.pegawai_id || item.employeeId),
             nama_pelatihan: item.nama_pelatihan || item.trainingName,
             penyelenggara: item.penyelenggara || item.organizer,
             tanggal_mulai: item.tanggal_mulai || item.startDate,
             tanggal_selesai: item.tanggal_selesai || item.endDate,
             nomor_sertifikat: item.nomor_sertifikat || item.certificate,
-          } as Pelatihan;
+          };
+          return pelatihanItem;
         });
         setPelatihan(mappedData);
       } catch (err) {

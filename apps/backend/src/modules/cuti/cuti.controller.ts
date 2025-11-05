@@ -35,6 +35,9 @@ class CutiController {
   static async submitPermintaanCuti(req: Request, res: Response, next: NextFunction) {
     try {
       const leaveRequestData = req.body;
+      if (req.file) {
+        leaveRequestData.supportingDocument = `/documents/${req.file.filename}`;
+      }
       const newLeaveRequest = await CutiService.submitPermintaanCuti(leaveRequestData);
       res.status(201).json(newLeaveRequest);
     } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { getPenggajian } from '../api/penggajianApi';
+import { getPenggajian, downloadPayslip } from '../api/penggajianApi';
 import { Penggajian } from '../types';
 import DetailPenggajian from '../components/DetailPenggajian';
 import { Card } from '../../../shared/components/ui/Card';
@@ -45,9 +45,25 @@ const HalamanPenggajianSaya: React.FC = () => {
     }
   }, [selectedPeriod, payrolls]);
 
-  const handleDownloadSlip = () => {
-    // TODO: Implement payslip download functionality
-    alert('Fitur unduh slip gaji belum tersedia.');
+  const handleDownloadSlip = async () => {
+    if (!selectedPayroll) {
+      alert('Pilih periode gaji terlebih dahulu.');
+      return;
+    }
+    try {
+      const response = await downloadPayslip(selectedPayroll.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `slip_gaji_${selectedPayroll.period}.pdf`); // or whatever file name you want
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading payslip:', error);
+      alert('Gagal mengunduh slip gaji.');
+    }
   };
 
   const availablePeriods = [...new Set(payrolls.map(p => p.period))];

@@ -12,5 +12,6 @@ router.put('/:id', PenggajianController.updatePenggajian);
 router.post('/run', PenggajianController.runPayroll);
 router.delete('/:id', PenggajianController.deletePenggajian);
 router.post('/:id/components', PenggajianController.addSalaryComponent);
+router.get('/:id/download', PenggajianController.downloadPayslip);
 
 export default router;

@@ -82,7 +82,7 @@ const ProfilSaya: React.FC = () => {
                   <p className="text-base text-gray-500 dark:text-gray-400 mt-1">{pegawai.department}</p>
                   
                   <div className="flex items-center mt-3">
-                    {pegawai.isActive === false ? (
+                    {pegawai.isActive === 0 ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
                         <FileText className="h-4 w-4 mr-1" />
                         Nonaktif
@@ -304,7 +304,7 @@ const ProfilSaya: React.FC = () => {
                     <div className="flex">
                       <div className="w-1/3 text-sm font-medium text-gray-500 dark:text-gray-400">Status</div>
                       <div className="w-2/3 text-sm text-gray-900 dark:text-white">
-                        {pegawai.isActive === false ? 'Nonaktif' : 'Aktif'}
+                        {pegawai.isActive === 0 ? 'Nonaktif' : 'Aktif'}
                       </div>
                     </div>
                     

@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { clockIn, clockOut } from '../api/absensiApi';
 
-const CatatWaktu: React.FC = () => {
+interface CatatWaktuProps {
+  employeeId: string;
+  employeeName: string;
+}
+
+const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName }) => {
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleClockIn = async () => {
     setLoading(true);
     try {
-      await clockIn();
+      await clockIn(employeeId, employeeName);
       setIsClockedIn(true);
     } catch (error) {
       // Handle error
@@ -19,7 +24,7 @@ const CatatWaktu: React.FC = () => {
   const handleClockOut = async () => {
     setLoading(true);
     try {
-      await clockOut();
+      await clockOut(employeeId);
       setIsClockedIn(false);
     } catch (error) {
       // Handle error
