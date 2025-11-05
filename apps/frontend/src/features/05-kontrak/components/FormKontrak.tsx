@@ -182,12 +182,15 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
               <input
                 id="employee-search"
                 type="text"
-                value={searchTerm}
+                value={selectedEmployeeId ? '' : searchTerm} // Clear the search field when an employee is selected
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setShowEmployeeDropdown(true);
                 }}
-                placeholder="Cari pegawai (nama, ID, atau NIP)"
+                placeholder={selectedEmployeeId ? 
+                  (employees.find(emp => emp.id === selectedEmployeeId)?.name || "Cari pegawai") : 
+                  "Cari pegawai (nama, ID, atau NIP)"
+                }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
                 onFocus={() => setShowEmployeeDropdown(true)}
                 autoComplete="off"
@@ -216,6 +219,29 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
               )}
             </div>
             {errors.employeeId && <span className="text-red-500 text-sm">{errors.employeeId.message}</span>}
+            
+            {/* Show selected employee info when one is selected */}
+            {selectedEmployeeId && (
+              <div className="mt-2 p-2 bg-gray-100 rounded text-sm">
+                Pegawai terpilih: <span className="font-medium">
+                  {employees.find(emp => emp.id === selectedEmployeeId)?.name || selectedEmployeeId}
+                </span>
+                <button 
+                  type="button"
+                  className="ml-2 text-red-600 hover:text-red-800"
+                  onClick={() => {
+                    setValue('employeeId', '');
+                    setValue('position', '');
+                    setValue('department', '');
+                    setOriginalPosition('');
+                    setJabatanLama('');
+                    setJabatanBaru('');
+                  }}
+                >
+                  [Hapus]
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <label htmlFor="position" className="block text-sm font-medium text-slate-700 mb-1">Posisi</label>
