@@ -1,17 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Kontrak } from '../types';
 import { buatKontrak, buatKontrakWithFile } from '../api/kontrakApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
+import { useToast } from '@/app/providers/ToastContext';
 
-const FormKontrak: React.FC = () => {
-  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<Omit<Kontrak, 'id' | 'createdAt' | 'contractFile' | 'notes'> & { notes?: string }>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+type KontrakFormData = Omit<Kontrak, 'id' | 'createdAt' | 'contractFile' | 'notes'> & { notes?: string };
+
+interface FormKontrakProps {
+  onSuccess?: () => void;
+}
+
+const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch, setValue, reset } = useForm<KontrakFormData>();
+  const { addToast } = useToast();
   const [employees, setEmployees] = useState<any[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [addRiwayatJabatan, setAddRiwayatJabatan] = useState(true);
+  const [jabatanLama, setJabatanLama] = useState('');
+  const [originalPosition, setOriginalPosition] = useState(''); // Simpan posisi asli dari database
+  const [jabatanBaru, setJabatanBaru] = useState(''); // State terpisah untuk jabatan baru
   
   // Watch date fields for validation
   const startDate = watch('startDate');
@@ -25,27 +35,24 @@ const FormKontrak: React.FC = () => {
         const response = await getPegawai();
         if (response.data && Array.isArray(response.data)) {
           setEmployees(response.data);
-          setFilteredEmployees(response.data);
         }
       } catch (error) {
         console.error('Failed to fetch employees:', error);
+        addToast('Gagal memuat data pegawai', 'error');
       }
     };
     fetchEmployees();
-  }, []);
+  }, [addToast]);
 
-  // Filter employees based on search term
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = employees.filter(emp => 
-        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        emp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.nip.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredEmployees(filtered);
-    } else {
-      setFilteredEmployees(employees);
-    }
+  // Filter employees based on search term (memoized)
+  const filteredEmployees = useMemo(() => {
+    if (!searchTerm) return employees;
+    const lowerSearch = searchTerm.toLowerCase();
+    return employees.filter(emp => 
+      emp.name?.toLowerCase().includes(lowerSearch) || 
+      emp.id?.toLowerCase().includes(lowerSearch) ||
+      emp.nip?.toLowerCase().includes(lowerSearch)
+    );
   }, [searchTerm, employees]);
 
   // Auto-fill position and department when employee is selected
@@ -53,73 +60,116 @@ const FormKontrak: React.FC = () => {
     if (selectedEmployeeId) {
       const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId);
       if (selectedEmployee) {
-        setValue('position', selectedEmployee.position);
+        // Simpan posisi asli dari database (jabatan lama) - non-editable
+        const originalPos = selectedEmployee.position || '';
+        setOriginalPosition(originalPos);
+        setJabatanLama(originalPos);
+        
+        // Set jabatan baru default sama dengan posisi lama, tapi bisa diubah
+        setJabatanBaru(originalPos);
+        setValue('position', originalPos); // Set position di form juga
         setValue('department', selectedEmployee.department);
       }
     }
   }, [selectedEmployeeId, employees, setValue]);
 
-  const contractTypes = ['permanent', 'temporary', 'contract'];
-  const contractStatuses = ['active', 'expiring', 'expired', 'terminated'];
 
-  const handleEmployeeSelect = (employeeId: string, position: string, department: string) => {
+  const contractTypes = useMemo(() => [
+    { value: 'permanent', label: 'Permanen' },
+    { value: 'temporary', label: 'Sementara' },
+    { value: 'contract', label: 'Kontrak' }
+  ], []);
+
+  const contractStatuses = useMemo(() => [
+    { value: 'active', label: 'Aktif' },
+    { value: 'expiring', label: 'Akan Berakhir' },
+    { value: 'expired', label: 'Berakhir' },
+    { value: 'terminated', label: 'Dihentikan' }
+  ], []);
+
+  const handleEmployeeSelect = useCallback((employeeId: string, position: string, department: string) => {
     setValue('employeeId', employeeId);
     setValue('position', position);
     setValue('department', department);
     setShowEmployeeDropdown(false);
     setSearchTerm('');
-  };
+  }, [setValue]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setDocumentFile(e.target.files[0]);
+    } else {
+      setDocumentFile(null);
     }
-  };
+  }, []);
 
-  const onSubmit = async (data: Omit<Kontrak, 'id' | 'createdAt' | 'contractFile' | 'notes'> & { notes?: string }) => {
-    setIsSubmitting(true);
-    
+  const onSubmit = useCallback(async (data: KontrakFormData) => {
     // Validate that startDate < endDate
     if (new Date(data.startDate) >= new Date(data.endDate)) {
-      alert('Tanggal mulai harus lebih awal dari tanggal berakhir');
-      setIsSubmitting(false);
+      addToast('Tanggal mulai harus lebih awal dari tanggal berakhir', 'error');
       return;
     }
 
     try {
+      // Prepare contract data with riwayat jabatan
+      // Jabatan lama = posisi asli dari database (non-editable)
+      // Jabatan baru = posisi yang diinput user di form (editable)
+      const contractPayload = {
+        ...data,
+        position: jabatanBaru || data.position, // Gunakan jabatan baru yang diinput user
+        addRiwayatJabatan: addRiwayatJabatan,
+        riwayatJabatan: addRiwayatJabatan ? {
+          jabatan_lama: jabatanLama || originalPosition || '-', // Jabatan lama (posisi sebelum kontrak baru) - non-editable
+          jabatan_baru: jabatanBaru || data.position, // Jabatan baru (posisi di kontrak baru) - editable
+          tanggal_perubahan: data.startDate
+        } : undefined
+      };
+
       // If there's a file to upload, use the file upload API
       if (documentFile) {
-        // Prepare form data with file
         const formData = new FormData();
         
         // Add contract data (including terms and salary)
-        Object.entries(data).forEach(([key, value]) => {
+        Object.entries(contractPayload).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
             if (key === 'salary' && typeof value === 'number') {
               formData.append(key, value.toString());
+            } else if (key === 'riwayatJabatan' && typeof value === 'object') {
+              // Append riwayat jabatan as JSON string
+              formData.append(key, JSON.stringify(value));
+            } else if (key === 'addRiwayatJabatan') {
+              formData.append(key, String(value));
             } else {
               formData.append(key, String(value));
             }
           }
         });
 
-        // Add file
         formData.append('contractFile', documentFile);
-
         await buatKontrakWithFile(formData);
       } else {
-        // Otherwise use the regular API
-        await buatKontrak(data);
+        await buatKontrak(contractPayload);
       }
       
-      alert('Kontrak berhasil dibuat!');
-      // Optionally, clear form or close modal
+      addToast('Kontrak berhasil dibuat!', 'success');
+      reset();
+      setDocumentFile(null);
+      setSearchTerm('');
+      setJabatanLama('');
+      setJabatanBaru('');
+      setOriginalPosition('');
+      setAddRiwayatJabatan(true);
+      const fileInput = document.getElementById('documentFile') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
-      alert('Gagal membuat kontrak.');
       console.error('Error creating kontrak:', error);
+      addToast('Gagal membuat kontrak', 'error');
     }
-    setIsSubmitting(false);
-  };
+  }, [documentFile, addToast, reset, onSuccess, addRiwayatJabatan, jabatanLama]);
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
@@ -172,8 +222,12 @@ const FormKontrak: React.FC = () => {
             <input
               id="position"
               {...register('position', { required: 'Posisi wajib diisi' })}
+              value={jabatanBaru}
+              onChange={(e) => {
+                setJabatanBaru(e.target.value);
+                setValue('position', e.target.value);
+              }}
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
-              readOnly
             />
             {errors.position && <span className="text-red-500 text-sm">{errors.position.message}</span>}
           </div>
@@ -231,7 +285,9 @@ const FormKontrak: React.FC = () => {
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             >
               <option value="">Pilih Jenis Kontrak</option>
-              {contractTypes.map(type => <option key={type} value={type}>{type}</option>)}
+              {contractTypes.map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
             </select>
             {errors.contractType && <span className="text-red-500 text-sm">{errors.contractType.message}</span>}
           </div>
@@ -243,7 +299,9 @@ const FormKontrak: React.FC = () => {
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             >
               <option value="">Pilih Status</option>
-              {contractStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+              {contractStatuses.map(status => (
+                <option key={status.value} value={status.value}>{status.label}</option>
+              ))}
             </select>
             {errors.status && <span className="text-red-500 text-sm">{errors.status.message}</span>}
           </div>
@@ -275,6 +333,9 @@ const FormKontrak: React.FC = () => {
               onChange={handleFileChange}
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             />
+            {documentFile && (
+              <p className="text-sm text-gray-600 mt-1">File: {documentFile.name}</p>
+            )}
           </div>
           <div className="md:col-span-2">
             <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-1">Catatan</label>
@@ -285,11 +346,82 @@ const FormKontrak: React.FC = () => {
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             ></textarea>
           </div>
+
+          {/* Riwayat Jabatan Section */}
+          <div className="md:col-span-2 border-t pt-4 mt-4">
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="addRiwayatJabatan"
+                checked={addRiwayatJabatan}
+                onChange={(e) => setAddRiwayatJabatan(e.target.checked)}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="addRiwayatJabatan" className="ml-2 block text-sm font-medium text-slate-700">
+                Tambahkan ke Riwayat Jabatan
+              </label>
+            </div>
+
+            {addRiwayatJabatan && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-neutral-700 p-4 rounded-lg">
+                <div>
+                  <label htmlFor="jabatanLama" className="block text-sm font-medium text-slate-700 mb-1">
+                    Jabatan Lama (Sebelum Kontrak)
+                  </label>
+                  <input
+                    id="jabatanLama"
+                    type="text"
+                    value={jabatanLama || '-'}
+                    readOnly
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm bg-gray-100 dark:bg-neutral-600 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Posisi pegawai sebelum kontrak baru ini (dari data pegawai)
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="jabatanBaru" className="block text-sm font-medium text-slate-700 mb-1">
+                    Jabatan Baru (Di Kontrak) *
+                  </label>
+                  <input
+                    id="jabatanBaru"
+                    type="text"
+                    value={jabatanBaru}
+                    onChange={(e) => {
+                      setJabatanBaru(e.target.value);
+                      setValue('position', e.target.value);
+                    }}
+                    placeholder="Masukkan jabatan baru"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Posisi baru yang akan berlaku sejak kontrak ini dimulai (dapat diubah)
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="tanggalPerubahan" className="block text-sm font-medium text-slate-700 mb-1">
+                    Tanggal Perubahan
+                  </label>
+                  <input
+                    id="tanggalPerubahan"
+                    type="date"
+                    value={startDate || ''}
+                    readOnly
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm bg-gray-100 dark:bg-neutral-600"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tanggal mulai kontrak (kapan perubahan jabatan berlaku)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full px-4 py-2 font-bold text-white bg-primary-dark-blue rounded-md hover:bg-opacity-90 disabled:bg-slate-400 transition-colors duration-200"
+          className="w-full px-4 py-2 font-bold text-white bg-primary-dark-blue rounded-md hover:bg-opacity-90 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200"
         >
           {isSubmitting ? 'Mengirim...' : 'Kirim Kontrak'}
         </button>

@@ -65,9 +65,9 @@ const FormCuti: React.FC = () => {
             {...register('leaveType', { required: 'Jenis cuti wajib diisi' })}
             className="mt-1 block w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
           >
-            <option value="Annual">Tahunan</option>
-            <option value="Sick">Sakit</option>
-            <option value="Special">Khusus</option>
+            <option value="Tahunan">Tahunan</option>
+            <option value="Sakit">Sakit</option>
+            <option value="Khusus">Khusus</option>
           </select>
           {errors.leaveType && <span className="text-red-500 text-sm mt-1">{errors.leaveType.message}</span>}
         </div>

@@ -37,8 +37,20 @@ class KontrakService {
 
   static async createContract(contractData: any) {
     try {
-      // Additional validation can be added here if needed
-      return await KontrakRepository.create(contractData);
+      // Create the contract first
+      const newContract = await KontrakRepository.create(contractData);
+      
+      // If riwayat jabatan should be added and data is provided
+      if (contractData.addRiwayatJabatan && contractData.riwayatJabatan && newContract.employeeId) {
+        try {
+          await RiwayatJabatanRepository.create(newContract.employeeId, contractData.riwayatJabatan);
+        } catch (riwayatError: any) {
+          // Log error but don't fail the contract creation
+          console.error('Error adding riwayat jabatan:', riwayatError);
+        }
+      }
+      
+      return newContract;
     } catch (error: any) {
       throw new AppError(`Error creating contract: ${error.message}`, 500);
     }

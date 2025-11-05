@@ -10,8 +10,17 @@ export const useKontrak = (id: string) => {
   useEffect(() => {
     const fetchKontrak = async () => {
       try {
-        const { data } = await getKontrakById(id);
-        setKontrak(data);
+        const response = await getKontrakById(id);
+        // Handle both response formats: { data: {...} } or { success: true, data: {...} }
+        let contract: Kontrak | null = null;
+        if (response.data) {
+          if (response.data.id) {
+            contract = response.data;
+          } else if (response.data.data && response.data.data.id) {
+            contract = response.data.data;
+          }
+        }
+        setKontrak(contract);
       } catch (err) {
         setError(err as Error);
       }

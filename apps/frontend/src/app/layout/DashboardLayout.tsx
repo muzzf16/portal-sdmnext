@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useSidebar } from '@/app/hooks/useSidebar';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -6,7 +6,7 @@ import { useCompanySettings } from '@/shared/contexts/CompanySettingsContext';
 import { Menu, X, Home, Users, Briefcase, DollarSign, Calendar, BarChart2, Settings, FileText, UserPlus, Award } from 'lucide-react';
 import clsx from 'clsx';
 
-const VITE_API_URL = 'http://localhost:3333';
+const API_URL = (import.meta as any)?.env?.VITE_API_URL || 'http://localhost:3333';
 
 interface NavItemProps {
   to: string;
@@ -41,30 +41,21 @@ const DashboardLayout: React.FC = () => {
   const { settings, loading: settingsLoading } = useCompanySettings();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  const getAvatarUrl = () => {
-    if (user?.avatarUrl) {
-        if (user.avatarUrl.startsWith('http')) {
-            return user.avatarUrl;
-        }
-        return `${VITE_API_URL}${user.avatarUrl}`;
+  const avatarUrl = useMemo(() => {
+    const directUrl = user?.avatarUrl;
+    if (directUrl) {
+      return directUrl.startsWith('http') ? directUrl : `${API_URL}${directUrl}`;
     }
-    // Check for employee details as a fallback
-    if (user?.employeeDetails?.avatarUrl) {
-        if (user.employeeDetails.avatarUrl.startsWith('http')) {
-            return user.employeeDetails.avatarUrl;
-        }
-        return `${VITE_API_URL}${user.employeeDetails.avatarUrl}`;
+    const employeeUrl = user?.employeeDetails?.avatarUrl;
+    if (employeeUrl) {
+      return employeeUrl.startsWith('http') ? employeeUrl : `${API_URL}${employeeUrl}`;
     }
-    return `${VITE_API_URL}/avatars/default-avatar.jpg`;
-  };
+    return `${API_URL}/avatars/default-avatar.jpg`;
+  }, [user]);
 
-  if (loading || settingsLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary-600"></div>
-      </div>
-    );
-  }
+  const handleToggleUserMenu = useCallback(() => {
+    setIsUserMenuOpen((prev) => !prev);
+  }, []);
 
   const allNavItems = [
     { to: '/dashboard', icon: <Home size={20} />, text: 'Dashboard', roles: ['admin', 'employee'] },
@@ -87,15 +78,23 @@ const DashboardLayout: React.FC = () => {
     { to: '/dashboard/pelatihan-saya', icon: <Award size={20} />, text: 'Pelatihan Saya', roles: ['employee'] },
   ];
 
-  const navItems = allNavItems.filter(item => 
-    user?.role && item.roles.includes(user.role)
-  );
+  const navItems = useMemo(() => {
+    return allNavItems.filter(item => user?.role && item.roles.includes(user.role));
+  }, [allNavItems, user?.role]);
+
+  if (loading || settingsLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-50 flex flex-col bg-primary-800 transition-all duration-300 shadow-soft-shadow',
+          'fixed inset-y-0 left-0 z-50 flex flex-col bg-primary-800 transition-all duration-300 shadow-soft-shadow overflow-y-auto',
           isSidebarOpen ? 'w-64' : 'w-20',
         )}
       >
@@ -125,10 +124,7 @@ const DashboardLayout: React.FC = () => {
             <NavItem key={item.to} {...item} isSidebarOpen={isSidebarOpen} />
           ))}
         </nav>
-        <div className="p-4 text-center text-xs text-primary-200 border-t border-primary-700">
-          {settings?.companyName && <p className="font-bold">{settings.companyName}</p>}
-          {settings?.address && <p>{settings.address}</p>}
-        </div>
+     
         <div className="p-4 border-t border-primary-700">
           <button
             onClick={logout}
@@ -167,14 +163,14 @@ const DashboardLayout: React.FC = () => {
             </div>
           <div className="relative">
             <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              onClick={handleToggleUserMenu}
               className="flex items-center space-x-2 focus:outline-none"
               title="Menu Pengguna"
               aria-label="Menu Pengguna"
             >
               <img
                 className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                src={getAvatarUrl()}
+                src={avatarUrl}
                 alt="User Avatar"
               />
               <span className="text-sm font-medium hidden md:block text-gray-700 dark:text-gray-200">{user?.name || 'Guest'}</span>

@@ -49,6 +49,16 @@ class KontrakController {
       if (req.file) {
         contractData.contractFile = `/documents/${req.file.filename}`;
       }
+      
+      // Parse riwayatJabatan if it's a JSON string (from FormData)
+      if (contractData.riwayatJabatan && typeof contractData.riwayatJabatan === 'string') {
+        try {
+          contractData.riwayatJabatan = JSON.parse(contractData.riwayatJabatan);
+        } catch (e) {
+          // If parsing fails, keep as is
+        }
+      }
+      
       const newContract = await KontrakService.createContract(contractData);
       res.status(201).json({
         success: true,

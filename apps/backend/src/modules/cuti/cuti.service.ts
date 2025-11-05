@@ -71,9 +71,14 @@ class CutiService {
   static async getSisaCuti(employeeId: string) {
     try {
       const approvedLeaves = await PermintaanCutiRepository.findApprovedByEmployeeId(employeeId);
+      // Hanya hitung cuti Tahunan (akomodasi nilai lama dan baru)
+      const annualApprovedLeaves = approvedLeaves.filter((cutiItem: any) => {
+        const type = (cutiItem.leaveType || '').toLowerCase();
+        return type === 'tahunan' || type === 'annual' || type === 'cuti tahunan';
+      });
       
       let totalCutiDiambil = 0;
-      approvedLeaves.forEach(cutiItem => {
+      annualApprovedLeaves.forEach(cutiItem => {
         const startDate = new Date(cutiItem.startDate);
         const endDate = new Date(cutiItem.endDate);
         const timeDiff = endDate.getTime() - startDate.getTime();

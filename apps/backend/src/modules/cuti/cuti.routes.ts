@@ -23,5 +23,8 @@ router.get('/', CutiController.getAllPermintaanCuti);
 router.get('/employee/:employeeId', CutiController.getPermintaanCutiByEmployeeId);
 router.get('/sisa-cuti/:employeeId', CutiController.getSisaCuti);
 router.get('/:id', CutiController.getPermintaanCutiById);
+router.post('/', upload.single('supportingDocument'), CutiController.submitPermintaanCuti);
+router.put('/:id/status', CutiController.updateStatusCuti);
+router.delete('/:id', CutiController.deletePermintaanCuti);
 
 export default router;

@@ -31,8 +31,13 @@ const PerhitunganSisaCuti: React.FC = () => {
 
   useEffect(() => {
     if (pegawaiList && cuti) {
-      // Filter cuti yang sudah disetujui
-      const approvedLeaves = cuti.filter(c => c.status === 'disetujui');
+      // Filter cuti yang sudah disetujui (case-insensitive) dan hanya jenis Tahunan
+      const approvedLeaves = cuti.filter(c => {
+        const statusOk = (c.status || '').toLowerCase() === 'disetujui';
+        const type = (c.leaveType || '').toLowerCase();
+        const isAnnual = type === 'tahunan' || type === 'annual' || type === 'cuti tahunan';
+        return statusOk && isAnnual;
+      });
       
       // Hitung sisa cuti untuk setiap pegawai
       const updatedSisaCutiList = pegawaiList.map(pegawai => {

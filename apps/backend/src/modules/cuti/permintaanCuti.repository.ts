@@ -52,7 +52,12 @@ export const PermintaanCutiRepository = {
 
   async findApprovedByEmployeeId(employeeId: string) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM permintaan_cuti WHERE employeeId = ? AND status = "Disetujui"', employeeId);
+    // Gunakan pencocokan case-insensitive untuk status Disetujui
+    const rows = await db.all(
+      'SELECT * FROM permintaan_cuti WHERE employeeId = ? AND LOWER(status) = ?',
+      employeeId,
+      'disetujui'
+    );
     return parseJsonFields(rows);
   },
 

@@ -9,40 +9,83 @@ const parseJsonFields = (rows: any[]) => {
 export const KontrakRepository = {
   async findAll() {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM kontrak ORDER BY startDate DESC');
+    const rows = await db.all(`
+      SELECT k.*, p.name as employeeName 
+      FROM kontrak k 
+      LEFT JOIN pegawai p ON k.employeeId = p.id 
+      ORDER BY k.startDate DESC
+    `);
     return parseJsonFields(rows);
   },
 
   async findById(id: string) {
     const db = await openDb();
-    const row = await db.get('SELECT * FROM kontrak WHERE id = ?', id);
+    const row = await db.get(`
+      SELECT k.*, p.name as employeeName 
+      FROM kontrak k 
+      LEFT JOIN pegawai p ON k.employeeId = p.id 
+      WHERE k.id = ?
+    `, id);
     if (!row) return null;
     return parseJsonFields([row])[0];
   },
 
   async findByEmployeeId(employeeId: string) {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM kontrak WHERE employeeId = ? ORDER BY startDate DESC', employeeId);
+    const rows = await db.all(`
+      SELECT k.*, p.name as employeeName 
+      FROM kontrak k 
+      LEFT JOIN pegawai p ON k.employeeId = p.id 
+      WHERE k.employeeId = ? 
+      ORDER BY k.startDate DESC
+    `, employeeId);
     return parseJsonFields(rows);
   },
 
   async create(contractData: any) {
     const db = await openDb();
-    const result = await db.run(
-      `INSERT INTO kontrak (employeeId, contractNumber, contractType, startDate, endDate, status, contractFile, terms, salary, notes) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    
+    // Generate unique ID
+    const id = contractData.id || `kontrak-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generate contract number if not provided
+    const contractNumber = contractData.contractNumber || `CNT-${Date.now().toString().slice(-8)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    
+    // Set createdAt
+    const createdAt = new Date().toISOString();
+    
+    // Get employee name for return value
+    let employeeName = contractData.employeeName;
+    if (!employeeName && contractData.employeeId) {
+      const employee = await db.get('SELECT name FROM pegawai WHERE id = ?', contractData.employeeId);
+      employeeName = employee?.name || null;
+    }
+    
+    await db.run(
+      `INSERT INTO kontrak (id, employeeId, contractNumber, contractType, startDate, endDate, status, contractFile, terms, salary, notes, createdAt) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id,
       contractData.employeeId,
-      contractData.contractNumber,
+      contractNumber,
       contractData.contractType,
       contractData.startDate,
       contractData.endDate,
       contractData.status,
-      contractData.contractFile,
-      contractData.terms,
-      contractData.salary,
-      contractData.notes
+      contractData.contractFile || null,
+      contractData.terms || null,
+      contractData.salary || null,
+      contractData.notes || null,
+      createdAt
     );
-    return { id: result.lastID, ...contractData };
+    
+    // Fetch the created contract with employee name to return complete data
+    const newRow = await db.get(`
+      SELECT k.*, p.name as employeeName 
+      FROM kontrak k 
+      LEFT JOIN pegawai p ON k.employeeId = p.id 
+      WHERE k.id = ?
+    `, id);
+    return parseJsonFields([newRow])[0];
   },
 
   async update(id: string, contractData: any) {

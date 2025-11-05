@@ -1,6 +1,7 @@
 export interface Kontrak {
   id: string;
   employeeId: string;
+  employeeName?: string;
   position: string;
   department: string;
   startDate: string;

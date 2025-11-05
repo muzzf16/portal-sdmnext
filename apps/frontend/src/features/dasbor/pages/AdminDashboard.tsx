@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getEmployees, getEmployeeGenderData, getEmployeeEducationData } from '../../../shared/services/employeeAPI';
 import { getTodayAttendanceCount } from '../../../shared/services/attendanceAPI';
@@ -43,17 +43,18 @@ const AdminDashboard: React.FC = () => {
   const [loadingRecentActivity, setLoadingRecentActivity] = useState<boolean>(true);
   const [errorRecentActivity, setErrorRecentActivity] = useState<string | null>(null);
 
+  const handleApiError = useCallback((error: any, setError: (m: string) => void, label: string) => {
+    if (error?.response?.status === 401) {
+      logout();
+      navigate('/login');
+      return;
+    }
+    setError(`Failed to fetch ${label}.`);
+    // eslint-disable-next-line no-console
+    console.error(`Error fetching ${label}:`, error);
+  }, [logout, navigate]);
+
   useEffect(() => {
-    const handleApiError = (error: any, setError: (m: string) => void, label: string) => {
-      if (error?.response?.status === 401) {
-        logout();
-        navigate('/login');
-        return;
-      }
-      setError(`Failed to fetch ${label}.`);
-      // eslint-disable-next-line no-console
-      console.error(`Error fetching ${label}:`, error);
-    };
 
     const fetchTotalEmployees = async () => {
       try {
@@ -124,7 +125,12 @@ const AdminDashboard: React.FC = () => {
     const fetchRecentActivity = async () => {
       try {
         const response = await getRecentActivity();
-        setRecentActivity(response.data.data);
+        const data = Array.isArray(response)
+          ? response
+          : (response && typeof response === 'object' && 'data' in response)
+            ? ((response as any).data?.data || (response as any).data || [])
+            : [];
+        setRecentActivity(data);
       } catch (error) {
         handleApiError(error, setErrorRecentActivity, 'recent activity');
       } finally {
@@ -149,7 +155,43 @@ const AdminDashboard: React.FC = () => {
       setLoadingCharts(false);
       setLoadingRecentActivity(false);
     });
-  }, [logout, navigate]);
+  }, [handleApiError]);
+
+  const stats = useMemo(() => ([ 
+    { 
+      title: 'Total Karyawan', 
+      value: loadingEmployees ? '...' : errorEmployees ? 'Error' : totalEmployees !== null ? totalEmployees.toString() : 'N/A', 
+      change: '+5%', 
+      icon: Users,
+      color: 'text-blue-500'
+    },
+    { 
+      title: 'Hari Ini Masuk', 
+      value: loadingTodayAttendance ? '...' : errorTodayAttendance ? 'Error' : todayAttendanceCount !== null ? todayAttendanceCount.toString() : 'N/A', 
+      change: '+2%', 
+      icon: Clock,
+      color: 'text-green-500'
+    },
+    { 
+      title: 'Pengajuan Cuti', 
+      value: loadingPendingLeaveRequests ? '...' : errorPendingLeaveRequests ? 'Error' : pendingLeaveRequestsCount !== null ? pendingLeaveRequestsCount.toString() : 'N/A', 
+      change: '+1', 
+      icon: Calendar,
+      color: 'text-orange-500'
+    },
+    { 
+      title: 'Kontrak Berakhir', 
+      value: loadingExpiringContracts ? '...' : errorExpiringContracts ? 'Error' : expiringContractsCount !== null ? expiringContractsCount.toString() : 'N/A', 
+      change: '0', 
+      icon: FileText,
+      color: 'text-red-500'
+    }
+  ]), [
+    loadingEmployees, errorEmployees, totalEmployees,
+    loadingTodayAttendance, errorTodayAttendance, todayAttendanceCount,
+    loadingPendingLeaveRequests, errorPendingLeaveRequests, pendingLeaveRequestsCount,
+    loadingExpiringContracts, errorExpiringContracts, expiringContractsCount
+  ]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -157,36 +199,7 @@ const AdminDashboard: React.FC = () => {
         <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Dashboard Admin</h2>
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {[ 
-            { 
-              title: 'Total Karyawan', 
-              value: loadingEmployees ? '...' : errorEmployees ? 'Error' : totalEmployees !== null ? totalEmployees.toString() : 'N/A', 
-              change: '+5%', 
-              icon: Users,
-              color: 'text-blue-500'
-            },
-            { 
-              title: 'Hari Ini Masuk', 
-              value: loadingTodayAttendance ? '...' : errorTodayAttendance ? 'Error' : todayAttendanceCount !== null ? todayAttendanceCount.toString() : 'N/A', 
-              change: '+2%', 
-              icon: Clock,
-              color: 'text-green-500'
-            },
-            { 
-              title: 'Pengajuan Cuti', 
-              value: loadingPendingLeaveRequests ? '...' : errorPendingLeaveRequests ? 'Error' : pendingLeaveRequestsCount !== null ? pendingLeaveRequestsCount.toString() : 'N/A', 
-              change: '+1', 
-              icon: Calendar,
-              color: 'text-orange-500'
-            },
-            { 
-              title: 'Kontrak Berakhir', 
-              value: loadingExpiringContracts ? '...' : errorExpiringContracts ? 'Error' : expiringContractsCount !== null ? expiringContractsCount.toString() : 'N/A', 
-              change: '0', 
-              icon: FileText,
-              color: 'text-red-500'
-            }
-          ].map((stat, index) => (
+          {stats.map((stat, index) => (
             <div key={index} className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl shadow transition-transform duration-300 hover:scale-[1.02]">
               <div className="flex items-center">
                 <div className={`p-3 rounded-lg ${stat.color} bg-opacity-10 dark:bg-opacity-20`} aria-hidden="true">
