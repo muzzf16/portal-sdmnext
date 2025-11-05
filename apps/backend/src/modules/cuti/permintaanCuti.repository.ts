@@ -50,6 +50,12 @@ export const PermintaanCutiRepository = {
     return parseJsonFields(rows);
   },
 
+  async findApprovedByEmployeeId(employeeId: string) {
+    const db = await openDb();
+    const rows = await db.all('SELECT * FROM permintaan_cuti WHERE employeeId = ? AND status = "Disetujui"', employeeId);
+    return parseJsonFields(rows);
+  },
+
   async create(data: any) {
     const db = await openDb();
     const newId = data.id || `cuti-${Date.now()}`;

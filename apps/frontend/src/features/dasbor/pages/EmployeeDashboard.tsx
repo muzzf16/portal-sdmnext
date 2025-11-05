@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { getEmployeeAttendanceSummary, getEmployeeWeeklyAttendance } from '../../../shared/services/attendanceAPI';
-import { getEmployeeApprovedLeaveCount } from '../../../shared/services/leaveAPI';
+import { getSisaCuti } from '../../../shared/services/leaveAPI';
 import { getEmployeeLatestPayroll } from '../../../shared/services/payrollAPI';
 import { getEmployeeRecentNotifications } from '../../../shared/services/notifikasiAPI';
+
 import { Absensi, Notifikasi, Penggajian } from '../../../shared/types/types';
+
+// Force re-evaluation of imports
 
 const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -25,9 +28,9 @@ const EmployeeDashboard: React.FC = () => {
   const [loadingAttendanceSummary, setLoadingAttendanceSummary] = useState<boolean>(true);
   const [errorAttendanceSummary, setErrorAttendanceSummary] = useState<string | null>(null);
 
-  const [approvedLeaveCount, setApprovedLeaveCount] = useState<number | null>(null);
-  const [loadingApprovedLeave, setLoadingApprovedLeave] = useState<boolean>(true);
-  const [errorApprovedLeave, setErrorApprovedLeave] = useState<string | null>(null);
+  const [sisaCuti, setSisaCuti] = useState<{ sisaCuti: number } | null>(null);
+  const [loadingSisaCuti, setLoadingSisaCuti] = useState<boolean>(true);
+  const [errorSisaCuti, setErrorSisaCuti] = useState<string | null>(null);
 
   const [latestPayroll, setLatestPayroll] = useState<Penggajian | null>(null);
   const [loadingLatestPayroll, setLoadingLatestPayroll] = useState<boolean>(true);
@@ -65,14 +68,14 @@ const EmployeeDashboard: React.FC = () => {
       }
     };
 
-    const fetchApprovedLeaveCount = async () => {
+    const fetchSisaCuti = async () => {
       try {
-        const count = await getEmployeeApprovedLeaveCount(employeeId.toString());
-        setApprovedLeaveCount(count);
+        const response = await getSisaCuti(employeeId.toString());
+        setSisaCuti(response.data);
       } catch (error) {
-        handleApiError(error, setErrorApprovedLeave, 'cuti');
+        handleApiError(error, setErrorSisaCuti, 'sisa cuti');
       } finally {
-        setLoadingApprovedLeave(false);
+        setLoadingSisaCuti(false);
       }
     };
 
@@ -110,7 +113,7 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     fetchAttendanceSummary();
-    fetchApprovedLeaveCount();
+    fetchSisaCuti();
     fetchLatestPayroll();
     fetchWeeklyAttendance();
     fetchRecentNotifications();
@@ -139,7 +142,7 @@ const EmployeeDashboard: React.FC = () => {
           {[ 
             { 
               title: 'Sisa Cuti Tahun Ini', 
-              value: loadingApprovedLeave ? '...' : errorApprovedLeave ? 'Error' : approvedLeaveCount !== null ? approvedLeaveCount.toString() : 'N/A', 
+              value: loadingSisaCuti ? '...' : errorSisaCuti ? 'Error' : sisaCuti !== null ? sisaCuti.sisaCuti.toString() : 'N/A', 
               unit: 'hari', 
               icon: '🗓️' 
             },

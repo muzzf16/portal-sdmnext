@@ -66,6 +66,16 @@ class CutiController {
       next(error);
     }
   }
+
+  static async getSisaCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { employeeId } = req.params;
+      const sisaCuti = await CutiService.getSisaCuti(employeeId);
+      res.status(200).json(sisaCuti);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default CutiController;
