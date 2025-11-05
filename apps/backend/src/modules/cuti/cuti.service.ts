@@ -67,6 +67,43 @@ class CutiService {
       throw new AppError(`Error deleting leave request: ${error.message}`, 500);
     }
   }
+
+  static async getSisaCuti(employeeId: string) {
+    try {
+      const approvedLeaves = await PermintaanCutiRepository.findApprovedByEmployeeId(employeeId);
+      
+      let totalCutiDiambil = 0;
+      approvedLeaves.forEach(cutiItem => {
+        const startDate = new Date(cutiItem.startDate);
+        const endDate = new Date(cutiItem.endDate);
+        const timeDiff = endDate.getTime() - startDate.getTime();
+        const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+        totalCutiDiambil += dayDiff;
+      });
+
+      const jumlahJatahCuti = 18; // Hardcoded for now
+      const cutiBersama = [
+        { id: '1', tanggal: '2025-01-01', deskripsi: 'Tahun Baru' },
+        { id: '2', tanggal: '2025-05-01', deskripsi: 'Hari Buruh Internasional' },
+        { id: '3', tanggal: '2025-08-17', deskripsi: 'Hari Kemerdekaan RI' },
+      ];
+      const currentYear = new Date().getFullYear();
+      const cutiBersamaTahunIni = cutiBersama.filter(c => 
+        new Date(c.tanggal).getFullYear() === currentYear
+      ).length;
+
+      const sisaCuti = jumlahJatahCuti - totalCutiDiambil - cutiBersamaTahunIni;
+
+      return {
+        jatahCuti: jumlahJatahCuti,
+        cutiDiambil: totalCutiDiambil,
+        cutiBersama: cutiBersamaTahunIni,
+        sisaCuti: sisaCuti,
+      };
+    } catch (error: any) {
+      throw new AppError(`Error calculating remaining leave: ${error.message}`, 500);
+    }
+  }
 }
 
 export default CutiService;

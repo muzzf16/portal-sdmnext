@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAbsensi } from '../hooks/useAbsensi';
-import { Table, Badge } from '@/shared/components/ui';
+import { Table, Badge, Button } from '@/shared/components/ui';
+import * as XLSX from 'xlsx';
 
 const DaftarAbsensi: React.FC = () => {
   const { absensi, loading, error } = useAbsensi();
@@ -10,8 +11,25 @@ const DaftarAbsensi: React.FC = () => {
 
   const tableHeaders = ['Nama Pegawai', 'Tanggal', 'Jam Masuk', 'Jam Keluar', 'Status', 'Durasi Kerja'];
 
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(absensi.map(item => ({
+      'Nama Pegawai': item.employeeName,
+      'Tanggal': item.date,
+      'Jam Masuk': item.clockIn,
+      'Jam Keluar': item.clockOut,
+      'Status': item.status,
+      'Durasi Kerja': item.workDuration
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Absensi Oktober 2025');
+    XLSX.writeFile(workbook, 'oktober2025.xls');
+  };
+
   return (
     <div className="mt-6">
+      <div className="flex justify-end mb-4">
+        <Button onClick={handleExport}>Export to Excel</Button>
+      </div>
       <Table headers={tableHeaders}>
         {absensi.map(record => (
           <tr key={record.id}>

@@ -1,3 +1,4 @@
+import api from './api';
 import ApiService, { ApiResponse } from './apiService';
 
 // Minimal local LeaveRequest interface to match the properties used in this module.
@@ -46,3 +47,5 @@ export const getEmployeeApprovedLeaveCount = async (employeeId: string) => {
 
 // Export the instance in case other methods are needed
 export default leaveApi;
+
+export const getSisaCuti = (employeeId: string) => api.get(`/leave-requests/sisa-cuti/${employeeId}`);
