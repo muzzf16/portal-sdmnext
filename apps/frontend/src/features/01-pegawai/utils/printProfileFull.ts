@@ -240,6 +240,7 @@ export const printProfileFull = (
   employee: EmployeeData,
   jobHistory: JobHistory[],
   trainings: Training[],
+  companyLogoUrl?: string
 ) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
@@ -247,107 +248,334 @@ export const printProfileFull = (
     return;
   }
 
-  const educations = employee.educationHistory || [];
+  const educations = Array.isArray(employee.educationHistory) ? employee.educationHistory : [];
 
   const html = `
     <html>
       <head>
-        <title>Profil Pegawai - ${employee.name}</title>
+        <title>CV - ${employee.name}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f3f4f6; color: #111827; }
-          .container { max-width: 900px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden; }
-          .header { display: flex; align-items: center; background: linear-gradient(135deg, #1E3A8A, #2563EB); color: #fff; padding: 30px; gap: 24px; }
-          .photo { flex-shrink: 0; width: 120px; height: 120px; border-radius: 100%; overflow: hidden; background-color: #e5e7eb; display: flex; align-items: center; justify-content: center; }
-          .photo img { width: 100%; height: 100%; object-fit: cover; }
-          .photo-placeholder { font-size: 2rem; color: #9ca3af; }
-          .header-info { flex: 1; }
-          .header-info h1 { margin: 0; font-size: 2rem; font-weight: 700; }
-          .header-info p { margin: 6px 0 0; font-size: 1.1rem; color: #E5E7EB; }
-          .content { padding: 40px; }
-          .section { margin-bottom: 32px; }
-          .section-title { font-size: 1.25rem; font-weight: 700; color: #1E3A8A; border-bottom: 2px solid #E5E7EB; padding-bottom: 8px; margin-bottom: 20px; }
-          .info-grid { display: grid; grid-template-columns: 200px 1fr; row-gap: 10px; }
-          .info-grid dt { font-weight: 600; color: #4B5563; }
-          .info-grid dd { margin: 0; }
-          .timeline { margin-top: 10px; }
-          .item { margin-bottom: 20px; padding-left: 20px; border-left: 3px solid #1E3A8A; }
-          .item h4 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #1E3A8A; }
-          .item p { margin: 4px 0 0; color: #4B5563; }
-          @media print { body { background-color: #ffffff; } .container { box-shadow: none; margin: 0; border-radius: 0; } }
+          @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+          
+          :root {
+            --primary-color: #2d3748; /* slate-800 */
+            --secondary-color: #4a5568; /* slate-600 */
+            --accent-color: #2563eb; /* blue-600 */
+            --background-color: #f7fafc; /* gray-100 */
+            --text-color: #1a202c; /* gray-900 */
+            --text-light-color: #718096; /* gray-500 */
+          }
+
+          body { 
+            font-family: 'Roboto', sans-serif; 
+            margin: 0; 
+            background-color: var(--background-color); 
+            color: var(--text-color);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .cv-container {
+            display: grid;
+            grid-template-columns: 1fr 2.5fr;
+            max-width: 1000px; 
+            min-height: 1414px; /* A4 height */
+            margin: 20px auto; 
+            background-color: #ffffff; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          }
+
+          .left-column {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 40px 30px;
+          }
+
+          .right-column {
+            padding: 40px 50px;
+          }
+          
+          .photo-container {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+
+          .photo {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--accent-color);
+          }
+
+          .left-section {
+            margin-bottom: 30px;
+          }
+
+          .left-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+          }
+
+          .contact-item {
+            margin-bottom: 15px;
+            word-wrap: break-word;
+          }
+          
+          .contact-item strong {
+            display: block;
+            color: var(--text-light-color);
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+            color: #a0aec0; /* gray-400 */
+          }
+
+          .contact-item span {
+            font-size: 0.95rem;
+          }
+          
+          .skills-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+          }
+          
+          .skills-list li {
+            background-color: var(--secondary-color);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+          }
+
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+
+          .header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary-color);
+          }
+          
+          .header h2 {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin: 5px 0 0;
+            color: var(--secondary-color);
+          }
+
+          .company-logo {
+            max-width: 120px;
+            max-height: 50px;
+            object-fit: contain;
+          }
+
+          .right-section {
+            margin-bottom: 40px;
+          }
+
+          .right-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+
+          .summary {
+            font-size: 1rem;
+            line-height: 1.6;
+            text-align: justify;
+          }
+          
+          .timeline-item {
+            position: relative;
+            padding-bottom: 25px;
+            padding-left: 30px;
+          }
+
+          .timeline-item:last-child {
+            padding-bottom: 0px;
+          }
+
+          .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--accent-color);
+            background-color: #fff;
+            border-radius: 50%;
+            z-index: 1;
+          }
+          
+          .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 18px;
+            bottom: -5px;
+            width: 2px;
+            background-color: #cbd5e0; /* gray-300 */
+          }
+
+           .timeline-item:last-child::after {
+            display: none;
+          }
+          
+          .item-header h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+          }
+          
+          .item-header h5 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--secondary-color);
+            margin: 5px 0;
+          }
+          
+          .item-date {
+            font-size: 0.9rem;
+            color: var(--text-light-color);
+            margin-bottom: 10px;
+          }
+
+          .item-description {
+            font-size: 0.95rem;
+            line-height: 1.5;
+          }
+
+          @media print { 
+            body { background-color: #ffffff; } 
+            .cv-container { margin: 0; box-shadow: none; border: none; }
+          }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <div class="photo">
-              ${employee.avatarUrl ? `<img src="${employee.avatarUrl}" alt="Foto Profil">` : `<span class="photo-placeholder">👤</span>`}
+        <div class="cv-container">
+          <aside class="left-column">
+            <div class="photo-container">
+              ${employee.avatarUrl ? `<img src="${employee.avatarUrl}" alt="Foto Profil" class="photo">` : ''}
             </div>
-            <div class="header-info">
-              <h1>${employee.name}</h1>
-              <p>${employee.position || '-'} • ${employee.department || '-'}</p>
-            </div>
-          </div>
-          <div class="content">
-            <div class="section">
-              <h3 class="section-title">Informasi Pribadi</h3>
-              <dl class="info-grid">
-                <dt>NIP</dt><dd>${employee.nip || '-'}</dd>
-                <dt>Tempat, Tanggal Lahir</dt><dd>${employee.pob || '-'}, ${employee.dob ? new Date(employee.dob).toLocaleDateString('id-ID') : '-'}</dd>
-                <dt>Alamat</dt><dd>${employee.address || '-'}</dd>
-                <dt>Email</dt><dd>${employee.email || '-'}</dd>
-                <dt>No. HP</dt><dd>${employee.phone || '-'}</dd>
-                <dt>Agama</dt><dd>${employee.religion || '-'}</dd>
-                <dt>Status</dt><dd>${employee.maritalStatus || '-'}</dd>
-                <dt>Jumlah Anak</dt><dd>${employee.numberOfChildren || '-'}</dd>
-              </dl>
-            </div>
-            <div class="section">
-              <h3 class="section-title">Informasi Kepegawaian</h3>
-              <dl class="info-grid">
-                <dt>Departemen</dt><dd>${employee.department || '-'}</dd>
-                <dt>Jabatan</dt><dd>${employee.position || '-'}</dd>
-                <dt>Status Kerja</dt><dd>${employee.statusKaryawan || '-'}</dd>
-                <dt>Tanggal Masuk</dt><dd>${employee.joinDate ? new Date(employee.joinDate).toLocaleDateString('id-ID') : '-'}</dd>
-              </dl>
-            </div>
+            
+            <section class="left-section">
+              <h3 class="left-title">Kontak</h3>
+               <div class="contact-item">
+                  <strong>Email</strong>
+                  <span>${employee.email || '-'}</span>
+              </div>
+              <div class="contact-item">
+                  <strong>Telepon</strong>
+                  <span>${employee.phone || '-'}</span>
+              </div>
+              <div class="contact-item">
+                  <strong>Alamat</strong>
+                  <span>${employee.address || '-'}</span>
+              </div>
+            </section>
+            
+            <section class="left-section">
+              <h3 class="left-title">Informasi Pribadi</h3>
+              <div class="contact-item">
+                  <strong>Tempat, Tgl Lahir</strong>
+                  <span>${employee.pob || '-'}, ${employee.dob ? new Date(employee.dob).toLocaleDateString('id-ID') : '-'}</span>
+              </div>
+              <div class="contact-item">
+                  <strong>Jenis Kelamin</strong>
+                  <span>${employee.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
+              </div>
+              <div class="contact-item">
+                  <strong>Status</strong>
+                  <span>${employee.maritalStatus || '-'}</span>
+              </div>
+            </section>
+
+          </aside>
+          
+          <main class="right-column">
+            <header class="header">
+              <div>
+                <h1>${employee.name}</h1>
+                <h2>${employee.position || '-'}</h2>
+              </div>
+              ${companyLogoUrl ? `<img src="${companyLogoUrl}" alt="Company Logo" class="company-logo">` : ''}
+            </header>
+
+            <section class="right-section">
+                <h3 class="right-title">Ringkasan Profesional</h3>
+                <p class="summary">
+                    Profesional yang berdedikasi dan berpengalaman sebagai ${employee.position} di ${employee.department} dengan ${jobHistory.length > 0 ? `pengalaman lebih dari ${new Date().getFullYear() - new Date(jobHistory[0].tanggal_perubahan).getFullYear()} tahun` : 'rekam jejak yang terbukti'} dalam industri. Memiliki kemampuan dalam... (Deskripsi singkat bisa ditambahkan di sini).
+                </p>
+            </section>
+
             ${jobHistory.length > 0 ? `
-            <div class="section">
-              <h3 class="section-title">Riwayat Jabatan</h3>
+            <section class="right-section">
+              <h3 class="right-title">Riwayat Pekerjaan</h3>
               <div class="timeline">
-                ${jobHistory.map(j => `
-                  <div class="item">
-                    <h4>${j.jabatan_baru}</h4>
-                    <p>Sejak ${new Date(j.tanggal_perubahan).toLocaleDateString('id-ID')} — Jabatan Lama: ${j.jabatan_lama}</p>
+                ${jobHistory.map(job => `
+                  <div class="timeline-item">
+                    <div class="item-header">
+                      <h4>${job.jabatan_baru}</h4>
+                      <h5>${employee.department}</h5>
+                    </div>
+                    <p class="item-date">${new Date(job.tanggal_perubahan).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })} (Jabatan Sebelumnya: ${job.jabatan_lama})</p>
                   </div>
                 `).join('')}
               </div>
-            </div>` : ''}
+            </section>` : ''}
+
             ${educations.length > 0 ? `
-            <div class="section">
-              <h3 class="section-title">Riwayat Pendidikan</h3>
-              <div class="timeline">
-                ${educations.map(e => `
-                  <div class="item">
-                    <h4>${e.institution}</h4>
-                    <p>${e.level} • Lulus ${e.graduationYear}</p>
-                  </div>
-                `).join('')}
-              </div>
-            </div>` : ''}
+            <section class="right-section">
+                <h3 class="right-title">Riwayat Pendidikan</h3>
+                <div class="timeline">
+                    ${educations.map(edu => `
+                        <div class="timeline-item">
+                            <div class="item-header">
+                                <h4>${edu.institution}</h4>
+                                <h5>${edu.level} - ${edu.major || ''}</h5>
+                            </div>
+                            <p class="item-date">Lulus ${edu.graduationYear}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </section>` : ''}
+            
             ${trainings.length > 0 ? `
-            <div class="section">
-              <h3 class="section-title">Pelatihan & Sertifikasi</h3>
+            <section class="right-section">
+              <h3 class="right-title">Pelatihan & Sertifikasi</h3>
               <div class="timeline">
                 ${trainings.map(t => `
-                  <div class="item">
-                    <h4>${t.nama_pelatihan}</h4>
-                    <p>${t.penyelenggara || '-'} • ${t.tanggal_mulai ? new Date(t.tanggal_mulai).toLocaleDateString('id-ID') : '-'} - ${t.tanggal_selesai ? new Date(t.tanggal_selesai).toLocaleDateString('id-ID') : '-'}</p>
+                  <div class="timeline-item">
+                    <div class="item-header">
+                      <h4>${t.nama_pelatihan}</h4>
+                      <h5>${t.penyelenggara}</h5>
+                    </div>
+                     <p class="item-date">${new Date(t.tanggal_mulai).toLocaleDateString('id-ID')} - ${new Date(t.tanggal_selesai).toLocaleDateString('id-ID')}</p>
+                     ${t.nomor_sertifikat ? `<p class="item-description">No. Sertifikat: ${t.nomor_sertifikat}</p>`:''}
                   </div>
                 `).join('')}
               </div>
-            </div>` : ''}
-          </div>
+            </section>` : ''}
+
+          </main>
         </div>
       </body>
     </html>

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { getPenggajian, downloadPayslip } from '../api/penggajianApi';
+import { getPenggajian } from '../api/penggajianApi';
 import { Penggajian } from '../types';
 import DetailPenggajian from '../components/DetailPenggajian';
 import { Card } from '../../../shared/components/ui/Card';
 import { Select } from '../../../shared/components/ui/Select';
 import { Button } from '../../../shared/components/ui/Button';
-
+import { useCompanySettings } from '../../pengaturan/hooks/useCompanySettings';
+import { usePegawai } from '../../01-pegawai/hooks/usePegawai';
+import { printPayslip } from '../utils/printPayslip';
 
 const HalamanPenggajianSaya: React.FC = () => {
   const { user } = useAuth();
@@ -15,6 +17,10 @@ const HalamanPenggajianSaya: React.FC = () => {
   const [selectedPayroll, setSelectedPayroll] = useState<Penggajian | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: companySettings } = useCompanySettings();
+  console.log('Company Settings:', companySettings);
+  const { pegawai } = usePegawai(user?.employeeId || '');
 
   useEffect(() => {
     const fetchPayrolls = async () => {
@@ -45,25 +51,12 @@ const HalamanPenggajianSaya: React.FC = () => {
     }
   }, [selectedPeriod, payrolls]);
 
-  const handleDownloadSlip = async () => {
-    if (!selectedPayroll) {
-      alert('Pilih periode gaji terlebih dahulu.');
+  const handlePrintPayslip = () => {
+    if (!selectedPayroll || !pegawai) {
+      alert('Pilih periode gaji terlebih dahulu atau data pegawai tidak ditemukan.');
       return;
     }
-    try {
-      const response = await downloadPayslip(selectedPayroll.id);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `slip_gaji_${selectedPayroll.period}.pdf`); // or whatever file name you want
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading payslip:', error);
-      alert('Gagal mengunduh slip gaji.');
-    }
+    printPayslip(selectedPayroll, pegawai, companySettings);
   };
 
   const availablePeriods = [...new Set(payrolls.map(p => p.period))];
@@ -83,8 +76,8 @@ const HalamanPenggajianSaya: React.FC = () => {
             options={availablePeriods.map(p => ({ value: p, label: p }))}
             className="w-[280px]"
           />
-          <Button onClick={handleDownloadSlip} disabled={!selectedPayroll}>
-            Unduh Slip Gaji
+          <Button onClick={handlePrintPayslip} disabled={!selectedPayroll}>
+            Cetak Slip Gaji
           </Button>
         </div>
       </Card>

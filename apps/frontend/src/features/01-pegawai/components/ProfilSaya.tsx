@@ -5,6 +5,7 @@ import { useRiwayatJabatan } from '../hooks/useRiwayatJabatan';
 import { usePelatihan } from '../hooks/usePelatihan';
 import { printProfileFull } from '../utils/printProfileFull';
 import RequestChangeModal from './RequestChangeModal';
+import { useCompanySettings } from '../../pengaturan/hooks/useCompanySettings';
 import { 
   User, 
   Building, 
@@ -27,6 +28,7 @@ const ProfilSaya: React.FC = () => {
   const { pegawai, loading, error } = usePegawai(id);
   const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(id);
   const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(id);
+  const { data: companySettings } = useCompanySettings();
   const [activeTab, setActiveTab] = useState('biodata');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -52,7 +54,7 @@ const ProfilSaya: React.FC = () => {
         ...pegawai,
         id: String(pegawai.id)
       };
-      printProfileFull(pegawaiForPrint as any, riwayatJabatan || [], pelatihan || []);
+      printProfileFull(pegawaiForPrint as any, riwayatJabatan || [], pelatihan || [], companySettings?.logo);
     }
   };
 

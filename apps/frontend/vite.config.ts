@@ -17,6 +17,21 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/logos': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/avatars': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/documents': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 })
