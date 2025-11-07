@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import PenggunaService from '@/shared/services/pengguna.service';
 
 export const UbahPasswordPengguna = () => {

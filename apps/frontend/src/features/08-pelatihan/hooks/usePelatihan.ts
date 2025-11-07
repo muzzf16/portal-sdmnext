@@ -12,16 +12,18 @@ export const usePelatihan = () => {
   const fetchPelatihan = async () => {
     try {
       let response;
-      if (user?.role === 'employee') {
+      if (user?.role === 'employee' && user.employeeId) {
         // For employee, fetch only their own training
-        response = await getPelatihanByEmployeeId(user.employeeId.toString());
+        const employeeId = user.employeeId;
+        if (!employeeId) return;
+        response = await getPelatihanByEmployeeId(employeeId.toString());
       } else {
         // For admin, fetch all training
         response = await getPelatihan();
       }
       
       // Map the response to use English field names expected in this module
-      const mappedData = (response.data || []).map(item => ({
+      const mappedData = (response.data || []).map((item: any) => ({
         id: Number(item.id),
         pegawai_id: String(item.pegawai_id || item.employeeId),
         nama_pelatihan: item.nama_pelatihan || item.trainingName,

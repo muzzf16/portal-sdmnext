@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCog, Building, Database, Users, Download, Upload, Key } from 'lucide-react';
+import { UserCog, Building, Database, Users, Download, Upload } from 'lucide-react';
 import clsx from 'clsx';
 import { DaftarPengguna } from '../components/DaftarPengguna';
 import { UbahPasswordPengguna } from '../components/UbahPasswordPengguna';

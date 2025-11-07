@@ -1,7 +1,7 @@
 import pdfMake from 'pdfmake/build/pdfmake';
 import 'pdfmake/build/vfs_fonts';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import { Pegawai, EducationHistory } from '../../types'; // Import EducationHistory
+import { Pegawai } from '../../types';
 import type { RiwayatJabatan, Pelatihan } from '../../../../types/types';
 
 // ==================================================================================

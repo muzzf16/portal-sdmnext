@@ -41,7 +41,7 @@ const Daftar: React.FC = () => {
               {...register('name', { required: 'Nama wajib diisi' })}
               className="w-full px-3 py-2 mt-1 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             />
-            {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
+            {errors.name && <span className="text-red-500 text-sm">{String(errors.name.message)}</span>}
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email</label>
@@ -51,7 +51,7 @@ const Daftar: React.FC = () => {
               {...register('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/i, message: 'Format email tidak valid' } })}
               className="w-full px-3 py-2 mt-1 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             />
-            {errors.email && <span className="text-red-500 text-sm">{errors.email.message}</span>}
+            {errors.email && <span className="text-red-500 text-sm">{String(errors.email.message)}</span>}
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-slate-700">Kata Sandi</label>
@@ -61,7 +61,7 @@ const Daftar: React.FC = () => {
               {...register('password', { required: 'Kata sandi wajib diisi', minLength: { value: 6, message: 'Kata sandi minimal 6 karakter' } })}
               className="w-full px-3 py-2 mt-1 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             />
-            {errors.password && <span className="text-red-500 text-sm">{errors.password.message}</span>}
+            {errors.password && <span className="text-red-500 text-sm">{String(errors.password.message)}</span>}
           </div>
           <div>
             <button

@@ -11,7 +11,7 @@ const HalamanAbsensiSaya: React.FC = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold text-primary-dark-blue mb-4">Absensi Saya</h1>
-      {user && <CatatWaktu employeeId={user.employeeId} employeeName={user.name} onSuccess={refetch} />}
+      {user && user.employeeId && <CatatWaktu employeeId={user.employeeId} employeeName={user.name} onSuccess={refetch} />}
       <DaftarAbsensiPegawai absensi={absensi} loading={loading} error={error} />
     </div>
   );

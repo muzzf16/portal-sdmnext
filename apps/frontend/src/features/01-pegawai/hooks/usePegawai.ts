@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPegawaiById } from '../api/employeeApi';
-import { Pegawai, EducationHistory, WorkHistory, TrainingCertificate, PayrollInfo } from '../../types';
+import { Pegawai } from '../types';
 
 const VITE_API_URL = 'http://localhost:3333';
 

@@ -38,14 +38,22 @@ const HalamanDetailPegawai: React.FC = () => {
 
   const handleWindowPrint = () => {
     if (pegawai) {
-      printProfileFull(pegawai, riwayatJabatan || [], pelatihan || []);
+      const pegawaiForPrint = {
+        ...pegawai,
+        id: String(pegawai.id)
+      };
+      printProfileFull(pegawaiForPrint as any, riwayatJabatan || [], pelatihan || []);
     }
   };
 
   const handleGeneratePDF = async () => {
     if (pegawai) {
       try {
-        await generateProfilePDF(pegawai, riwayatJabatan || [], pelatihan || []);
+        const pegawaiForPrint = {
+          ...pegawai,
+          id: String(pegawai.id)
+        };
+        await generateProfilePDF(pegawaiForPrint as any, riwayatJabatan || [], pelatihan || []);
       } catch (error) {
         console.error('Error generating PDF:', error);
       }
@@ -90,7 +98,7 @@ const HalamanDetailPegawai: React.FC = () => {
                   <p className="text-lg text-gray-600 dark:text-gray-300 mt-1">{pegawai.position}</p>
                   
                   <div className="flex items-center mt-3">
-                    {pegawai.isActive === 0 || pegawai.statusKaryawan === 'nonaktif' ? (
+                    {(!pegawai.isActive || (typeof pegawai.isActive === 'number' && pegawai.isActive === 0) || (pegawai as any).statusKaryawan === 'nonaktif') ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
                         <FileText className="h-4 w-4 mr-1" />
                         Nonaktif
@@ -261,7 +269,7 @@ const HalamanDetailPegawai: React.FC = () => {
                   <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Status Kepegawaian</div>
                     <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
-                      {pegawai.isActive !== 0 && pegawai.statusKaryawan !== 'nonaktif' ? 'Aktif' : 'Nonaktif'}
+                      {(pegawai.isActive && !(typeof pegawai.isActive === 'number' && pegawai.isActive === 0) && (pegawai as any).statusKaryawan !== 'nonaktif') ? 'Aktif' : 'Nonaktif'}
                     </div>
                   </div>
                   <div className="flex">

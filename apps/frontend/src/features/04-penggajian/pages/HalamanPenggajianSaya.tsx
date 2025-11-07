@@ -21,7 +21,7 @@ const HalamanPenggajianSaya: React.FC = () => {
       if (!user) return;
       try {
         setLoading(true);
-        const { data } = await getPenggajian();
+        const { data } = await getPenggajian({});
         const userPayrolls = data.filter(p => p.employeeId === user.employeeId);
         setPayrolls(userPayrolls);
         if (userPayrolls.length > 0) {

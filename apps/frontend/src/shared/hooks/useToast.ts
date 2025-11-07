@@ -1,6 +1,6 @@
 // src/shared/hooks/useToast.ts
 import { useContext } from 'react';
-import { ToastContext, ToastContextType } from '../providers/ToastContext';
+import { ToastContext } from '../../app/providers/ToastContext';
 
 export const useToast = () => {
   const context = useContext(ToastContext);

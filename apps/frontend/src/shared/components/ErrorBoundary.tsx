@@ -1,5 +1,5 @@
 // src/shared/components/ErrorBoundary.tsx
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { loggingService } from '../services/loggingService';
 
 interface Props {

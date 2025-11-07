@@ -1,8 +1,7 @@
 // src/shared/components/ui/__tests__/uiComponents.test.tsx
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Card, StatCard, PageTitle, Button, Modal, Input, Select, Textarea, Checkbox, Radio, FileInput, Table, Badge, Alert, Toast } from '../index';
-import { Users, Calendar, Edit3, Trash2, Plus, Search } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 describe('UI Components', () => {
   describe('Card Component', () => {

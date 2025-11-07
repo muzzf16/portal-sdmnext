@@ -1,5 +1,5 @@
 import api from './api';
-import ApiService, { ApiResponse } from './apiService';
+import ApiService from './apiService';
 
 // Minimal local LeaveRequest interface to match the properties used in this module.
 // This avoids relying on a non-existent export from ../types/types.

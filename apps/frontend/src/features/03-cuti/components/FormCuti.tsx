@@ -28,6 +28,11 @@ const FormCuti: React.FC = () => {
       return;
     }
 
+    if (!user.employeeId) {
+      addToast('Employee ID tidak ditemukan', 'error');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('leaveType', data.leaveType);
     formData.append('startDate', data.startDate);

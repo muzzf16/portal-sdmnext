@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePenggajian } from '../hooks/usePenggajian';
 import { updatePenggajian } from '../api/penggajianApi';
-import { Penggajian } from '../types';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';

@@ -46,7 +46,7 @@ const LupaKataSandi: React.FC = () => {
               {...register('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/i, message: 'Format email tidak valid' } })}
               className="w-full px-3 py-2 mt-1 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             />
-            {errors.email && <span className="text-red-500 text-sm">{errors.email.message}</span>}
+            {errors.email && <span className="text-red-500 text-sm">{String(errors.email.message)}</span>}
           </div>
           <div>
             <button

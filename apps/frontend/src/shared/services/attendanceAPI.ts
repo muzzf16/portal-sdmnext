@@ -1,8 +1,8 @@
-import ApiService, { ApiResponse } from './apiService';
-import { Attendance } from '../types/types';
+import ApiService from './apiService';
+import { Absensi } from '../types/types';
 
 // Create an instance of ApiService for attendance operations
-const attendanceApi = new ApiService<Attendance>('/attendance');
+const attendanceApi = new ApiService<Absensi>('/attendance');
 
 // Export the standardized methods
 export const getAttendance = () => attendanceApi.list();
@@ -13,13 +13,13 @@ export const getTodayAttendanceCount = async () => {
     console.log('Attendance API response:', response); // Debug log
     
     // Handle both old and new response formats
-    const attendanceData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+    const attendanceData = Array.isArray(response.data) ? response.data : (response.data as any)?.data || [];
     console.log('Attendance data:', attendanceData); // Debug log
     
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const uniqueEmployeesToday = new Set<number>();
 
-    attendanceData.forEach(record => {
+    attendanceData.forEach((record: any) => {
       // Check for both English and Indonesian property names for compatibility
       const recordDate = record.date || record.tanggal;
       const clockIn = record.clock_in || record.jam_masuk;
@@ -40,7 +40,7 @@ export const getEmployeeAttendanceSummary = async (employeeId: string) => {
     const response = await attendanceApi.list({ employeeId });
     const totalDays = response.data.length;
     // Check for both English and Indonesian property names for compatibility
-    const presentDays = response.data.filter(record => 
+    const presentDays = response.data.filter((record: any) => 
       (record.status === 'hadir' || record.status_kehadiran === 'hadir')
     ).length;
     return { totalDays, presentDays };

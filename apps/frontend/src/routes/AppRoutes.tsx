@@ -18,8 +18,6 @@ const EmployeeDashboard = lazy(() => import('../features/dasbor/pages/EmployeeDa
 
 // Employee
 const HalamanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanPegawai'));
-const HalamanDetailPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanDetailPegawai'));
-const ProfilSaya = lazy(() => import('../features/01-pegawai/components/ProfilSaya'));
 const EmployeeDetailView = lazy(() => import('../features/01-pegawai/pages/EmployeeDetailView'));
 const HalamanRiwayatJabatanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanRiwayatJabatanPegawai'));
 const HalamanPelatihanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanPelatihanPegawai'));

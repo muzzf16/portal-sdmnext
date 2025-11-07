@@ -42,7 +42,7 @@ const PerhitunganSisaCuti: React.FC = () => {
       // Hitung sisa cuti untuk setiap pegawai
       const updatedSisaCutiList = pegawaiList.map(pegawai => {
         // Hitung jumlah hari cuti yang sudah diambil oleh pegawai ini
-        const cutiPegawai = approvedLeaves.filter(c => c.employeeId === pegawai.id);
+        const cutiPegawai = approvedLeaves.filter(c => c.employeeId === String(pegawai.id));
         let totalCutiDiambil = 0;
         
         cutiPegawai.forEach(cutiItem => {
@@ -65,7 +65,7 @@ const PerhitunganSisaCuti: React.FC = () => {
         const sisaCuti = jumlahJatahCuti - totalCutiDiambil - cutiBersamaTahunIni;
         
         return {
-          id: pegawai.id,
+          id: String(pegawai.id),
           nama: pegawai.name,
           jatahCuti: jumlahJatahCuti,
           cutiDiambil: totalCutiDiambil,

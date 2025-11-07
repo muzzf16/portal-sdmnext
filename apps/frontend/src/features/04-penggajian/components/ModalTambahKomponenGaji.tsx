@@ -7,7 +7,7 @@ interface Props {
   payrollId: string;
 }
 
-const ModalTambahKomponenGaji: React.FC<Props> = ({ isOpen, onClose, onSave, payrollId }) => {
+const ModalTambahKomponenGaji: React.FC<Props> = ({ isOpen, onClose, onSave, payrollId: _payrollId }) => {
   const [nama, setNama] = useState('');
   const [jenis, setJenis] = useState<'tunjangan' | 'potongan'>('tunjangan');
   const [jumlah, setJumlah] = useState(0);

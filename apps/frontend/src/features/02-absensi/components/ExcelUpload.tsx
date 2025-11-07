@@ -17,7 +17,11 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
   const mutation = useMutation({
     mutationFn: (absensiData: Omit<Absensi, 'id'>[]) => {
       // Process the attendance data - we'll create each record individually for now
-      return Promise.all(absensiData.map(data => createAbsensi(data)));
+      return Promise.all(absensiData.map(data => createAbsensi({
+        ...data,
+        clockOut: data.clockOut ?? '',
+        workDuration: data.workDuration ?? ''
+      })));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['absensi'] });
@@ -69,7 +73,7 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
           employeeName: String(row.employeeName || ''),
           date: String(row.date),
           clockIn: String(row.clockIn || ''),
-          clockOut: String(row.clockOut || null),
+          clockOut: row.clockOut ? String(row.clockOut) : '',
           status: String(row.status || 'hadir'),
           workDuration: String(row.workDuration || ''),
           notes: String(row.notes || '')

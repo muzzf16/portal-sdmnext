@@ -34,9 +34,10 @@ export const Table: React.FC<TableProps> = ({
                 ),
                 children: React.Children.map(child.props.children, (cell) => {
                   if (React.isValidElement(cell) && cell.type === 'td') {
-                    return React.cloneElement(cell, {
-                      className: clsx('py-4 px-6', cell.props.className)
-                    });
+                    const cellProps = cell.props as { className?: string };
+                    return React.cloneElement(cell as React.ReactElement, {
+                      className: clsx('py-4 px-6', cellProps.className)
+                    } as any);
                   }
                   return cell;
                 })

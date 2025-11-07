@@ -17,6 +17,12 @@ export const useCutiSaya = () => {
         return;
       }
       
+      if (!user.employeeId) {
+        setError(new Error('Employee ID not found'));
+        setLoading(false);
+        return;
+      }
+      
       try {
         const response = await getPermintaanCutiSaya(user.employeeId.toString());
         setCuti(response.data);

@@ -1,4 +1,4 @@
-import ApiService, { ApiResponse } from './apiService';
+import ApiService from './apiService';
 import { Pegawai, Absensi, Penggajian } from '../types/types';
 
 // Create instances of ApiService for report operations

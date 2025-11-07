@@ -7,7 +7,8 @@ export const getEmployeeRecentNotifications = async (employeeId: string, limit: 
   try {
     const response = await getNotifikasiByEmployeeId(employeeId);
     // Assuming notifications are returned in descending order of created_at or can be sorted
-    return response.data.data.sort((a, b) => 
+    const notifications = Array.isArray(response.data) ? response.data : (response.data as any)?.data || [];
+    return notifications.sort((a: any, b: any) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     ).slice(0, limit);
   } catch (error) {

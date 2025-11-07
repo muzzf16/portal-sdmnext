@@ -27,7 +27,16 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
 
   useEffect(() => {
     if (pegawai) {
-      reset(pegawai);
+      // Convert pegawai to form-compatible format
+      const formData = {
+        ...pegawai,
+        id: typeof pegawai.id === 'string' ? Number(pegawai.id) : pegawai.id,
+        educationHistory: pegawai.educationHistory?.map(edu => ({
+          ...edu,
+          institution: edu.institution || edu.schoolName || '',
+        })) || []
+      };
+      reset(formData);
       setPreviewUrl(pegawai.avatarUrl || null);
     }
   }, [pegawai, reset]);
@@ -176,7 +185,7 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
           ))}
           <button
             type="button"
-            onClick={() => append({ level: '', institution: '', major: '', graduationYear: new Date().getFullYear() })}
+            onClick={() => append({ level: '', institution: '', major: '', graduationYear: String(new Date().getFullYear()) })}
             className="px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 border border-dashed border-primary-500 rounded-md hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
           >
             + Tambah Pendidikan

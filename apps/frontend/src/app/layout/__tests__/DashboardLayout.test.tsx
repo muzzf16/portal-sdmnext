@@ -1,5 +1,4 @@
 // src/app/layout/__tests__/DashboardLayout.test.tsx
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '@/shared/contexts/AuthContext';

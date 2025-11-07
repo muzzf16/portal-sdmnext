@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Info, CheckCircle, XCircle } from 'lucide-react';
+import { Info, CheckCircle, XCircle, X } from 'lucide-react';
 
 interface ToastProps {
   id: number;

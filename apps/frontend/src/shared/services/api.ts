@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosResponse, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 // Create an axios instance
 const api = axios.create({
@@ -51,10 +51,9 @@ api.interceptors.response.use(
           localStorage.setItem('accessToken', accessToken);
           
           // Retry the original request with the new token
-          originalRequest.headers = {
-            ...originalRequest.headers,
-            Authorization: `Bearer ${accessToken}`
-          };
+          if (originalRequest.headers) {
+            (originalRequest.headers as any).Authorization = `Bearer ${accessToken}`;
+          }
           
           return axios(originalRequest);
         }

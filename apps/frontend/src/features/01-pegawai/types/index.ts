@@ -2,6 +2,7 @@
 export interface EducationHistory {
   level?: string;
   schoolName?: string;
+  institution?: string; // Alias for schoolName for compatibility
   major?: string;
   graduationYear?: string;
 }

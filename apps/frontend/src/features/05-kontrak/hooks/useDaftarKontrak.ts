@@ -16,8 +16,8 @@ export const useDaftarKontrak = () => {
       if (response.data) {
         if (Array.isArray(response.data)) {
           contracts = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          contracts = response.data.data;
+        } else if (typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as any).data)) {
+          contracts = (response.data as any).data;
         }
       }
       setDaftarKontrak(contracts);

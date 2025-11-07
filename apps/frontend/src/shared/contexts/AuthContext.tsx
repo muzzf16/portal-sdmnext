@@ -14,13 +14,14 @@ interface AuthContextType {
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to refresh token
+  // Function to refresh token (unused but kept for future use)
+  // @ts-ignore - unused function kept for future use
   const refreshAccessToken = async (): Promise<boolean> => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
@@ -41,7 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Function to check if access token is expired
+  // Function to check if access token is expired (unused but kept for future use)
+  // @ts-ignore - unused function kept for future use
   const isTokenExpired = (token: string): boolean => {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -70,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await loginApi(credentials);
       // Handle both standardized and direct response formats
-      const data = response.data?.data || response.data;
+      const data = (response.data as any)?.data || response.data;
       const { user: userData, accessToken, refreshToken } = data;
 
       // Store user data and tokens

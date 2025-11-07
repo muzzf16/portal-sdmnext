@@ -12,10 +12,12 @@ const HalamanKinerjaSaya: React.FC = () => {
 
   useEffect(() => {
     const fetchPerformance = async () => {
-      if (!user) return;
+      if (!user || !user.employeeId) return;
       try {
         setLoading(true);
-        const { data } = await getPenilaianKinerjaByEmployeeId(user.employeeId);
+        const employeeId = user.employeeId;
+        if (!employeeId) return;
+        const { data } = await getPenilaianKinerjaByEmployeeId(employeeId);
         if (data.length > 0) {
           // Assuming the API returns reviews sorted by date, otherwise sort here
           setLatestPerformance(data[0]);

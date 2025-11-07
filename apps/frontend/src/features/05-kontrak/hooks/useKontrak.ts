@@ -14,10 +14,10 @@ export const useKontrak = (id: string) => {
         // Handle both response formats: { data: {...} } or { success: true, data: {...} }
         let contract: Kontrak | null = null;
         if (response.data) {
-          if (response.data.id) {
-            contract = response.data;
-          } else if (response.data.data && response.data.data.id) {
-            contract = response.data.data;
+          if ((response.data as Kontrak).id) {
+            contract = response.data as Kontrak;
+          } else if (typeof response.data === 'object' && 'data' in response.data && (response.data as any).data?.id) {
+            contract = (response.data as any).data;
           }
         }
         setKontrak(contract);

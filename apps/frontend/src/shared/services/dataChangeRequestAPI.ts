@@ -1,4 +1,4 @@
-import ApiService, { ApiResponse } from './apiService';
+import ApiService from './apiService';
 
 // Define the DataChangeRequest type (you may want to import this from types)
 interface DataChangeRequest {
