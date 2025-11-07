@@ -1,7 +1,7 @@
 
 import { Penggajian } from '../types';
 import { Pegawai } from '../../01-pegawai/types';
-import { CompanySettings } from '../../../../types/types';
+import { CompanySettings } from '../../pengaturan/types';
 
 export const printPayslip = (
   payroll: Penggajian,
