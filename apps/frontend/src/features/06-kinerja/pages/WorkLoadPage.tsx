@@ -3,10 +3,17 @@ import React, { useState } from 'react';
 import WorkLoadForm from '../components/WorkLoadForm';
 // import { useAuth } from '@/app/providers/AuthProvider'; // Assuming this exists
 
-const WorkLoadPage: React.FC = () => {
+interface WorkLoadPageProps {
+    employeeId?: string;
+}
+
+const WorkLoadPage: React.FC<WorkLoadPageProps> = ({ employeeId }) => {
     // const { user } = useAuth();
     const user = { id: 'dummy-id', name: 'Dummy User' }; // Replace with actual auth
     const [year, setYear] = useState(new Date().getFullYear());
+
+    // Use passed employeeId or logged-in user's id
+    const targetEmployeeId = employeeId || user?.id;
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -28,9 +35,9 @@ const WorkLoadPage: React.FC = () => {
                 </select>
             </div>
 
-            {user ? (
+            {targetEmployeeId ? (
                 <WorkLoadForm
-                    employeeId={user.id}
+                    employeeId={targetEmployeeId}
                     year={year}
                 />
             ) : (

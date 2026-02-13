@@ -21,8 +21,11 @@ export default class WorkloadService {
     }
 
     static async getAnalysis(employeeId: string, year: number) {
-        return await WorkloadRepository.findAnalysisByEmployeeYear(employeeId, year);
+        const header = await WorkloadRepository.findAnalysisByEmployeeYear(employeeId, year);
+        if (!header) return null;
+        return await WorkloadRepository.findAnalysisById(header.id);
     }
+
 
     static async getAnalysisById(id: string) {
         const analysis = await WorkloadRepository.findAnalysisById(id);

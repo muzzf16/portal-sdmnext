@@ -213,7 +213,15 @@ const AppRoutes: React.FC = () => {
             </Suspense>
           </PrivateRoute>
         } />
+        <Route path="kinerja/analisis-beban-kerja" element={
+          <PrivateRoute allowedRoles={['admin', 'employee']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <WorkLoadPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
         <Route path="kinerja/:id" element={
+
           <PrivateRoute allowedRoles={['admin', 'employee']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanDetailKinerja />

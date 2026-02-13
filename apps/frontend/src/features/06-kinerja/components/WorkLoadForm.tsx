@@ -42,7 +42,8 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Watch items to calculate total
-    const items = watch('items');
+    const items = watch('items') || [];
+
 
     const calculateItemTotal = (item: WorkLoadItem) => {
         return (item.durationMinutes || 0) * (

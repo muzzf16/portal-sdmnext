@@ -5,16 +5,18 @@ import { usePegawai } from '../hooks/usePegawai';
 import { useRiwayatJabatan } from '../hooks/useRiwayatJabatan';
 import { usePelatihan } from '../hooks/usePelatihan';
 import { generateProfilePDF, printProfileFull } from '../utils/printProfileFull';
-import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Briefcase, GraduationCap, FileBadge, Star } from 'lucide-react';
+import { ArrowLeft, User, Building, Award, FileText, Printer, Calendar, MapPin, Phone, Mail, Briefcase, GraduationCap, FileBadge, Star, BarChart } from 'lucide-react';
 import clsx from 'clsx';
+import WorkLoadPage from '../../06-kinerja/pages/WorkLoadPage';
+
 
 const HalamanDetailPegawai: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  
+
   if (!id) {
     return <div>ID pegawai tidak ditemukan</div>;
   }
-  
+
   const { pegawai, loading, error } = usePegawai(id);
   const { riwayatJabatan, loading: loadingRiwayat, error: errorRiwayat } = useRiwayatJabatan(id);
   const { pelatihan, loading: loadingPelatihan, error: errorPelatihan } = usePelatihan(id);
@@ -63,8 +65,8 @@ const HalamanDetailPegawai: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <Link 
-          to="/dashboard/pegawai" 
+        <Link
+          to="/dashboard/pegawai"
           className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -77,9 +79,9 @@ const HalamanDetailPegawai: React.FC = () => {
           <div className="flex flex-col md:flex-row">
             <div className="mb-6 md:mb-0 md:mr-8 flex-shrink-0">
               {pegawai.avatarUrl ? (
-                <img 
-                  src={pegawai.avatarUrl} 
-                  alt={pegawai.name} 
+                <img
+                  src={pegawai.avatarUrl}
+                  alt={pegawai.name}
                   className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white dark:border-neutral-700 shadow-lg"
                 />
               ) : (
@@ -90,13 +92,13 @@ const HalamanDetailPegawai: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             <div className="flex-grow">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{pegawai.name}</h1>
                   <p className="text-lg text-gray-600 dark:text-gray-300 mt-1">{pegawai.position}</p>
-                  
+
                   <div className="flex items-center mt-3">
                     {(!pegawai.isActive || (typeof pegawai.isActive === 'number' && pegawai.isActive === 0) || (pegawai as any).statusKaryawan === 'nonaktif') ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
@@ -111,9 +113,9 @@ const HalamanDetailPegawai: React.FC = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={handleGeneratePDF}
                     className="mt-4 md:mt-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 transition-colors flex items-center"
                     title="Unduh Profil PDF"
@@ -121,7 +123,7 @@ const HalamanDetailPegawai: React.FC = () => {
                     <Printer className="h-4 w-4 mr-2" />
                     Unduh PDF
                   </button>
-                  <button 
+                  <button
                     onClick={handleWindowPrint}
                     className="mt-4 md:mt-0 px-4 py-2 bg-white text-primary-700 border border-primary-600 rounded-lg hover:bg-primary-50 dark:bg-neutral-800 dark:text-primary-300 dark:border-primary-400 dark:hover:bg-neutral-700 transition-colors flex items-center"
                     title="Cetak Halaman"
@@ -131,7 +133,7 @@ const HalamanDetailPegawai: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                 <div className="flex items-center text-gray-600 dark:text-gray-300">
                   <Mail className="h-5 w-5 mr-3 flex-shrink-0 text-primary-600 dark:text-primary-400" />
@@ -160,7 +162,9 @@ const HalamanDetailPegawai: React.FC = () => {
               { id: 'riwayat', label: 'Riwayat Pekerjaan', icon: Briefcase },
               { id: 'sertifikat', label: 'Sertifikat', icon: FileBadge },
               { id: 'kinerja', label: 'Kinerja', icon: Star },
+              { id: 'beban-kerja', label: 'Beban Kerja', icon: BarChart },
             ].map((tab) => (
+
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -340,8 +344,8 @@ const HalamanDetailPegawai: React.FC = () => {
               ) : pelatihan && pelatihan.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {pelatihan.map((item: any) => (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="border border-gray-200 dark:border-neutral-700 rounded-lg p-5 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start">
@@ -351,7 +355,7 @@ const HalamanDetailPegawai: React.FC = () => {
                         <div className="ml-4">
                           <h4 className="text-lg font-medium text-gray-900 dark:text-white">{item.nama_pelatihan || item.trainingName}</h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{item.penyelenggara || item.organizer}</p>
-                          
+
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
                               <Calendar className="h-3 w-3 mr-1" />
@@ -390,6 +394,17 @@ const HalamanDetailPegawai: React.FC = () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'beban-kerja' && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <BarChart className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+                Analisis Beban Kerja
+              </h3>
+              <WorkLoadPage employeeId={id} />
+            </div>
+          )}
+
         </div>
       </div>
     </div>
