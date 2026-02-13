@@ -46,6 +46,7 @@ const HalamanDetailKontrak = lazy(() => import('../features/05-kontrak/pages/Hal
 // Performance
 const HalamanKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanKinerja'));
 const HalamanKinerjaSaya = lazy(() => import('../features/06-kinerja/pages/HalamanKinerjaSaya'));
+const WorkLoadPage = lazy(() => import('../features/06-kinerja/pages/WorkLoadPage'));
 const HalamanDetailKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanDetailKinerja'));
 
 // Recruitment
@@ -53,6 +54,7 @@ const HalamanKandidat = lazy(() => import('../features/07-perekrutan/pages/Halam
 
 // Training
 const HalamanPelatihan = lazy(() => import('../features/08-pelatihan/pages/HalamanPelatihan'));
+
 const PelatihanSaya = lazy(() => import('../features/08-pelatihan/pages/PelatihanSaya'));
 
 // Onboarding

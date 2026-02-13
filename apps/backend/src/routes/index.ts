@@ -17,6 +17,7 @@ import companySettingsRoutes from '../modules/company-settings/company-settings.
 import reportRoutes from '../modules/laporan/laporan.routes';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes';
 import uploadRoutes from './upload';
+import workloadRoutes from '../modules/workload/workload.routes';
 
 const router = Router();
 
@@ -37,6 +38,8 @@ router.use('/backup', backupRoutes);
 router.use('/company-settings', companySettingsRoutes);
 router.use('/reports', reportRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/workload', workloadRoutes);
 router.use('/', uploadRoutes);
+
 
 export default router;
