@@ -12,3 +12,5 @@ export const buatKontrakWithFile = (formData: FormData) => api.post<Kontrak>('/c
     'Content-Type': 'multipart/form-data'
   }
 });
+
+export const deleteKontrak = (id: string) => api.delete<{ success: boolean, message: string }>(`/contracts/${id}`);

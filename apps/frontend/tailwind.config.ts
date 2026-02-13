@@ -19,8 +19,9 @@ export default {
         'primary-600': '#2563eb',
         'primary-700': '#1d4ed8',
         'primary-800': '#1e3a8a', // primary-dark-blue
+        'primary-dark-blue': '#1e3a8a',
         'primary-900': '#1a365d',
-        
+
         // Secondary colors
         'secondary-50': '#fff7ed',
         'secondary-100': '#ffedd5',
@@ -32,7 +33,7 @@ export default {
         'secondary-700': '#c2410c',
         'secondary-800': '#9a3412',
         'secondary-900': '#7c2d12',
-        
+
         // Accent colors
         'accent-50': '#fffeed',
         'accent-100': '#fef3c7',
@@ -44,7 +45,7 @@ export default {
         'accent-700': '#b45309',
         'accent-800': '#92400e',
         'accent-900': '#78350f',
-        
+
         // Neutral colors
         'neutral-50': '#f8fafc',
         'neutral-100': '#f1f5f9',

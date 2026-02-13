@@ -5,10 +5,10 @@ import { uploadDocument } from '../../middleware/uploadMiddleware';
 
 const router = Router();
 
-router.get('/', KontrakController.getAllContracts);
-router.get('/:id', KontrakController.getContractById);
-router.get('/employee/:employeeId', KontrakController.getContractsByEmployeeId);
 router.get('/expiring', KontrakController.getExpiringContracts);
+router.get('/employee/:employeeId', KontrakController.getContractsByEmployeeId);
+router.get('/:id', KontrakController.getContractById);
+router.get('/', KontrakController.getAllContracts);
 router.post('/', uploadDocument.single('contractFile'), KontrakController.createContract);
 router.put('/:id', uploadDocument.single('contractFile'), KontrakController.updateContract);
 router.delete('/:id', KontrakController.deleteContract);

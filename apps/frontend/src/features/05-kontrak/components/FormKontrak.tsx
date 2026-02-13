@@ -22,7 +22,7 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
   const [jabatanLama, setJabatanLama] = useState('');
   const [originalPosition, setOriginalPosition] = useState(''); // Simpan posisi asli dari database
   const [jabatanBaru, setJabatanBaru] = useState(''); // State terpisah untuk jabatan baru
-  
+
   // Watch date fields for validation
   const startDate = watch('startDate');
   const endDate = watch('endDate');
@@ -48,8 +48,8 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
   const filteredEmployees = useMemo(() => {
     if (!searchTerm) return employees;
     const lowerSearch = searchTerm.toLowerCase();
-    return employees.filter(emp => 
-      emp.name?.toLowerCase().includes(lowerSearch) || 
+    return employees.filter(emp =>
+      emp.name?.toLowerCase().includes(lowerSearch) ||
       emp.id?.toLowerCase().includes(lowerSearch) ||
       emp.nip?.toLowerCase().includes(lowerSearch)
     );
@@ -64,7 +64,7 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
         const originalPos = selectedEmployee.position || '';
         setOriginalPosition(originalPos);
         setJabatanLama(originalPos);
-        
+
         // Set jabatan baru default sama dengan posisi lama, tapi bisa diubah
         setJabatanBaru(originalPos);
         setValue('position', originalPos); // Set position di form juga
@@ -128,7 +128,7 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
       // If there's a file to upload, use the file upload API
       if (documentFile) {
         const formData = new FormData();
-        
+
         // Add contract data (including terms and salary)
         Object.entries(contractPayload).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -150,7 +150,7 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
       } else {
         await buatKontrak(contractPayload);
       }
-      
+
       addToast('Kontrak berhasil dibuat!', 'success');
       reset();
       setDocumentFile(null);
@@ -173,7 +173,17 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-      <h2 className="text-2xl font-bold text-primary-dark-blue mb-6 text-center">Buat Kontrak Baru</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-dark-blue">Buat Kontrak Baru</h2>
+        <button
+          type="button"
+          onClick={handleSubmit(onSubmit)}
+          disabled={isSubmitting}
+          className="px-4 py-2 font-bold text-white bg-blue-600 rounded-md hover:bg-opacity-90 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200"
+        >
+          {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+        </button>
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -187,8 +197,8 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
                   setSearchTerm(e.target.value);
                   setShowEmployeeDropdown(true);
                 }}
-                placeholder={selectedEmployeeId ? 
-                  (employees.find(emp => emp.id === selectedEmployeeId)?.name || "Cari pegawai") : 
+                placeholder={selectedEmployeeId ?
+                  (employees.find(emp => emp.id === selectedEmployeeId)?.name || "Cari pegawai") :
                   "Cari pegawai (nama, ID, atau NIP)"
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
@@ -219,14 +229,14 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
               )}
             </div>
             {errors.employeeId && <span className="text-red-500 text-sm">{errors.employeeId.message}</span>}
-            
+
             {/* Show selected employee info when one is selected */}
             {selectedEmployeeId && (
               <div className="mt-2 p-2 bg-gray-100 rounded text-sm">
                 Pegawai terpilih: <span className="font-medium">
                   {employees.find(emp => emp.id === selectedEmployeeId)?.name || selectedEmployeeId}
                 </span>
-                <button 
+                <button
                   type="button"
                   className="ml-2 text-red-600 hover:text-red-800"
                   onClick={() => {
@@ -272,7 +282,7 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
             <input
               id="startDate"
               type="date"
-              {...register('startDate', { 
+              {...register('startDate', {
                 required: 'Tanggal mulai wajib diisi',
                 validate: (value) => {
                   if (endDate && value && new Date(value) >= new Date(endDate)) {
@@ -290,7 +300,7 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
             <input
               id="endDate"
               type="date"
-              {...register('endDate', { 
+              {...register('endDate', {
                 required: 'Tanggal berakhir wajib diisi',
                 validate: (value) => {
                   if (startDate && value && new Date(startDate) >= new Date(value)) {
@@ -447,9 +457,9 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full px-4 py-2 font-bold text-white bg-primary-dark-blue rounded-md hover:bg-opacity-90 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200"
+          className="w-full px-4 py-2 font-bold text-white bg-blue-600 rounded-md hover:bg-opacity-90 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          {isSubmitting ? 'Mengirim...' : 'Kirim Kontrak'}
+          {isSubmitting ? 'Menyimpan...' : 'Simpan'}
         </button>
       </form>
     </div>

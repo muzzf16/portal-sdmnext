@@ -2,6 +2,9 @@ import React, { useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDaftarKontrak } from '../hooks/useDaftarKontrak';
 import { Table, Badge } from '@/shared/components/ui';
+import { Trash2 } from 'lucide-react';
+import { deleteKontrak } from '../api/kontrakApi';
+import { useToast } from '@/app/providers/ToastContext';
 
 const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'secondary' => {
   const statusLower = status.toLowerCase();
@@ -31,11 +34,25 @@ interface DaftarKontrakProps {
 
 const DaftarKontrak: React.FC<DaftarKontrakProps> = () => {
   const { daftarKontrak, loading, error, refetch } = useDaftarKontrak();
+  const { addToast } = useToast();
 
   // Refetch when component remounts (when key changes)
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus kontrak ini?')) {
+      try {
+        await deleteKontrak(id);
+        addToast('Kontrak berhasil dihapus', 'success');
+        refetch();
+      } catch (error) {
+        console.error('Failed to delete contract:', error);
+        addToast('Gagal menghapus kontrak', 'error');
+      }
+    }
+  };
 
   const tableHeaders = useMemo(() => [
     'Nama Pegawai', 'ID Pegawai', 'Posisi', 'Tanggal Mulai', 'Tanggal Berakhir', 'Status', 'Aksi'
@@ -73,12 +90,20 @@ const DaftarKontrak: React.FC<DaftarKontrakProps> = () => {
                 </Badge>
               </td>
               <td className="py-4 px-6">
-                <Link 
-                  to={`/dashboard/kontrak/${kontrak.id}`} 
-                  className="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
-                >
-                  Lihat Detail
-                </Link>
+                <div className="flex space-x-2">
+                  <Link
+                    to={`/dashboard/kontrak/${kontrak.id}`}
+                    className="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
+                  >
+                    Lihat Detail
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(kontrak.id)}
+                    className="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition ease-in-out duration-150"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </td>
             </tr>
           ))
