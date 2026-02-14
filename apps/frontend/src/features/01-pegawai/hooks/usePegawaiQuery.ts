@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPegawai, getPegawaiById, createPegawai, updatePegawai, deletePegawai } from '../api/employeeApi';
 import { Pegawai } from '../types';
 
-const VITE_API_URL = 'http://localhost:3333';
+const VITE_API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3333';
 
 const constructAvatarUrl = (pegawaiData: Pegawai): Pegawai => {
   if (pegawaiData && pegawaiData.avatarUrl && !pegawaiData.avatarUrl.startsWith('http')) {

@@ -1,26 +1,26 @@
 
 import axios from 'axios';
 
-const API_URL = '/api/users';
+const BASE_URL = `${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api/users`;
 
 const getAllPengguna = () => {
-  return axios.get(API_URL);
+  return axios.get(BASE_URL);
 };
 
 const getPenggunaById = (id: string) => {
-  return axios.get(`${API_URL}/${id}`);
+  return axios.get(`${BASE_URL}/${id}`);
 };
 
 const createPengguna = (data: any) => {
-  return axios.post(API_URL, data);
+  return axios.post(BASE_URL, data);
 };
 
 const updatePengguna = (id: string, data: any) => {
-  return axios.put(`${API_URL}/${id}`, data);
+  return axios.put(`${BASE_URL}/${id}`, data);
 };
 
 const deletePengguna = (id: string) => {
-  return axios.delete(`${API_URL}/${id}`);
+  return axios.delete(`${BASE_URL}/${id}`);
 };
 
 export default {

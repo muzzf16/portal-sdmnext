@@ -1,7 +1,9 @@
-import React, { useState, useRef, ChangeEvent } from 'react';
+import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Pegawai, EducationHistory } from '../types';
 import { createPegawaiWithUser } from '../api/employeeApi';
+import { getJabatanList, Jabatan } from '../api/jabatanApi';
+import { getPegawai } from '../api/employeeApi';
 import { isValidEmail, isValidName, sanitizeText } from '../../../shared/utils/validation';
 import clsx from 'clsx';
 import { X } from 'lucide-react';
@@ -11,7 +13,7 @@ interface FormPegawaiProps {
 }
 
 const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
-  const { register: registerForm, control, handleSubmit, setError, formState: { errors } } = useForm<Pegawai>({
+  const { register: registerForm, control, handleSubmit, setError, setValue, watch, formState: { errors } } = useForm<Pegawai>({
     defaultValues: { educationHistory: [] as EducationHistory[] }
   });
   const { fields, append, remove } = useFieldArray({
@@ -22,6 +24,39 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Jabatan & Atasan state
+  const [jabatanList, setJabatanList] = useState<Jabatan[]>([]);
+  const [atasanList, setAtasanList] = useState<Pegawai[]>([]);
+  const watchedJabatanId = watch('jabatan_id');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [jabatanData, pegawaiRes] = await Promise.all([
+          getJabatanList(),
+          getPegawai()
+        ]);
+        setJabatanList(jabatanData);
+        const pegawaiData = pegawaiRes?.data || pegawaiRes;
+        setAtasanList(Array.isArray(pegawaiData) ? pegawaiData : []);
+      } catch (err) {
+        console.error('Error fetching dropdown data:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Auto-fill position & department when jabatan changes
+  useEffect(() => {
+    if (watchedJabatanId) {
+      const jabatan = jabatanList.find(j => j.id === Number(watchedJabatanId));
+      if (jabatan) {
+        setValue('position', jabatan.nama);
+        setValue('department', jabatan.department || '');
+      }
+    }
+  }, [watchedJabatanId, jabatanList, setValue]);
 
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -52,9 +87,9 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
       setError('email', { type: 'manual', message: 'Email tidak valid' });
       return;
     }
-    
-    if (isSubmitting) return; // Prevent duplicate submissions
-    
+
+    if (isSubmitting) return;
+
     const sanitizedData = {
       ...data,
       name: sanitizeText(data.name),
@@ -62,12 +97,10 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
       position: sanitizeText(data.position),
       department: sanitizeText(data.department),
     };
-    
+
     setIsSubmitting(true);
     try {
-      // Create the employee and user account in a single transaction
       await createPegawaiWithUser(sanitizedData, selectedPhoto || undefined);
-      
       alert('Pegawai dan akun pengguna berhasil ditambahkan!');
       if (onEmployeeAdded) {
         onEmployeeAdded();
@@ -82,6 +115,10 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
   const religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
   const maritalStatuses = ['Lajang', 'Menikah', 'Duda', 'Janda'];
 
+  const inputClass = clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors",
+    "border border-gray-300 focus:ring-primary-500 focus:border-primary-500",
+    "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400");
+
   return (
     <div className="p-6 bg-white dark:bg-neutral-800 rounded-lg max-h-[70vh] overflow-y-auto">
       <h2 className="text-xl md:text-2xl font-bold text-primary-800 dark:text-primary-200 mb-6 text-center font-serif">Tambah Pegawai Baru</h2>
@@ -89,80 +126,110 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Lengkap</label>
-            <input id="name" {...registerForm('name', { required: 'Nama wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="name" {...registerForm('name', { required: 'Nama wajib diisi' })} className={inputClass} />
             {errors.name && <span className="text-red-500 text-sm dark:text-red-400">{errors.name.message}</span>}
           </div>
           <div>
             <label htmlFor="nip" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIP</label>
-            <input id="nip" {...registerForm('nip', { required: 'NIP wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="nip" {...registerForm('nip', { required: 'NIP wajib diisi' })} className={inputClass} />
             {errors.nip && <span className="text-red-500 text-sm dark:text-red-400">{errors.nip.message}</span>}
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-            <input id="email" type="email" {...registerForm('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/, message: 'Format email tidak valid' } })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="email" type="email" {...registerForm('email', { required: 'Email wajib diisi', pattern: { value: /^\S+@\S+$/, message: 'Format email tidak valid' } })} className={inputClass} />
             {errors.email && <span className="text-red-500 text-sm dark:text-red-400">{errors.email.message}</span>}
           </div>
+
+          {/* === JABATAN DROPDOWN === */}
+          <div>
+            <label htmlFor="jabatan_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Jabatan <span className="text-xs text-gray-400">(otomatis isi Posisi & Departemen)</span>
+            </label>
+            <select id="jabatan_id" {...registerForm('jabatan_id', { valueAsNumber: true })} className={inputClass}>
+              <option value="">-- Pilih Jabatan --</option>
+              {jabatanList.map(j => (
+                <option key={j.id} value={j.id}>
+                  {'  '.repeat(j.level - 1)}{j.nama} ({j.department || '-'})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
-            <input id="position" {...registerForm('position', { required: 'Posisi wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="position" {...registerForm('position', { required: 'Posisi wajib diisi' })} className={clsx(inputClass, watchedJabatanId && 'bg-gray-100 dark:bg-neutral-600')} readOnly={!!watchedJabatanId} />
             {errors.position && <span className="text-red-500 text-sm dark:text-red-400">{errors.position.message}</span>}
           </div>
           <div>
+            <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departemen</label>
+            <input id="department" {...registerForm('department', { required: 'Departemen wajib diisi' })} className={clsx(inputClass, watchedJabatanId && 'bg-gray-100 dark:bg-neutral-600')} readOnly={!!watchedJabatanId} />
+            {errors.department && <span className="text-red-500 text-sm dark:text-red-400">{errors.department.message}</span>}
+          </div>
+
+          {/* === ATASAN DROPDOWN === */}
+          <div>
+            <label htmlFor="atasan_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Atasan Langsung</label>
+            <select id="atasan_id" {...registerForm('atasan_id')} className={inputClass}>
+              <option value="">-- Pilih Atasan --</option>
+              {atasanList.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.position || '-'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="pangkat" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pangkat</label>
-            <input id="pangkat" {...registerForm('pangkat')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="pangkat" {...registerForm('pangkat')} className={inputClass} />
           </div>
           <div>
             <label htmlFor="golongan" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Golongan</label>
-            <input id="golongan" {...registerForm('golongan')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
-          </div>
-          <div>
-            <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departemen</label>
-            <input id="department" {...registerForm('department', { required: 'Departemen wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
-            {errors.department && <span className="text-red-500 text-sm dark:text-red-400">{errors.department.message}</span>}
+            <input id="golongan" {...registerForm('golongan')} className={inputClass} />
           </div>
           <div>
             <label htmlFor="joinDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Bergabung</label>
-            <input id="joinDate" type="date" {...registerForm('joinDate', { required: 'Tanggal bergabung wajib diisi' })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="joinDate" type="date" {...registerForm('joinDate', { required: 'Tanggal bergabung wajib diisi' })} className={inputClass} />
             {errors.joinDate && <span className="text-red-500 text-sm dark:text-red-400">{errors.joinDate.message}</span>}
           </div>
           <div className="md:col-span-2">
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
-            <textarea id="address" {...registerForm('address')} rows={3} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}></textarea>
+            <textarea id="address" {...registerForm('address')} rows={3} className={inputClass}></textarea>
           </div>
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nomor Telepon</label>
-            <input id="phone" type="tel" {...registerForm('phone')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="phone" type="tel" {...registerForm('phone')} className={inputClass} />
           </div>
           <div>
             <label htmlFor="pob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tempat Lahir</label>
-            <input id="pob" {...registerForm('pob')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="pob" {...registerForm('pob')} className={inputClass} />
           </div>
           <div>
             <label htmlFor="dob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Lahir</label>
-            <input id="dob" type="date" {...registerForm('dob')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="dob" type="date" {...registerForm('dob')} className={inputClass} />
           </div>
           <div>
             <label htmlFor="religion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agama</label>
-            <select id="religion" {...registerForm('religion')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}>
+            <select id="religion" {...registerForm('religion')} className={inputClass}>
               <option value="">Pilih Agama</option>
               {religions.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Perkawinan</label>
-            <select id="maritalStatus" {...registerForm('maritalStatus')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}>
+            <select id="maritalStatus" {...registerForm('maritalStatus')} className={inputClass}>
               <option value="">Pilih Status</option>
               {maritalStatuses.map(ms => <option key={ms} value={ms}>{ms}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="numberOfChildren" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah Anak</label>
-            <input id="numberOfChildren" type="number" {...registerForm('numberOfChildren', { valueAsNumber: true, min: { value: 0, message: 'Jumlah anak tidak boleh negatif' } })} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")} />
+            <input id="numberOfChildren" type="number" {...registerForm('numberOfChildren', { valueAsNumber: true, min: { value: 0, message: 'Jumlah anak tidak boleh negatif' } })} className={inputClass} />
             {errors.numberOfChildren && <span className="text-red-500 text-sm dark:text-red-400">{errors.numberOfChildren.message}</span>}
           </div>
           <div>
             <label htmlFor="jenis_kelamin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis Kelamin</label>
-            <select id="jenis_kelamin" {...registerForm('jenis_kelamin')} className={clsx("w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors", "border border-gray-300 focus:ring-primary-500 focus:border-primary-500", "dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:focus:ring-primary-400 dark:focus:border-primary-400")}>
+            <select id="jenis_kelamin" {...registerForm('jenis_kelamin')} className={inputClass}>
               <option value="">Pilih Jenis Kelamin</option>
               <option value="L">Laki-laki</option>
               <option value="P">Perempuan</option>
@@ -210,15 +277,15 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
             + Tambah Pendidikan
           </button>
         </div>
-        
+
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto Profil</label>
           <div className="flex items-center space-x-4">
             {previewUrl ? (
               <div className="relative">
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
+                <img
+                  src={previewUrl}
+                  alt="Preview"
                   className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
                 />
                 <button
@@ -264,16 +331,7 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
             </div>
           </div>
         </div>
-        
-        {/* Job History Information Section */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h3 className="text-lg font-medium text-blue-800 dark:text-blue-200 mb-2">Riwayat Jabatan</h3>
-          <p className="text-gray-700 dark:text-gray-300 text-sm">
-            Riwayat jabatan karyawan akan dikelola secara terpisah. Setelah menambahkan karyawan, 
-            Anda dapat menambahkan riwayat jabatan melalui menu Kontrak & Jabatan di dashboard masing-masing pegawai.
-          </p>
-        </div>
-        
+
         <button
           type="submit"
           disabled={isSubmitting}

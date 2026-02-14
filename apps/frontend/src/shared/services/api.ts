@@ -2,7 +2,7 @@ import axios, { type AxiosResponse, type AxiosError, type InternalAxiosRequestCo
 
 // Create an axios instance
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api`,
 });
 
 // Request interceptor to add auth token
@@ -41,7 +41,7 @@ api.interceptors.response.use(
         
         if (refreshToken) {
           // Make a request to refresh the token
-          const refreshResponse = await axios.post('/api/auth/refresh', {
+          const refreshResponse = await axios.post(`${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api/auth/refresh`, {
             refreshToken
           });
           

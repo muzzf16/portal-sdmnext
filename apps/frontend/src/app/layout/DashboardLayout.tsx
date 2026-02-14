@@ -60,12 +60,15 @@ const DashboardLayout: React.FC = () => {
   const allNavItems = [
     { to: '/dashboard', icon: <Home size={20} />, text: 'Dashboard', roles: ['admin', 'employee'] },
     { to: '/dashboard/pegawai', icon: <Users size={20} />, text: 'Manajemen Pegawai', roles: ['admin'] },
+    { to: '/dashboard/struktur-organisasi', icon: <BarChart2 size={20} />, text: 'Struktur Organisasi', roles: ['admin'] },
     { to: '/dashboard/absensi', icon: <Calendar size={20} />, text: 'Manajemen Absensi', roles: ['admin'] },
     { to: '/dashboard/cuti', icon: <Briefcase size={20} />, text: 'Manajemen Cuti', roles: ['admin'] },
     { to: '/dashboard/penggajian', icon: <DollarSign size={20} />, text: 'Manajemen Penggajian', roles: ['admin'] },
     { to: '/dashboard/kontrak', icon: <FileText size={20} />, text: 'Manajemen Kontrak', roles: ['admin'] },
     { to: '/dashboard/kinerja', icon: <BarChart2 size={20} />, text: 'Manajemen Kinerja', roles: ['admin'] },
-    { to: '/dashboard/kinerja/analisis-beban-kerja', icon: <FileText size={20} />, text: 'Analisis Beban Kerja', roles: ['admin', 'employee'] },
+    { to: '/dashboard/kinerja/analisis-beban-kerja', icon: <FileText size={20} />, text: 'Analisis Beban Kerja', roles: ['employee'] },
+    { to: '/dashboard/kinerja/perpustakaan-aktivitas', icon: <Award size={20} />, text: 'Perpustakaan Aktivitas', roles: ['admin'] },
+    { to: '/dashboard/kinerja/kpi-target', icon: <BarChart2 size={20} />, text: 'Manajemen KPI', roles: ['admin'] },
     { to: '/dashboard/perekrutan', icon: <UserPlus size={20} />, text: 'Perekrutan', roles: ['admin'] },
 
     { to: '/dashboard/pelatihan', icon: <Award size={20} />, text: 'Manajemen Pelatihan', roles: ['admin'] },

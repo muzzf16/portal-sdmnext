@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { WorkLoadAnalysis, WorkLoadItem } from '../types';
+import { WorkLoadAnalysis, WorkLoadItem, ActivityLibraryItem } from '../types';
 import { saveWorkloadAnalysis, getWorkloadAnalysis } from '../api/workloadApi';
+import { getActivityByPosition } from '../api/activityLibraryApi';
 import { useToast } from '@/app/providers/ToastContext';
 // import { useAuth } from '@/app/providers/AuthProvider'; // Assuming this exists
 
@@ -16,9 +17,10 @@ interface WorkLoadFormProps {
     year: number;
     initialData?: WorkLoadAnalysis | null;
     onSuccess?: () => void;
+    onSaved?: () => void;
 }
 
-const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialData, onSuccess }) => {
+const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialData, onSuccess, onSaved }) => {
     const { register, control, handleSubmit, watch, setValue, reset } = useForm<WorkLoadAnalysis>({
         defaultValues: initialData || {
             employeeId,
@@ -40,9 +42,22 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
     const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [libraryActivities, setLibraryActivities] = useState<ActivityLibraryItem[]>([]);
+
+    // Watch position to fetch library activities
+    const position = watch('position');
 
     // Watch items to calculate total
     const items = watch('items') || [];
+
+    // Fetch library activities when position changes
+    useEffect(() => {
+        if (position && position.length > 1) {
+            getActivityByPosition(position).then(res => {
+                setLibraryActivities(res.data?.data || []);
+            }).catch(() => setLibraryActivities([]));
+        }
+    }, [position]);
 
 
     const calculateItemTotal = (item: WorkLoadItem) => {
@@ -83,6 +98,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
             await saveWorkloadAnalysis(data);
             addToast('Laporan kerja berhasil disimpan', 'success');
             if (onSuccess) onSuccess();
+            if (onSaved) onSaved();
         } catch (error) {
             console.error(error);
             addToast('Gagal menyimpan laporan kerja', 'error');
@@ -189,10 +205,35 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                     </tfoot>
                 </table>
 
-                <div className="mt-4 flex justify-between">
-                    <button type="button" onClick={() => append({ activityName: '', durationMinutes: 0, freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 })} className="px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50">
-                        + Tambah Baris
-                    </button>
+                <div className="mt-4 flex justify-between items-start gap-4 flex-wrap">
+                    <div className="flex gap-2 items-center">
+                        <button type="button" onClick={() => append({ activityName: '', durationMinutes: 0, freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 })} className="px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50">
+                            + Tambah Baris
+                        </button>
+                        {libraryActivities.length > 0 && (
+                            <select
+                                onChange={(e) => {
+                                    const act = libraryActivities.find(a => a.id === e.target.value);
+                                    if (act) {
+                                        append({
+                                            activityName: act.activityName,
+                                            outputUnit: act.outputUnit,
+                                            durationMinutes: act.durationMinutes,
+                                            freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0
+                                        });
+                                        e.target.value = '';
+                                    }
+                                }}
+                                className="border border-green-500 text-green-700 rounded px-3 py-2 text-sm bg-green-50 hover:bg-green-100"
+                                defaultValue=""
+                            >
+                                <option value="" disabled>📚 Pilih dari Library ({position})</option>
+                                {libraryActivities.map(act => (
+                                    <option key={act.id} value={act.id}>{act.activityName} ({act.durationMinutes} mnt)</option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
                     <div className="space-x-2">
                         <button type="button" className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">Draft</button>
                         <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300">

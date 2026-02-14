@@ -243,8 +243,28 @@ const HalamanDetailPegawai: React.FC = () => {
                 </h3>
                 <div className="space-y-4">
                   <div className="flex">
+                    <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Jabatan</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
+                      {(pegawai as any).jabatanNama || pegawai.position || '-'}
+                      {(pegawai as any).jabatanLevel && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200">
+                          Level {(pegawai as any).jabatanLevel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Unit Kerja</div>
-                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">{pegawai.department || '-'}</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">{(pegawai as any).jabatanDepartment || pegawai.department || '-'}</div>
+                  </div>
+                  <div className="flex">
+                    <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Atasan Langsung</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
+                      {(pegawai as any).atasanNama || '-'}
+                      {(pegawai as any).atasanNip && (
+                        <span className="ml-1 text-xs text-gray-400">({(pegawai as any).atasanNip})</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Posisi</div>

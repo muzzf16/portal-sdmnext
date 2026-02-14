@@ -30,8 +30,8 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   }
 };
 
-const upload = multer({ 
-  storage, 
+const upload = multer({
+  storage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -42,7 +42,7 @@ class PegawaiController {
   static async getAllPegawai(req: Request, res: Response, next: NextFunction) {
     try {
       const pegawai = await PegawaiService.getAllPegawai();
-      res.status(200).json(pegawai);
+      return res.status(200).json({ success: true, data: pegawai });
     } catch (error) {
       next(error);
     }
@@ -52,7 +52,7 @@ class PegawaiController {
     try {
       const { id } = req.params;
       const pegawai = await PegawaiService.getPegawaiById(id);
-      res.status(200).json(pegawai);
+      return res.status(200).json({ success: true, data: pegawai });
     } catch (error) {
       next(error);
     }
@@ -81,7 +81,7 @@ class PegawaiController {
       };
 
       const newPegawai = await PegawaiService.createPegawai(name, email, newPegawaiData);
-      res.status(201).json(newPegawai);
+      return res.status(201).json({ success: true, data: newPegawai });
     } catch (error) {
       next(error);
     }
@@ -114,7 +114,7 @@ class PegawaiController {
       }
 
       const updatedPegawai = await PegawaiService.updatePegawai(id, name, email, updatedPegawaiData);
-      res.status(200).json(updatedPegawai);
+      return res.status(200).json({ success: true, data: updatedPegawai });
     } catch (error) {
       next(error);
     }
@@ -124,7 +124,7 @@ class PegawaiController {
     try {
       const { id } = req.params;
       const result = await PegawaiService.deletePegawai(id);
-      res.status(200).json(result);
+      return res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }
@@ -135,7 +135,7 @@ class PegawaiController {
       const { id } = req.params;
       const payrollInfo = req.body;
       const result = await PegawaiService.updatePegawaiPayrollInfo(id, payrollInfo);
-      res.status(200).json(result);
+      return res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }
@@ -144,7 +144,7 @@ class PegawaiController {
   static async getGenderDistribution(req: Request, res: Response, next: NextFunction) {
     try {
       const distribution = await PegawaiService.getGenderDistribution();
-      res.status(200).json(distribution);
+      return res.status(200).json({ success: true, data: distribution });
     } catch (error) {
       next(error);
     }
@@ -153,7 +153,16 @@ class PegawaiController {
   static async getEducationDistribution(req: Request, res: Response, next: NextFunction) {
     try {
       const distribution = await PegawaiService.getEducationDistribution();
-      res.status(200).json(distribution);
+      return res.status(200).json({ success: true, data: distribution });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getDepartmentDistribution(req: Request, res: Response, next: NextFunction) {
+    try {
+      const distribution = await PegawaiService.getDepartmentDistribution();
+      return res.status(200).json({ success: true, data: distribution });
     } catch (error) {
       next(error);
     }

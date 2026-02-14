@@ -18,6 +18,9 @@ import reportRoutes from '../modules/laporan/laporan.routes';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes';
 import uploadRoutes from './upload';
 import workloadRoutes from '../modules/workload/workload.routes';
+import activityLibraryRoutes from '../modules/activity-library/activity-library.routes';
+import kpiRoutes from '../modules/kpi/kpi.routes';
+import jabatanRoutes from '../modules/jabatan/jabatan.routes';
 
 const router = Router();
 
@@ -39,6 +42,9 @@ router.use('/company-settings', companySettingsRoutes);
 router.use('/reports', reportRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/workload', workloadRoutes);
+router.use('/activity-library', activityLibraryRoutes);
+router.use('/kpi-targets', kpiRoutes);
+router.use('/jabatan', jabatanRoutes);
 router.use('/', uploadRoutes);
 
 

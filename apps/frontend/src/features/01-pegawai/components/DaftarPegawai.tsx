@@ -22,23 +22,23 @@ const DaftarPegawai: React.FC = () => {
 
   // Filter employees based on search term and filters
   const filteredPegawai = pegawai?.filter(p => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.nip.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesPosition = !filterPosition || p.position === filterPosition;
     const matchesDepartment = !filterDepartment || p.department === filterDepartment;
-    const matchesStatus = !filterStatus || 
+    const matchesStatus = !filterStatus ||
       (filterStatus === 'aktif' && p.isActive !== false) ||
       (filterStatus === 'nonaktif' && p.isActive === false);
-    
+
     return matchesSearch && matchesPosition && matchesDepartment && matchesStatus;
   }) || [];
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus pegawai ini?')) {
       try {
-        await deleteMutation.mutateAsync(id.toString());
+        await deleteMutation.mutateAsync(id);
         // The mutation already handles updating the cache via React Query's invalidation in the hook
       } catch (err) {
         // Handle error
@@ -69,7 +69,7 @@ const DaftarPegawai: React.FC = () => {
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['Foto', 'Nama', 'NIP', 'Posisi', 'Pangkat', 'Golongan', 'Departemen', 'Status', 'Riwayat Jabatan', 'Aksi'];
+  const tableHeaders = ['Foto', 'Nama', 'NIP', 'Jabatan', 'Departemen', 'Atasan', 'Status', 'Riwayat Jabatan', 'Aksi'];
 
   return (
     <div className="mt-6">
@@ -77,7 +77,7 @@ const DaftarPegawai: React.FC = () => {
       <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md p-6 mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white">Daftar Pegawai</h2>
-          
+
           {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -91,7 +91,7 @@ const DaftarPegawai: React.FC = () => {
               placeholder="Cari berdasarkan nama atau NIP..."
             />
           </div>
-          
+
           {/* Filter Toggle Button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -102,7 +102,7 @@ const DaftarPegawai: React.FC = () => {
             <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
         </div>
-        
+
         {/* Advanced Filters */}
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-neutral-700">
@@ -121,7 +121,7 @@ const DaftarPegawai: React.FC = () => {
                 ))}
               </select>
             </div>
-            
+
             <div>
               <label htmlFor="filter-department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Kerja</label>
               <select
@@ -137,7 +137,7 @@ const DaftarPegawai: React.FC = () => {
                 ))}
               </select>
             </div>
-            
+
             <div>
               <label htmlFor="filter-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <select
@@ -152,7 +152,7 @@ const DaftarPegawai: React.FC = () => {
                 <option value="nonaktif">Nonaktif</option>
               </select>
             </div>
-            
+
             <div className="flex items-end">
               <button
                 onClick={clearFilters}
@@ -172,9 +172,9 @@ const DaftarPegawai: React.FC = () => {
             <tr key={p.id}>
               <td className="py-4 px-6">
                 {p.avatarUrl ? (
-                  <img 
-                    src={p.avatarUrl} 
-                    alt={p.name} 
+                  <img
+                    src={p.avatarUrl}
+                    alt={p.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
@@ -185,20 +185,30 @@ const DaftarPegawai: React.FC = () => {
                   </div>
                 )}
               </td>
-              <td className="py-4 px-6 font-medium text-gray-900 dark:text-white">{p.name}</td>
+              <td className="py-4 px-6">{p.name}</td>
               <td className="py-4 px-6">{p.nip}</td>
-              <td className="py-4 px-6">{p.position || '-'}</td>
-              <td className="py-4 px-6">{p.pangkat || '-'}</td>
-              <td className="py-4 px-6">{p.golongan || '-'}</td>
-              <td className="py-4 px-6">{p.department || '-'}</td>
+              <td className="py-4 px-6">
+                <div className="font-medium text-gray-900 dark:text-white">{(p as any).jabatanNama || p.position || '-'}</div>
+                {(p as any).jabatanLevel && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Level {(p as any).jabatanLevel}</span>
+                )}
+              </td>
+              <td className="py-4 px-6">{(p as any).jabatanDepartment || p.department || '-'}</td>
+              <td className="py-4 px-6">
+                {(p as any).atasanNama ? (
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{(p as any).atasanNama}</span>
+                ) : (
+                  <span className="text-xs text-gray-400">-</span>
+                )}
+              </td>
               <td className="py-4 px-6">
                 <Badge variant={p.isActive === false ? 'danger' : 'success'}>
                   {p.isActive === false ? 'Nonaktif' : 'Aktif'}
                 </Badge>
               </td>
               <td className="py-4 px-6 text-center">
-                <Link 
-                  to={`/dashboard/pegawai/${p.id}/riwayat-jabatan`} 
+                <Link
+                  to={`/dashboard/pegawai/${p.id}/riwayat-jabatan`}
                   className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                   title="Lihat Riwayat Jabatan"
                 >
@@ -207,8 +217,8 @@ const DaftarPegawai: React.FC = () => {
               </td>
               <td className="py-4 px-6">
                 <div className="flex items-center space-x-2">
-                  <Link 
-                    to={`/dashboard/pegawai/${p.id}`} 
+                  <Link
+                    to={`/dashboard/pegawai/${p.id}`}
                     className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
                     title="Lihat"
                   >
@@ -238,8 +248,8 @@ const DaftarPegawai: React.FC = () => {
           <User className="h-16 w-16 mx-auto text-gray-300 dark:text-gray-600" />
           <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">Tidak ada data pegawai</h3>
           <p className="mt-1 text-gray-500 dark:text-gray-400">
-            {pegawai?.length === 0 
-              ? 'Belum ada pegawai yang terdaftar.' 
+            {pegawai?.length === 0
+              ? 'Belum ada pegawai yang terdaftar.'
               : 'Tidak ada pegawai yang sesuai dengan filter pencarian.'}
           </p>
           <Button

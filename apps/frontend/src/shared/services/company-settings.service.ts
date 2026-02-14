@@ -1,10 +1,10 @@
 
 import axios from 'axios';
 
-const API_URL = '/api/company-settings';
+const BASE_URL = `${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api/company-settings`;
 
 export const getCompanySettings = () => {
-  return axios.get(API_URL);
+  return axios.get(BASE_URL);
 };
 
 export const updateCompanySettings = (data: any, logoFile?: File | null) => {
@@ -18,7 +18,7 @@ export const updateCompanySettings = (data: any, logoFile?: File | null) => {
     formData.append('logo', logoFile);
   }
 
-  return axios.put(API_URL, formData, {
+  return axios.put(BASE_URL, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

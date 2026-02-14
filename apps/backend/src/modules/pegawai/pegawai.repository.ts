@@ -15,13 +15,29 @@ const parseJsonFields = (rows: any[]) => {
 export const PegawaiRepository = {
   async findAll() {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM pegawai ORDER BY name ASC');
+    const rows = await db.all(`
+      SELECT p.*, 
+        j.nama as jabatanNama, j.level as jabatanLevel, j.department as jabatanDepartment,
+        a.name as atasanNama
+      FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      LEFT JOIN pegawai a ON p.atasan_id = a.id
+      ORDER BY p.name ASC
+    `);
     return parseJsonFields(rows);
   },
 
   async findById(id: string) {
     const db = await openDb();
-    const row = await db.get('SELECT * FROM pegawai WHERE id = ?', id);
+    const row = await db.get(`
+      SELECT p.*, 
+        j.nama as jabatanNama, j.level as jabatanLevel, j.department as jabatanDepartment,
+        a.name as atasanNama, a.nip as atasanNip
+      FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      LEFT JOIN pegawai a ON p.atasan_id = a.id
+      WHERE p.id = ?
+    `, id);
     if (!row) return null;
     return parseJsonFields([row])[0];
   },
@@ -33,13 +49,32 @@ export const PegawaiRepository = {
     return parseJsonFields([row])[0];
   },
 
+  async findByNip(nip: string) {
+    const db = await openDb();
+    const row = await db.get('SELECT * FROM pegawai WHERE nip = ?', nip);
+    if (!row) return null;
+    return parseJsonFields([row])[0];
+  },
+
+  async generateNip() {
+    const db = await openDb();
+    const year = new Date().getFullYear();
+    const result = await db.get(
+      'SELECT COUNT(*) as count FROM pegawai WHERE nip LIKE ?',
+      `${year}%`
+    );
+    const seq = (result?.count || 0) + 1;
+    return `${year}${String(seq).padStart(4, '0')}`;
+  },
+
   async create(data: any) {
     const db = await openDb();
     const newId = data.id || `emp-${Date.now()}`;
+    const nip = data.nip || await this.generateNip();
     const pegawaiData = {
       id: newId,
       name: data.name,
-      nip: data.nip || `NIP${Date.now().toString().slice(-4)}`,
+      nip,
       email: data.email,
       position: data.position || 'N/A',
       pangkat: data.pangkat || 'N/A',
@@ -69,7 +104,7 @@ export const PegawaiRepository = {
     const values = Object.values(pegawaiData);
 
     await db.run(`INSERT INTO pegawai (${columns.join(',')}) VALUES (${placeholders})`, values);
-    
+
     const newRow = await db.get('SELECT * FROM pegawai WHERE id = ?', newId);
     return parseJsonFields([newRow])[0];
   },
@@ -78,11 +113,11 @@ export const PegawaiRepository = {
     const db = await openDb();
 
     const validColumns = [
-      'name', 'nip', 'email', 'position', 'pangkat', 'golongan', 'department', 
-      'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone', 
-      'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren', 
+      'name', 'nip', 'email', 'position', 'pangkat', 'golongan', 'department',
+      'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone',
+      'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren',
       'educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo',
-      'jenis_kelamin', 'tanggalKeluar'
+      'jenis_kelamin', 'tanggalKeluar', 'jabatan_id', 'atasan_id'
     ];
 
     const fieldsToUpdate: any = {};
@@ -150,9 +185,9 @@ export const PegawaiRepository = {
   async getGenderDistribution() {
     const db = await openDb();
     const rows = await db.all('SELECT jenis_kelamin FROM pegawai WHERE jenis_kelamin IS NOT NULL');
-    
+
     const genderCount: { [key: string]: number } = { 'L': 0, 'P': 0, 'Other': 0 };
-    
+
     rows.forEach(row => {
       if (row.jenis_kelamin === 'L') {
         genderCount['L']++;
@@ -162,7 +197,7 @@ export const PegawaiRepository = {
         genderCount['Other']++;
       }
     });
-    
+
     return [
       { name: 'Laki-laki', value: genderCount['L'] },
       { name: 'Perempuan', value: genderCount['P'] },
@@ -173,9 +208,9 @@ export const PegawaiRepository = {
   async getEducationDistribution() {
     const db = await openDb();
     const rows = await db.all('SELECT educationHistory FROM pegawai WHERE educationHistory IS NOT NULL AND educationHistory != \'[]\'');
-    
+
     const educationCount: { [key: string]: number } = {};
-    
+
     rows.forEach(row => {
       if (row.educationHistory && row.educationHistory !== '[]') {
         try {
@@ -191,8 +226,21 @@ export const PegawaiRepository = {
         }
       }
     });
-    
+
     return Object.entries(educationCount).map(([name, employees]) => ({ name, employees }));
+  },
+
+  async getDepartmentDistribution() {
+    const db = await openDb();
+    const rows = await db.all(`
+      SELECT COALESCE(j.department, p.department, 'Belum Ditetapkan') as dept, COUNT(*) as count
+      FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE p.isActive = 1 OR p.statusKaryawan = 'aktif'
+      GROUP BY dept
+      ORDER BY count DESC
+    `);
+    return rows.map((r: any) => ({ name: r.dept, value: r.count }));
   },
 
   // Additional method for comprehensive employee report data

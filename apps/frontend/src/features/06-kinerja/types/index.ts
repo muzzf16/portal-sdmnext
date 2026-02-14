@@ -12,6 +12,7 @@ export interface Kinerja {
   employeeFeedback: string;
   kpis: any[];
   penilaiId?: string;
+  coachingRecommendation?: string;
   createdAt?: string;
 }
 
@@ -38,4 +39,37 @@ export interface WorkLoadAnalysis {
   totalYearlyMinutes: number;
   status: 'draft' | 'submitted' | 'approved' | 'returned';
   items: WorkLoadItem[];
+  ftePercentage?: number;
+  fteStatus?: 'Overload' | 'Normal' | 'Underload';
+  hoursPerDay?: number;
 }
+
+export interface ActivityLibraryItem {
+  id: string;
+  position: string;
+  department: string;
+  activityName: string;
+  durationMinutes: number;
+  outputUnit: string;
+  category: string;
+  created_at?: string;
+}
+
+export interface KpiTarget {
+  id: string;
+  employeeId: string;
+  period: string;
+  kpiName: string;
+  targetValue: number;
+  targetUnit: string;
+  weight: number;
+  actualValue: number;
+  score: number;
+  status: 'active' | 'completed' | 'cancelled';
+  source: 'abk' | 'manual';
+  abkActivityId?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+

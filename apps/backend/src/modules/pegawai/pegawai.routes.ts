@@ -5,13 +5,16 @@ import PegawaiAuthController from './pegawai.auth.controller';
 
 const router = Router();
 
-router.get('/', PegawaiController.getAllPegawai);
-router.get('/:id', PegawaiController.getPegawaiById);
+// Specific routes MUST come before parametric /:id route
 router.get('/charts/gender-distribution', PegawaiController.getGenderDistribution);
 router.get('/charts/education-distribution', PegawaiController.getEducationDistribution);
-router.post('/', PegawaiController.uploadAvatar, PegawaiController.createPegawai);
+router.get('/charts/department-distribution', PegawaiController.getDepartmentDistribution);
 
-router.post('/with-user', PegawaiController.uploadAvatar, PegawaiAuthController.createEmployeeWithUser); // New endpoint for creating employee with user
+router.get('/', PegawaiController.getAllPegawai);
+router.get('/:id', PegawaiController.getPegawaiById);
+
+router.post('/', PegawaiController.uploadAvatar, PegawaiController.createPegawai);
+router.post('/with-user', PegawaiController.uploadAvatar, PegawaiAuthController.createEmployeeWithUser);
 router.put('/:id', PegawaiController.uploadAvatar, PegawaiController.updatePegawai);
 router.delete('/:id', PegawaiController.deletePegawai);
 router.put('/:id/payroll-info', PegawaiController.updatePegawaiPayrollInfo);

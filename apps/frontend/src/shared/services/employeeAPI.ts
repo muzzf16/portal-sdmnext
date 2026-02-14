@@ -46,5 +46,15 @@ export const getEmployeeEducationData = async () => {
   }
 };
 
+export const getEmployeeDepartmentData = async () => {
+  try {
+    const response = await api.get('/employees/charts/department-distribution');
+    return response.data;
+  } catch (error) {
+    console.error('Error in getEmployeeDepartmentData:', error);
+    throw error;
+  }
+};
+
 // Export the instance in case other methods are needed
 export default employeeApi;

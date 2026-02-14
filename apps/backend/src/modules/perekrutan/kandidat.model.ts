@@ -8,4 +8,8 @@ export interface Kandidat {
   position_applied: string;
   status: string;
   resume_url: string;
+  cover_letter: string;
+  application_date: string;
+  notes: string;
+  created_at: string;
 }

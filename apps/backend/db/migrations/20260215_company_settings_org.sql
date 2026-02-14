@@ -1,0 +1,11 @@
+-- Migration: Add organizational settings columns to company_settings
+-- Date: 2026-02-15
+
+ALTER TABLE company_settings ADD COLUMN workStartTime TEXT DEFAULT '08:00';
+ALTER TABLE company_settings ADD COLUMN workEndTime TEXT DEFAULT '17:00';
+ALTER TABLE company_settings ADD COLUMN lateToleranceMinutes INTEGER DEFAULT 15;
+ALTER TABLE company_settings ADD COLUMN annualLeaveQuota INTEGER DEFAULT 12;
+ALTER TABLE company_settings ADD COLUMN sickLeaveQuota INTEGER DEFAULT 14;
+ALTER TABLE company_settings ADD COLUMN bankName TEXT DEFAULT '';
+ALTER TABLE company_settings ADD COLUMN bankAccountNumber TEXT DEFAULT '';
+ALTER TABLE company_settings ADD COLUMN payrollDate INTEGER DEFAULT 25;

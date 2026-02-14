@@ -1,12 +1,12 @@
 
 import axios from 'axios';
 
-const API_URL = '/api/backup';
+const BASE_URL = `${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api/backup`;
 
 export const backupDatabase = () => {
-  return axios.post(`${API_URL}/backup`);
+  return axios.post(`${BASE_URL}/backup`);
 };
 
 export const restoreDatabase = () => {
-  return axios.post(`${API_URL}/restore`);
+  return axios.post(`${BASE_URL}/restore`);
 };

@@ -6,8 +6,34 @@ import { AppError } from '../../utils/errors';
 const DAYS_IN_YEAR = 264; // Effective working days
 const WEEKS_IN_YEAR = 52;
 const MONTHS_IN_YEAR = 12;
+const HOURS_PER_DAY = 8;
+const AVAILABLE_YEARLY_MINUTES = DAYS_IN_YEAR * HOURS_PER_DAY * 60; // 126,720
 
 export default class WorkloadService {
+
+    /**
+     * Calculate FTE (Full Time Equivalent) percentage
+     * FTE = totalYearlyMinutes / availableYearlyMinutes × 100
+     */
+    static calculateFTE(totalYearlyMinutes: number): {
+        ftePercentage: number;
+        fteStatus: 'Overload' | 'Normal' | 'Underload';
+        hoursPerDay: number;
+    } {
+        const ftePercentage = parseFloat(((totalYearlyMinutes / AVAILABLE_YEARLY_MINUTES) * 100).toFixed(1));
+        const hoursPerDay = parseFloat((totalYearlyMinutes / DAYS_IN_YEAR / 60).toFixed(2));
+
+        let fteStatus: 'Overload' | 'Normal' | 'Underload';
+        if (ftePercentage > 100) {
+            fteStatus = 'Overload';
+        } else if (ftePercentage >= 80) {
+            fteStatus = 'Normal';
+        } else {
+            fteStatus = 'Underload';
+        }
+
+        return { ftePercentage, fteStatus, hoursPerDay };
+    }
 
     static calculateTotalMinutes(item: any) {
         return (item.durationMinutes || 0) * (

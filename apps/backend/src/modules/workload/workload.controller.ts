@@ -16,10 +16,21 @@ export default class WorkloadController {
             const analysis = await WorkloadService.getAnalysis(employeeId, parseInt(year as string));
 
             // If no analysis exists, return null or empty structure, don't throw 404
-            // Use 200 OK with null data if not found, to let frontend know it's a new entry
-            res.status(200).json({
+            if (!analysis) {
+                return res.status(200).json({ success: true, data: null });
+            }
+
+            // Add FTE calculation to response
+            const fte = WorkloadService.calculateFTE(analysis.totalYearlyMinutes || 0);
+
+            return res.status(200).json({
                 success: true,
-                data: analysis || null
+                data: {
+                    ...analysis,
+                    ftePercentage: fte.ftePercentage,
+                    fteStatus: fte.fteStatus,
+                    hoursPerDay: fte.hoursPerDay
+                }
             });
         } catch (error) {
             next(error);

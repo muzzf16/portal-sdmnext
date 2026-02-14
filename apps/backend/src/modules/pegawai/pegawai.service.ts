@@ -1,6 +1,8 @@
 import { PegawaiRepository } from './pegawai.repository';
 import { AppError } from '../../utils/errors';
-import { PenggunaRepository } from '../pengguna/pengguna.repository'; // Import PenggunaRepository
+import { PenggunaRepository } from '../pengguna/pengguna.repository';
+import { JabatanRepository } from '../jabatan/jabatan.repository';
+import { openDb } from '../../config/db';
 
 class PegawaiService {
   static async getAllPegawai() {
@@ -26,80 +28,169 @@ class PegawaiService {
     }
   }
 
+  // === Input Validation ===
+  private static validatePegawaiData(data: any, isUpdate = false) {
+    const errors: string[] = [];
+
+    if (!isUpdate) {
+      // Required fields for create
+      if (!data.name || data.name.trim().length < 2) {
+        errors.push('Nama harus minimal 2 karakter');
+      }
+      if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        errors.push('Format email tidak valid');
+      }
+    } else {
+      // Optional but validated if present
+      if (data.name !== undefined && data.name.trim().length < 2) {
+        errors.push('Nama harus minimal 2 karakter');
+      }
+      if (data.email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        errors.push('Format email tidak valid');
+      }
+    }
+
+    if (data.jenis_kelamin && !['L', 'P'].includes(data.jenis_kelamin)) {
+      errors.push('Jenis kelamin harus L (Laki-laki) atau P (Perempuan)');
+    }
+
+    if (data.phone && !/^[0-9+\-\s()]*$/.test(data.phone)) {
+      errors.push('Format nomor telepon tidak valid');
+    }
+
+    if (data.dob && !/^\d{4}-\d{2}-\d{2}$/.test(data.dob)) {
+      errors.push('Format tanggal lahir harus YYYY-MM-DD');
+    }
+
+    if (data.joinDate && !/^\d{4}-\d{2}-\d{2}$/.test(data.joinDate)) {
+      errors.push('Format tanggal masuk harus YYYY-MM-DD');
+    }
+
+    if (errors.length > 0) {
+      throw new AppError(errors.join('; '), 400);
+    }
+  }
+
+  // Resolve jabatan → auto-fill position & department
+  private static async resolveJabatanFields(data: any): Promise<any> {
+    if (data.jabatan_id) {
+      const jabatan = await JabatanRepository.findById(Number(data.jabatan_id));
+      if (jabatan) {
+        data.position = jabatan.nama;
+        data.department = jabatan.department || data.department;
+      }
+    }
+    return data;
+  }
+
   static async createPegawai(name: string, email: string, pegawaiData: any) {
     try {
-      // Validate jenis_kelamin if provided
-      if (pegawaiData.jenis_kelamin && !['L', 'P'].includes(pegawaiData.jenis_kelamin)) {
-        throw new AppError('Jenis kelamin must be L (Laki-laki) or P (Perempuan)', 400);
+      // Validate input
+      PegawaiService.validatePegawaiData({ ...pegawaiData, name, email });
+
+      // Check email uniqueness
+      const existingByEmail = await PegawaiRepository.findByEmail(email);
+      if (existingByEmail) {
+        throw new AppError('Email sudah terdaftar', 400);
       }
 
-      // Create the employee
-      const newPegawai = await PegawaiRepository.create({
-        ...pegawaiData,
-        name,
-        email
-      });
+      // Check NIP uniqueness if provided
+      if (pegawaiData.nip) {
+        const existingByNip = await PegawaiRepository.findByNip(pegawaiData.nip);
+        if (existingByNip) {
+          throw new AppError('NIP sudah terdaftar', 400);
+        }
+      }
 
-      // Create corresponding user
-      // The user creation logic is now handled within UserRepository.create
-      // No direct call to UserRepository.create here, as it's part of employee creation in the repository
+      // Auto-sync position/department from jabatan if jabatan_id provided
+      const enrichedData = await PegawaiService.resolveJabatanFields({ ...pegawaiData, name, email });
+
+      const newPegawai = await PegawaiRepository.create(enrichedData);
 
       return newPegawai;
     } catch (error: any) {
-      if (error.message === 'Email already exists') {
-        throw new AppError('Email already exists', 400);
-      }
+      if (error instanceof AppError) throw error;
       throw new AppError(`Error creating employee: ${error.message}`, 500);
     }
   }
 
   static async updatePegawai(id: string, name: string, email: string, pegawaiData: any) {
     try {
-      // Validate jenis_kelamin if provided
-      if (pegawaiData.jenis_kelamin && !['L', 'P'].includes(pegawaiData.jenis_kelamin)) {
-        throw new AppError('Jenis kelamin must be L (Laki-laki) or P (Perempuan)', 400);
+      // Validate input
+      PegawaiService.validatePegawaiData({ ...pegawaiData, name, email }, true);
+
+      // Check if employee exists
+      const existing = await PegawaiRepository.findById(id);
+      if (!existing) {
+        throw new AppError('Pegawai tidak ditemukan', 404);
       }
 
-      // Update employee data
-      const updatedPegawai = await PegawaiRepository.update(id, {
-        ...pegawaiData,
-        name,
-        email
-      });
+      // Check email uniqueness if email changed
+      if (email && email !== existing.email) {
+        const existingByEmail = await PegawaiRepository.findByEmail(email);
+        if (existingByEmail && existingByEmail.id !== id) {
+          throw new AppError('Email sudah digunakan pegawai lain', 400);
+        }
+      }
 
-      // Update corresponding user
-      // Assuming user update is handled separately or not directly tied to employee update in this service
-      // await UserRepository.update(updatedPegawai.id, {
-      //   name,
-      //   email
-      // });
+      // Auto-sync position/department from jabatan if jabatan_id provided
+      const enrichedData = await PegawaiService.resolveJabatanFields({ ...pegawaiData, name, email });
+
+      // Update employee data
+      const updatedPegawai = await PegawaiRepository.update(id, enrichedData);
+
+      // Sync user data if name or email changed
+      try {
+        const db = await openDb();
+        const linkedUser = await db.get('SELECT * FROM pengguna WHERE employeeId = ?', id);
+        if (linkedUser) {
+          const syncData: any = {};
+          if (name) syncData.name = name;
+          if (email) syncData.email = email;
+          if (Object.keys(syncData).length > 0) {
+            await PenggunaRepository.update(linkedUser.id, syncData);
+          }
+        }
+      } catch (syncError: any) {
+        console.error('Warning: Failed to sync user data:', syncError.message);
+        // Don't fail the main operation if user sync fails
+      }
 
       return updatedPegawai;
     } catch (error: any) {
-      if (error.message === 'Employee not found') {
-        throw new AppError('Employee not found', 404);
-      }
+      if (error instanceof AppError) throw error;
       throw new AppError(`Error updating employee: ${error.message}`, 500);
     }
   }
 
   static async deletePegawai(id: string) {
     try {
+      // Check if exists
+      const existing = await PegawaiRepository.findById(id);
+      if (!existing) {
+        throw new AppError('Pegawai tidak ditemukan', 404);
+      }
+
+      // Delete linked user account first
+      try {
+        const db = await openDb();
+        const linkedUser = await db.get('SELECT * FROM pengguna WHERE employeeId = ?', id);
+        if (linkedUser) {
+          await PenggunaRepository.delete(linkedUser.id);
+        }
+      } catch (syncError: any) {
+        console.error('Warning: Failed to delete linked user:', syncError.message);
+      }
+
       // Delete employee
       const deleted = await PegawaiRepository.delete(id);
       if (!deleted) {
-        throw new AppError('Employee not found', 404);
+        throw new AppError('Gagal menghapus pegawai', 500);
       }
 
-      // Delete corresponding user
-      // Assuming user deletion is handled separately or not directly tied to employee deletion in this service
-      // await UserRepository.delete(id);
-
-      return { message: 'Employee deleted successfully' };
+      return { message: 'Pegawai dan akun terkait berhasil dihapus' };
     } catch (error: any) {
-      if (error.message === 'Employee not found') {
-        throw error;
-      }
+      if (error instanceof AppError) throw error;
       throw new AppError(`Error deleting employee: ${error.message}`, 500);
     }
   }
@@ -128,6 +219,14 @@ class PegawaiService {
       return await PegawaiRepository.getEducationDistribution();
     } catch (error: any) {
       throw new AppError(`Error retrieving education distribution: ${error.message}`, 500);
+    }
+  }
+
+  static async getDepartmentDistribution() {
+    try {
+      return await PegawaiRepository.getDepartmentDistribution();
+    } catch (error: any) {
+      throw new AppError(`Error retrieving department distribution: ${error.message}`, 500);
     }
   }
 }

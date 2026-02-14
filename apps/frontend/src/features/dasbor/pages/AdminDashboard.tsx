@@ -1,21 +1,37 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getEmployees, getEmployeeGenderData, getEmployeeEducationData } from '../../../shared/services/employeeAPI';
+import { getEmployees, getEmployeeGenderData, getEmployeeEducationData, getEmployeeDepartmentData } from '../../../shared/services/employeeAPI';
 import { getTodayAttendanceCount } from '../../../shared/services/attendanceAPI';
 import { getPendingLeaveRequestsCount } from '../../../shared/services/leaveAPI';
 import { getExpiringContractsCount } from '../../../shared/services/kontrakAPI';
-import { Users, Clock, Calendar, FileText, Eye, BarChart3, DollarSign, UserCheck, File } from 'lucide-react';
+import {
+  Users, Clock, Calendar, FileText, Eye, BarChart3, DollarSign, UserCheck, File, Building2,
+  Loader2, Inbox
+} from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card } from '@/shared/components/ui';
 import { useAuth } from '@/shared/contexts/AuthContext';
-
 import { getRecentActivity } from '../../../shared/services/dashboardAPI';
 
-const COLORS = ['#0088FE', '#FF8042', '#00C49F', '#FFBB28'];
+const COLORS = ['#3B82F6', '#F97316', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4'];
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Selamat Pagi';
+  if (hour < 15) return 'Selamat Siang';
+  if (hour < 18) return 'Selamat Sore';
+  return 'Selamat Malam';
+}
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-[300px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+  </div>
+);
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const [totalEmployees, setTotalEmployees] = useState<number | null>(null);
   const [loadingEmployees, setLoadingEmployees] = useState<boolean>(true);
@@ -36,6 +52,7 @@ const AdminDashboard: React.FC = () => {
   // Chart data states
   const [genderData, setGenderData] = useState<{ name: string; value: number }[]>([]);
   const [educationData, setEducationData] = useState<{ name: string; employees: number }[]>([]);
+  const [departmentData, setDepartmentData] = useState<{ name: string; value: number }[]>([]);
   const [loadingCharts, setLoadingCharts] = useState<boolean>(true);
   const [errorCharts, setErrorCharts] = useState<string | null>(null);
 
@@ -49,13 +66,11 @@ const AdminDashboard: React.FC = () => {
       navigate('/login');
       return;
     }
-    setError(`Failed to fetch ${label}.`);
-    // eslint-disable-next-line no-console
+    setError(`Gagal memuat ${label}.`);
     console.error(`Error fetching ${label}:`, error);
   }, [logout, navigate]);
 
   useEffect(() => {
-
     const fetchTotalEmployees = async () => {
       try {
         const response = await getEmployees();
@@ -68,7 +83,7 @@ const AdminDashboard: React.FC = () => {
               : [];
         setTotalEmployees(employeesData.length);
       } catch (error) {
-        handleApiError(error, setErrorEmployees, 'total employees');
+        handleApiError(error, setErrorEmployees, 'total karyawan');
       } finally {
         setLoadingEmployees(false);
       }
@@ -79,7 +94,7 @@ const AdminDashboard: React.FC = () => {
         const count = await getTodayAttendanceCount();
         setTodayAttendanceCount(count);
       } catch (error) {
-        handleApiError(error, setErrorTodayAttendance, "today's attendance");
+        handleApiError(error, setErrorTodayAttendance, 'kehadiran hari ini');
       } finally {
         setLoadingTodayAttendance(false);
       }
@@ -90,7 +105,7 @@ const AdminDashboard: React.FC = () => {
         const count = await getPendingLeaveRequestsCount();
         setPendingLeaveRequestsCount(count);
       } catch (error) {
-        handleApiError(error, setErrorPendingLeaveRequests, 'pending leave requests');
+        handleApiError(error, setErrorPendingLeaveRequests, 'pengajuan cuti');
       } finally {
         setLoadingPendingLeaveRequests(false);
       }
@@ -101,7 +116,7 @@ const AdminDashboard: React.FC = () => {
         const count = await getExpiringContractsCount();
         setExpiringContractsCount(count);
       } catch (error) {
-        handleApiError(error, setErrorExpiringContracts, 'expiring contracts');
+        handleApiError(error, setErrorExpiringContracts, 'kontrak berakhir');
       } finally {
         setLoadingExpiringContracts(false);
       }
@@ -109,14 +124,19 @@ const AdminDashboard: React.FC = () => {
 
     const fetchChartData = async () => {
       try {
-        const [genderResponse, educationResponse] = await Promise.all([
+        const [genderResponse, educationResponse, deptResponse] = await Promise.all([
           getEmployeeGenderData(),
-          getEmployeeEducationData()
+          getEmployeeEducationData(),
+          getEmployeeDepartmentData()
         ]);
-        setGenderData(genderResponse);
-        setEducationData(educationResponse);
+        const gd = Array.isArray(genderResponse) ? genderResponse : (genderResponse?.data || []);
+        const ed = Array.isArray(educationResponse) ? educationResponse : (educationResponse?.data || []);
+        const dd = Array.isArray(deptResponse) ? deptResponse : (deptResponse?.data || []);
+        setGenderData(gd);
+        setEducationData(ed);
+        setDepartmentData(dd);
       } catch (error) {
-        handleApiError(error, setErrorCharts, 'chart data');
+        handleApiError(error, setErrorCharts, 'data chart');
       } finally {
         setLoadingCharts(false);
       }
@@ -124,15 +144,10 @@ const AdminDashboard: React.FC = () => {
 
     const fetchRecentActivity = async () => {
       try {
-        const response = await getRecentActivity();
-        const data = Array.isArray(response)
-          ? response
-          : (response && typeof response === 'object' && 'data' in response)
-            ? ((response as any).data?.data || (response as any).data || [])
-            : [];
-        setRecentActivity(data);
+        const data = await getRecentActivity();
+        setRecentActivity(Array.isArray(data) ? data : []);
       } catch (error) {
-        handleApiError(error, setErrorRecentActivity, 'recent activity');
+        handleApiError(error, setErrorRecentActivity, 'aktivitas terbaru');
       } finally {
         setLoadingRecentActivity(false);
       }
@@ -146,45 +161,42 @@ const AdminDashboard: React.FC = () => {
       fetchChartData(),
       fetchRecentActivity(),
     ]).catch(error => {
-      // eslint-disable-next-line no-console
       console.error('An error occurred during initial data fetching:', error);
-      setLoadingEmployees(false);
-      setLoadingTodayAttendance(false);
-      setLoadingPendingLeaveRequests(false);
-      setLoadingExpiringContracts(false);
-      setLoadingCharts(false);
-      setLoadingRecentActivity(false);
     });
   }, [handleApiError]);
 
-  const stats = useMemo(() => ([ 
-    { 
-      title: 'Total Karyawan', 
-      value: loadingEmployees ? '...' : errorEmployees ? 'Error' : totalEmployees !== null ? totalEmployees.toString() : 'N/A', 
-      change: '+5%', 
+  const stats = useMemo(() => ([
+    {
+      title: 'Total Karyawan',
+      value: loadingEmployees ? '...' : errorEmployees ? 'Error' : totalEmployees !== null ? totalEmployees.toString() : 'N/A',
       icon: Users,
-      color: 'text-blue-500'
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+      link: '/dashboard/pegawai'
     },
-    { 
-      title: 'Hari Ini Masuk', 
-      value: loadingTodayAttendance ? '...' : errorTodayAttendance ? 'Error' : todayAttendanceCount !== null ? todayAttendanceCount.toString() : 'N/A', 
-      change: '+2%', 
+    {
+      title: 'Hadir Hari Ini',
+      value: loadingTodayAttendance ? '...' : errorTodayAttendance ? 'Error' : todayAttendanceCount !== null ? todayAttendanceCount.toString() : 'N/A',
       icon: Clock,
-      color: 'text-green-500'
+      color: 'text-green-500',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
+      link: '/dashboard/absensi'
     },
-    { 
-      title: 'Pengajuan Cuti', 
-      value: loadingPendingLeaveRequests ? '...' : errorPendingLeaveRequests ? 'Error' : pendingLeaveRequestsCount !== null ? pendingLeaveRequestsCount.toString() : 'N/A', 
-      change: '+1', 
+    {
+      title: 'Pengajuan Cuti',
+      value: loadingPendingLeaveRequests ? '...' : errorPendingLeaveRequests ? 'Error' : pendingLeaveRequestsCount !== null ? pendingLeaveRequestsCount.toString() : 'N/A',
       icon: Calendar,
-      color: 'text-orange-500'
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+      link: '/dashboard/cuti'
     },
-    { 
-      title: 'Kontrak Berakhir', 
-      value: loadingExpiringContracts ? '...' : errorExpiringContracts ? 'Error' : expiringContractsCount !== null ? expiringContractsCount.toString() : 'N/A', 
-      change: '0', 
+    {
+      title: 'Kontrak Berakhir',
+      value: loadingExpiringContracts ? '...' : errorExpiringContracts ? 'Error' : expiringContractsCount !== null ? expiringContractsCount.toString() : 'N/A',
       icon: FileText,
-      color: 'text-red-500'
+      color: 'text-red-500',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
+      link: '/dashboard/kontrak'
     }
   ]), [
     loadingEmployees, errorEmployees, totalEmployees,
@@ -193,52 +205,56 @@ const AdminDashboard: React.FC = () => {
     loadingExpiringContracts, errorExpiringContracts, expiringContractsCount
   ]);
 
+  const todayStr = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       <main>
-        <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Dashboard Admin</h2>
-        {/* Stats Overview */}
+        {/* Greeting */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {getGreeting()}, {user?.name || 'Admin'} 👋
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{todayStr}</p>
+        </div>
+
+        {/* Stats Overview — clickable */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl shadow transition-transform duration-300 hover:scale-[1.02]">
+            <Link
+              key={index}
+              to={stat.link}
+              className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl shadow transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+            >
               <div className="flex items-center">
-                <div className={`p-3 rounded-lg ${stat.color} bg-opacity-10 dark:bg-opacity-20`} aria-hidden="true">
+                <div className={`p-3 rounded-lg ${stat.bgColor}`} aria-hidden="true">
                   <stat.icon size={24} className={stat.color} aria-hidden="true" />
                 </div>
                 <div className="ml-4">
                   <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</p>
                   <p className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
-                  <p className="text-xs text-green-500 dark:text-green-400">{stat.change}</p>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
-        {/* Employee Analysis Charts */}
+        {/* Employee Analysis Charts — 3 charts */}
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Analisis Karyawan</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Gender Pie Chart */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Distribusi Gender</h3>
-            {loadingCharts ? (
+            {loadingCharts ? <LoadingSpinner /> : errorCharts ? (
               <div className="flex justify-center items-center h-[300px]">
-                <p>Loading chart data...</p>
-              </div>
-            ) : errorCharts ? (
-              <div className="flex justify-center items-center h-[300px]">
-                <p className="text-red-500">{errorCharts}</p>
+                <p className="text-red-500 dark:text-red-400">{errorCharts}</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart aria-label="Chart Distribusi Gender">
-                  <Pie
-                    data={genderData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
+                  <Pie data={genderData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value"
                     label={(props) => {
                       const { name, percent } = props as any;
                       return `${name} ${(Number(percent) * 100).toFixed(0)}%`;
@@ -255,32 +271,55 @@ const AdminDashboard: React.FC = () => {
             )}
           </Card>
 
+          {/* Education Bar Chart */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Distribusi Pendidikan</h3>
-            {loadingCharts ? (
+            {loadingCharts ? <LoadingSpinner /> : errorCharts ? (
               <div className="flex justify-center items-center h-[300px]">
-                <p>Loading chart data...</p>
-              </div>
-            ) : errorCharts ? (
-              <div className="flex justify-center items-center h-[300px]">
-                <p className="text-red-500">{errorCharts}</p>
+                <p className="text-red-500 dark:text-red-400">{errorCharts}</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={educationData}
-                  margin={{
-                    top: 5, right: 30, left: 20, bottom: 5,
-                  }}
-                  aria-label="Chart Distribusi Pendidikan"
-                >
+                <BarChart data={educationData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                  <XAxis dataKey="name" className="text-sm text-gray-600 dark:text-gray-300" />
-                  <YAxis className="text-sm text-gray-600 dark:text-gray-300" />
+                  <XAxis dataKey="name" className="text-sm" />
+                  <YAxis className="text-sm" />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="employees" fill="#82ca9d" />
+                  <Bar dataKey="employees" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          {/* Department Pie Chart — NEW */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Distribusi Departemen</h3>
+            {loadingCharts ? <LoadingSpinner /> : errorCharts ? (
+              <div className="flex justify-center items-center h-[300px]">
+                <p className="text-red-500 dark:text-red-400">{errorCharts}</p>
+              </div>
+            ) : departmentData.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-[300px] text-gray-400 dark:text-gray-500">
+                <Building2 className="h-10 w-10 mb-2" />
+                <p>Belum ada data departemen</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart aria-label="Chart Distribusi Departemen">
+                  <Pie data={departmentData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value"
+                    label={(props) => {
+                      const { name, percent } = props as any;
+                      return `${name} ${(Number(percent) * 100).toFixed(0)}%`;
+                    }}
+                  >
+                    {departmentData.map((_, index) => (
+                      <Cell key={`dept-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
               </ResponsiveContainer>
             )}
           </Card>
@@ -290,26 +329,25 @@ const AdminDashboard: React.FC = () => {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Akses Cepat</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {[ 
-              { title: 'Manajemen Karyawan', path: '/dashboard/pegawai', icon: Users },
-              { title: 'Absensi', path: '/dashboard/absensi', icon: Clock },
-              { title: 'Cuti & Izin', path: '/dashboard/cuti', icon: Calendar },
-              { title: 'Penggajian', path: '/dashboard/penggajian', icon: DollarSign },
-              { title: 'Kontrak', path: '/dashboard/kontrak', icon: FileText },
-              { title: 'Kinerja', path: '/dashboard/kinerja', icon: BarChart3 },
-              { title: 'Rekrutmen', path: '/dashboard/perekrutan', icon: UserCheck },
-              { title: 'Laporan', path: '/dashboard/laporan', icon: File }
+            {[
+              { title: 'Manajemen Karyawan', path: '/dashboard/pegawai', icon: Users, color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400' },
+              { title: 'Absensi', path: '/dashboard/absensi', icon: Clock, color: 'bg-green-100 dark:bg-green-900/30 text-green-500 dark:text-green-400' },
+              { title: 'Cuti & Izin', path: '/dashboard/cuti', icon: Calendar, color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400' },
+              { title: 'Penggajian', path: '/dashboard/penggajian', icon: DollarSign, color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 dark:text-emerald-400' },
+              { title: 'Kontrak', path: '/dashboard/kontrak', icon: FileText, color: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' },
+              { title: 'Kinerja', path: '/dashboard/kinerja', icon: BarChart3, color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-500 dark:text-purple-400' },
+              { title: 'Struktur Organisasi', path: '/dashboard/jabatan', icon: Building2, color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400' },
+              { title: 'Rekrutmen', path: '/dashboard/perekrutan', icon: UserCheck, color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-500 dark:text-cyan-400' },
             ].map((action, index) => (
-              <Link 
-                key={index} 
+              <Link
+                key={index}
                 to={action.path}
                 className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-lg shadow text-center hover:shadow-md transition-all duration-300 hover:-translate-y-1"
                 title={action.title}
-                aria-label={action.title}
               >
-                <div className="flex justify-center mb-3" aria-hidden="true">
-                  <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400">
-                    <action.icon size={24} aria-hidden="true" />
+                <div className="flex justify-center mb-3">
+                  <div className={`p-3 rounded-lg ${action.color}`}>
+                    <action.icon size={24} />
                   </div>
                 </div>
                 <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm md:text-base">{action.title}</h3>
@@ -322,20 +360,28 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Aktivitas Terbaru</h2>
-            <button className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center" title="Lihat Semua Aktivitas" aria-label="Lihat Semua Aktivitas">
+            <Link to="/dashboard/laporan" className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center">
               <span>Lihat Semua</span>
-              <Eye size={16} className="ml-1" aria-hidden="true" />
-            </button>
+              <Eye size={16} className="ml-1" />
+            </Link>
           </div>
           <div className="space-y-4">
             {loadingRecentActivity ? (
-              <p>Loading recent activity...</p>
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500 mr-2" />
+                <span className="text-gray-500 dark:text-gray-400">Memuat aktivitas...</span>
+              </div>
             ) : errorRecentActivity ? (
-              <p className="text-red-500">{errorRecentActivity}</p>
+              <p className="text-red-500 dark:text-red-400 text-center py-4">{errorRecentActivity}</p>
+            ) : recentActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                <Inbox className="h-12 w-12 mb-3" />
+                <p>Belum ada aktivitas terbaru</p>
+              </div>
             ) : (
               recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-start border-b border-gray-100 dark:border-neutral-700 pb-3 last:border-0 last:pb-0">
-                  <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3" aria-hidden="true">
+                  <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3">
                     <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400"></div>
                   </div>
                   <div className="flex-1">

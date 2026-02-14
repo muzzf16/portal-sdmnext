@@ -1,63 +1,27 @@
 import api from '../../../shared/services/api';
-import { Lamaran } from '../types';
+import { Kandidat } from '../types';
 
-// Transform camelCase to snake_case for API compatibility
-const transformToSnakeCase = (data: any) => {
-  const transformed: any = {};
-  Object.keys(data).forEach(key => {
-    switch(key) {
-      case 'positionApplied':
-        transformed.position_applied = data[key];
-        break;
-      case 'resumeUrl':
-        transformed.resume_url = data[key];
-        break;
-      case 'coverLetter':
-        transformed.cover_letter = data[key];
-        break;
-      case 'applicationDate':
-        transformed.application_date = data[key];
-        break;
-      default:
-        transformed[key] = data[key];
-    }
-  });
-  return transformed;
+export const getKandidat = async () => {
+  const response = await api.get<Kandidat[]>('/recruitment/candidates');
+  return response.data;
 };
 
-// Transform snake_case to camelCase for frontend compatibility
-const transformToCamelCase = (data: any) => {
-  const transformed: any = {};
-  Object.keys(data).forEach(key => {
-    switch(key) {
-      case 'position_applied':
-        transformed.positionApplied = data[key];
-        break;
-      case 'resume_url':
-        transformed.resumeUrl = data[key];
-        break;
-      case 'cover_letter':
-        transformed.coverLetter = data[key];
-        break;
-      case 'application_date':
-        transformed.applicationDate = data[key];
-        break;
-      default:
-        transformed[key] = data[key];
-    }
-  });
-  return transformed;
+export const getKandidatById = async (id: number) => {
+  const response = await api.get<Kandidat>(`/recruitment/candidates/${id}`);
+  return response.data;
 };
 
-export const getLamaran = async () => {
-  const response = await api.get<any[]>('/recruitment/candidates');
-  // Transform response from snake_case to camelCase
-  const transformedData = response.data.map(item => transformToCamelCase(item));
-  return { ...response, data: transformedData as Lamaran[] };
+export const buatKandidat = async (data: Omit<Kandidat, 'id' | 'created_at'>) => {
+  const response = await api.post<Kandidat>('/recruitment/candidates', data);
+  return response.data;
 };
 
-export const buatLamaran = (lamaranData: Omit<Lamaran, 'id'>) => {
-  // Transform request from camelCase to snake_case
-  const transformedData = transformToSnakeCase(lamaranData);
-  return api.post<Lamaran>('/recruitment/candidates', transformedData);
+export const perbaruiKandidat = async (id: number, data: Partial<Kandidat>) => {
+  const response = await api.put<Kandidat>(`/recruitment/candidates/${id}`, data);
+  return response.data;
+};
+
+export const hapusKandidat = async (id: number) => {
+  const response = await api.delete(`/recruitment/candidates/${id}`);
+  return response.data;
 };

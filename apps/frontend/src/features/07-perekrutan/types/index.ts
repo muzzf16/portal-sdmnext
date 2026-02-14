@@ -1,12 +1,13 @@
-export interface Lamaran {
-  id: string;
+export interface Kandidat {
+  id: number;
   name: string;
   email: string;
   phone: string;
-  positionApplied: string;
-  applicationDate: string;
+  position_applied: string;
   status: string;
-  resumeUrl: string;
-  coverLetter: string;
+  resume_url: string;
+  cover_letter: string;
+  application_date: string;
   notes: string;
+  created_at: string;
 }

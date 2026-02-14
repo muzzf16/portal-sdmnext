@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import DaftarPegawai from '../components/DaftarPegawai';
 import FormPegawai from '../components/FormPegawai';
 import clsx from 'clsx';
@@ -6,11 +6,17 @@ import { Plus, X } from 'lucide-react';
 
 const HalamanPegawai: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => {
     setIsModalOpen(false);
   };
+
+  const handleEmployeeAdded = useCallback(() => {
+    closeModal();
+    setRefreshKey(prev => prev + 1); // Trigger re-render of DaftarPegawai
+  }, []);
 
   return (
     <div className="dark:text-white">
@@ -30,16 +36,12 @@ const HalamanPegawai: React.FC = () => {
           Tambah Pegawai
         </button>
       </div>
-      <DaftarPegawai />
+      <DaftarPegawai key={refreshKey} />
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white font-serif">Form Tambah Pegawai</h2>
-            <FormPegawai onEmployeeAdded={() => {
-              // Close the modal and refresh the employee list
-              closeModal();
-              window.location.reload();
-            }} />
+            <FormPegawai onEmployeeAdded={handleEmployeeAdded} />
             <div className="mt-6 flex justify-end">
               <button
                 onClick={closeModal}

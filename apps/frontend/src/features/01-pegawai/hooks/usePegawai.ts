@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPegawaiById } from '../api/employeeApi';
 import { Pegawai } from '../types';
 
-const VITE_API_URL = 'http://localhost:3333';
+const VITE_API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3333';
 
 const processPegawaiData = (pegawaiData: any): Pegawai => {
   const processedData = { ...pegawaiData };

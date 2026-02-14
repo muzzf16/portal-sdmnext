@@ -22,6 +22,7 @@ const EmployeeDetailView = lazy(() => import('../features/01-pegawai/pages/Emplo
 const HalamanRiwayatJabatanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanRiwayatJabatanPegawai'));
 const HalamanPelatihanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanPelatihanPegawai'));
 const HalamanOrientasiPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanOrientasiPegawai'));
+const StrukturOrganisasiPage = lazy(() => import('../features/01-pegawai/pages/StrukturOrganisasiPage'));
 
 // Attendance
 const HalamanAbsensi = lazy(() => import('../features/02-absensi/pages/HalamanAbsensi'));
@@ -48,9 +49,11 @@ const HalamanKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanKi
 const HalamanKinerjaSaya = lazy(() => import('../features/06-kinerja/pages/HalamanKinerjaSaya'));
 const WorkLoadPage = lazy(() => import('../features/06-kinerja/pages/WorkLoadPage'));
 const HalamanDetailKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanDetailKinerja'));
+const ActivityLibraryPage = lazy(() => import('../features/06-kinerja/pages/ActivityLibraryPage'));
+const KpiTargetPage = lazy(() => import('../features/06-kinerja/pages/KpiTargetPage'));
 
 // Recruitment
-const HalamanKandidat = lazy(() => import('../features/07-perekrutan/pages/HalamanKandidat'));
+const HalamanPerekrutan = lazy(() => import('../features/07-perekrutan/pages/HalamanPerekrutan'));
 
 // Training
 const HalamanPelatihan = lazy(() => import('../features/08-pelatihan/pages/HalamanPelatihan'));
@@ -135,6 +138,13 @@ const AppRoutes: React.FC = () => {
             </Suspense>
           </PrivateRoute>
         } />
+        <Route path="struktur-organisasi" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <StrukturOrganisasiPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
         <Route path="pegawai/:id" element={
           <PrivateRoute allowedRoles={['admin', 'employee']}>
             <Suspense fallback={<LoadingSpinner />}>
@@ -214,9 +224,23 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="kinerja/analisis-beban-kerja" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['employee']}>
             <Suspense fallback={<LoadingSpinner />}>
               <WorkLoadPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="kinerja/perpustakaan-aktivitas" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <ActivityLibraryPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="kinerja/kpi-target" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <KpiTargetPage />
             </Suspense>
           </PrivateRoute>
         } />
@@ -231,7 +255,7 @@ const AppRoutes: React.FC = () => {
         <Route path="perekrutan" element={
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
-              <HalamanKandidat />
+              <HalamanPerekrutan />
             </Suspense>
           </PrivateRoute>
         } />

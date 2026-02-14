@@ -3,41 +3,62 @@ import React, { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import PenggunaService from '@/shared/services/pengguna.service';
 
+const ROLE_OPTIONS = ['employee', 'supervisor', 'admin'];
+const ROLE_LABELS: Record<string, string> = {
+  employee: 'Karyawan',
+  supervisor: 'Supervisor',
+  admin: 'Administrator',
+};
+
 export const UbahRole = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     PenggunaService.getAllPengguna().then((response) => {
-      setUsers(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setUsers(data);
     });
   }, []);
 
   const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+    setSelectedRole('');
+  };
 
   const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const user = users.find((user) => user.id === e.target.value);
-    setSelectedUser(user);
-    setSelectedRole(user.role);
+    const user = users.find((u) => u.id === e.target.value);
+    setSelectedUser(user || null);
+    setSelectedRole(user?.role || '');
   };
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedRole(e.target.value);
   };
 
-  const handleUpdateRole = () => {
-    if (selectedUser) {
-      PenggunaService.updatePengguna(selectedUser.id, { role: selectedRole }).then(() => {
-        PenggunaService.getAllPengguna().then((response) => {
-          setUsers(response.data);
-        });
-        closeModal();
-      });
+  const handleUpdateRole = async () => {
+    if (!selectedUser || !selectedRole) return;
+    setSaving(true);
+    try {
+      await PenggunaService.updatePengguna(selectedUser.id, { role: selectedRole });
+      const response = await PenggunaService.getAllPengguna();
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setUsers(data);
+      alert('Role berhasil diperbarui.');
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      alert('Gagal mengubah role.');
     }
+    setSaving(false);
   };
+
+  const inputClass = "w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-neutral-700 dark:text-white";
 
   return (
     <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-6 border border-primary-200 dark:border-primary-800 hover:shadow-md transition-shadow cursor-pointer">
@@ -58,59 +79,53 @@ export const UbahRole = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                      Ubah Role Pengguna
-                    </h3>
-                    <div className="mt-2">
-                      <form className="space-y-4">
-                        <div>
-                          <label htmlFor="user" className="block text-sm font-medium text-gray-700">Pengguna</label>
-                          <select id="user" name="user" onChange={handleUserChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                            <option value="">Pilih Pengguna</option>
-                            {users.map((user) => (
-                              <option key={user.id} value={user.id}>{user.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-                          <select id="role" name="role" value={selectedRole} onChange={handleRoleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                            <option>Employee</option>
-                            <option>Administrator</option>
-                          </select>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={closeModal}></div>
+            <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-xl max-w-lg w-full p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Ubah Role Pengguna</h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="ubah-role-user" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pengguna</label>
+                  <select id="ubah-role-user" onChange={handleUserChange} className={inputClass}>
+                    <option value="">Pilih Pengguna</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({ROLE_LABELS[user.role] || user.role})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={handleUpdateRole}
-                >
-                  Simpan
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={closeModal}
-                >
-                  Batal
-                </button>
+                {selectedUser && (
+                  <div>
+                    <label htmlFor="ubah-role-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role Baru</label>
+                    <select id="ubah-role-select" value={selectedRole} onChange={handleRoleChange} className={inputClass}>
+                      {ROLE_OPTIONS.map(r => (
+                        <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Role saat ini: <strong>{ROLE_LABELS[selectedUser.role] || selectedUser.role}</strong>
+                    </p>
+                  </div>
+                )}
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 dark:border-neutral-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-600 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUpdateRole}
+                    disabled={!selectedUser || saving}
+                    className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:bg-gray-400 transition-colors"
+                  >
+                    {saving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -119,5 +134,3 @@ export const UbahRole = () => {
     </div>
   );
 };
-
-

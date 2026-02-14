@@ -8,7 +8,7 @@ export interface EducationHistory {
 }
 
 export interface Pegawai {
-  id: number;
+  id: string;
   nip: string;
   name: string;
   email: string;
@@ -18,7 +18,7 @@ export interface Pegawai {
   department: string;
   joinDate: string;
   avatarUrl?: string;
-  jenis_kelamin?: 'L' | 'P'; // L for Laki-laki (male), P for Perempuan (female)
+  jenis_kelamin?: 'L' | 'P';
   gender?: 'male' | 'female'; // English equivalent
   leaveBalance?: number;
   isActive?: boolean;
@@ -33,6 +33,10 @@ export interface Pegawai {
   workHistory?: string; // JSON string
   trainingCertificates?: string; // JSON string
   payrollInfo?: string; // JSON string
+  // Hierarchy fields
+  jabatan_id?: number;
+  atasan_id?: string; // FK to pegawai.id (direct manager)
+  atasanNama?: string; // Manager name (joined from query)
 }
 
 // Riwayat Jabatan (Job History)
@@ -52,15 +56,9 @@ export interface Pelatihan {
   employeeId?: number;
   nama_pelatihan: string;
   penyelenggara: string;
-  tanggal_mulai: string; // ISO date string
-  tanggal_selesai: string; // ISO date string
+  tanggal_mulai: string;
+  tanggal_selesai: string;
   nomor_sertifikat?: string;
   durasi?: string;
   deskripsi?: string;
-  // Optional English properties for compatibility
-  trainingName?: string;
-  organizer?: string;
-  startDate?: string;
-  endDate?: string;
-  certificate?: string;
 }
