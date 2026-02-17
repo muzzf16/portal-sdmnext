@@ -28,7 +28,9 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, allowedRoles }) =
   // If allowed roles are specified, check if user's role is included
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect to unauthorized page or dashboard based on role
-    return <Navigate to={user.role === 'admin' ? '/dashboard/admin' : '/dashboard/employee'} replace />;
+    if (user.role === 'admin') return <Navigate to="/dashboard/admin" replace />;
+    if (user.role === 'supervisor') return <Navigate to="/dashboard/supervisor" replace />;
+    return <Navigate to="/dashboard/employee" replace />;
   }
 
   return <>{children}</>;

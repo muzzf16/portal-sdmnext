@@ -201,6 +201,10 @@ export interface Penggajian {
   totalIncome: number;
   totalDeductions: number;
   netSalary: number;
+  status: 'Draft' | 'Final' | 'Paid';
+  totalAttendance?: number;
+  totalOvertime?: number;
+  totalLateness?: number;
 }
 
 /**

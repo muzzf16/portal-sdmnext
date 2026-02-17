@@ -3,8 +3,11 @@ import { KpiTarget } from '../types';
 import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 const KpiTargetPage: React.FC = () => {
+    const { user } = useAuth();
+    const role = user?.role || 'employee'; // default to lowest privilege
     const [kpis, setKpis] = useState<KpiTarget[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -22,7 +25,13 @@ const KpiTargetPage: React.FC = () => {
         setLoading(true);
         try {
             const filters: any = {};
-            if (selectedEmployee) filters.employeeId = selectedEmployee;
+            // If employee, force filter to own ID
+            if (role === 'employee' && user?.employeeId) {
+                filters.employeeId = user.employeeId;
+            } else if (selectedEmployee) {
+                filters.employeeId = selectedEmployee;
+            }
+
             if (selectedPeriod) filters.period = selectedPeriod;
             const res = await getKpiTargets(filters);
             setKpis(res.data?.data || []);
@@ -34,13 +43,19 @@ const KpiTargetPage: React.FC = () => {
 
     useEffect(() => {
         const fetchEmployees = async () => {
+            // If employee, just set self
+            if (role === 'employee' && user?.employeeId) {
+                setEmployees([{ id: user.employeeId, name: user.name, nip: user.employeeId }]);
+                setSelectedEmployee(user.employeeId);
+                return;
+            }
             try {
                 const res = await getPegawai();
                 if (res.data && Array.isArray(res.data)) setEmployees(res.data);
             } catch (err) { console.error(err); }
         };
         fetchEmployees();
-    }, []);
+    }, [role, user]);
 
     useEffect(() => { fetchKpis(); }, [selectedEmployee, selectedPeriod]);
 
@@ -136,14 +151,18 @@ const KpiTargetPage: React.FC = () => {
                     <p className="text-gray-600 mt-1">Setting target KPI, monitoring realisasi, dan scoring otomatis</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={handleGenerateFromAbk}
-                        className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm">
-                        ⚡ Generate dari ABK
-                    </button>
-                    <button onClick={() => setShowForm(!showForm)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                        + Tambah KPI Target
-                    </button>
+                    {role !== 'employee' && (
+                        <>
+                            <button onClick={handleGenerateFromAbk}
+                                className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm">
+                                ⚡ Generate dari ABK
+                            </button>
+                            <button onClick={() => setShowForm(!showForm)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                + Tambah KPI Target
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -152,7 +171,8 @@ const KpiTargetPage: React.FC = () => {
                 <div>
                     <label className="text-sm font-medium text-gray-700 mr-2">Pegawai:</label>
                     <select value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                        disabled={role === 'employee'}>
                         <option value="">Semua</option>
                         {employees.map(emp => (
                             <option key={emp.id} value={emp.id}>{emp.name} ({emp.nip})</option>
@@ -273,10 +293,16 @@ const KpiTargetPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm font-mono">{kpi.targetValue} {kpi.targetUnit}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <button onClick={() => handleUpdateActual(kpi)}
-                                            className="font-mono text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer">
-                                            {kpi.actualValue || 0} {kpi.targetUnit}
-                                        </button>
+                                        {role !== 'employee' ? (
+                                            <button onClick={() => handleUpdateActual(kpi)}
+                                                className="font-mono text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer">
+                                                {kpi.actualValue || 0} {kpi.targetUnit}
+                                            </button>
+                                        ) : (
+                                            <span className="font-mono text-sm text-gray-700">
+                                                {kpi.actualValue || 0} {kpi.targetUnit}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold ${getScoreColor(kpi.score)}`}>
@@ -292,7 +318,9 @@ const KpiTargetPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{kpi.source === 'abk' ? '📊 ABK' : '✏️ Manual'}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-sm">Hapus</button>
+                                        {role !== 'employee' && (
+                                            <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-sm">Hapus</button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

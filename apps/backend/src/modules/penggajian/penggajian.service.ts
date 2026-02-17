@@ -104,35 +104,96 @@ class PenggajianService {
       const employees = await PegawaiRepository.findAll();
       const createdPayrolls = [];
 
+      // Get all attendance data for this period (Mock implementation for now)
+      // In a real scenario, we would query the AttendanceRepository
+      // const attendanceSummary = await AttendanceRepository.getSummaryByPeriod(period);
+
+      // Determine previous period (e.g., '2024-02' -> '2024-01')
+      const [year, month] = period.split('-').map(Number);
+      const prevDate = new Date(year, month - 2, 1); // month is 0-indexed in Date, so month-2 gives previous month
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const previousPeriod = `${prevYear}-${prevMonth}`;
+
       for (const employee of employees) {
-        if (!employee.isActive) {
-          continue; // Skip inactive employees
+        if (employee.statusKaryawan !== 'aktif') {
+          if (employee.isActive === 0) continue;
         }
 
         const existingPayroll = await PenggajianRepository.findByEmployeeIdAndPeriod(employee.id, period);
         if (existingPayroll) {
-          continue; // Skip if payroll for this period already exists
+          continue;
         }
 
-        const payrollInfo = employee.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] };
+        // Try to fetch previous month's payroll
+        const previousPayroll = await PenggajianRepository.findByEmployeeIdAndPeriod(employee.id, previousPeriod);
+
+        let baseSalary = 0;
+        let incomes = [];
+        let deductions = [];
+
+        if (previousPayroll) {
+          // Copy from previous month
+          baseSalary = previousPayroll.baseSalary;
+          incomes = previousPayroll.incomes;
+          deductions = previousPayroll.deductions;
+        } else {
+          // Fallback to Employee Master Data
+          if (employee.payrollInfo) {
+            try {
+              const payrollInfo = typeof employee.payrollInfo === 'string'
+                ? JSON.parse(employee.payrollInfo)
+                : employee.payrollInfo;
+              baseSalary = payrollInfo.baseSalary || 0;
+              incomes = payrollInfo.incomes || [];
+              deductions = payrollInfo.deductions || [];
+            } catch (e) {
+              console.error(`Error parsing payroll info for employee ${employee.id}`, e);
+            }
+          }
+        }
+
+        // Mock Attendance Data Calculation
+        // TODO: Replace with actual AttendanceRepository call
+        const totalAttendance = 22;
+        const totalOvertime = Math.floor(Math.random() * 10);
+        const totalLateness = Math.floor(Math.random() * 3);
 
         const newPayrollData = {
           employeeId: employee.id,
           employeeName: employee.name,
           period: period,
-          baseSalary: payrollInfo.baseSalary || 0,
-          incomes: payrollInfo.incomes || [],
-          deductions: payrollInfo.deductions || [],
+          baseSalary,
+          incomes,
+          deductions,
+          status: 'Draft',
+          totalAttendance,
+          totalOvertime,
+          totalLateness
         };
 
         const createdPayroll = await PenggajianRepository.create(newPayrollData);
         createdPayrolls.push(createdPayroll);
       }
 
-      return { message: `${createdPayrolls.length} payrolls created for period ${period}.`, data: createdPayrolls };
+      return {
+        message: `${createdPayrolls.length} payrolls generated for period ${period}. (Copied from ${previousPeriod} if available)`,
+        data: createdPayrolls
+      };
 
     } catch (error: any) {
       throw new AppError(`Error running payroll generation: ${error.message}`, 500);
+    }
+  }
+
+  static async updateStatus(id: string, status: 'Draft' | 'Final' | 'Paid') {
+    try {
+      const payroll = await PenggajianRepository.findById(id);
+      if (!payroll) throw new AppError('Payroll not found', 404);
+
+      return await PenggajianRepository.update(id, { ...payroll, status });
+    } catch (error: any) {
+      throw new AppError(`Error updating payroll status: ${error.message}`, 500);
     }
   }
 

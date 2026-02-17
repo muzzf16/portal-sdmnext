@@ -60,6 +60,12 @@ export default class WorkloadService {
     }
 
     static async saveAnalysis(data: any) {
+        if (!data.employeeId) {
+            throw new AppError('employeeId is required', 400);
+        }
+        if (!data.year) {
+            throw new AppError('year is required', 400);
+        }
         // Check if exists
         let analysis = await WorkloadRepository.findAnalysisByEmployeeYear(data.employeeId, data.year);
 

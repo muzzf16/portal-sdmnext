@@ -101,6 +101,20 @@ class PenggajianController {
       next(error);
     }
   }
+  static async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!status) {
+        res.status(400).json({ message: 'Status is required' });
+        return;
+      }
+      const updatedPayroll = await PenggajianService.updateStatus(id, status);
+      res.status(200).json(updatedPayroll);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default PenggajianController;

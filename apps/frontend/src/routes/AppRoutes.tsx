@@ -14,7 +14,9 @@ const LupaKataSandi = lazy(() => import('../features/autentikasi/pages/LupaKataS
 
 // Dashboard
 const AdminDashboard = lazy(() => import('../features/dasbor/pages/AdminDashboard'));
+const SupervisorDashboard = lazy(() => import('../features/dasbor/pages/SupervisorDashboard'));
 const EmployeeDashboard = lazy(() => import('../features/dasbor/pages/EmployeeDashboard'));
+const DashboardIndex = lazy(() => import('../features/dasbor/pages/DashboardIndex'));
 
 // Employee
 const HalamanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanPegawai'));
@@ -45,12 +47,9 @@ const HalamanKontrak = lazy(() => import('../features/05-kontrak/pages/HalamanKo
 const HalamanDetailKontrak = lazy(() => import('../features/05-kontrak/pages/HalamanDetailKontrak'));
 
 // Performance
-const HalamanKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanKinerja'));
+const ManajemenKinerjaPage = lazy(() => import('../features/06-kinerja/pages/ManajemenKinerjaPage'));
 const HalamanKinerjaSaya = lazy(() => import('../features/06-kinerja/pages/HalamanKinerjaSaya'));
-const WorkLoadPage = lazy(() => import('../features/06-kinerja/pages/WorkLoadPage'));
 const HalamanDetailKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanDetailKinerja'));
-const ActivityLibraryPage = lazy(() => import('../features/06-kinerja/pages/ActivityLibraryPage'));
-const KpiTargetPage = lazy(() => import('../features/06-kinerja/pages/KpiTargetPage'));
 
 // Recruitment
 const HalamanPerekrutan = lazy(() => import('../features/07-perekrutan/pages/HalamanPerekrutan'));
@@ -116,11 +115,22 @@ const AppRoutes: React.FC = () => {
           <DashboardLayout />
         </PrivateRoute>
       }>
-        <Route index element={<Navigate to="admin" replace />} />
+        <Route index element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <DashboardIndex />
+          </Suspense>
+        } />
         <Route path="admin" element={
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <AdminDashboard />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="supervisor" element={
+          <PrivateRoute allowedRoles={['supervisor']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <SupervisorDashboard />
             </Suspense>
           </PrivateRoute>
         } />
@@ -146,28 +156,28 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="pegawai/:id" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <EmployeeDetailView />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="pegawai/:id/riwayat-jabatan" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanRiwayatJabatanPegawai />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="pegawai/:id/pelatihan" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanPelatihanPegawai />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="pegawai/:id/orientasi" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanOrientasiPegawai />
             </Suspense>
@@ -196,7 +206,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="penggajian/:id" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanDetailPenggajian />
             </Suspense>
@@ -210,43 +220,21 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="kontrak/:id" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanDetailKontrak />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="kinerja" element={
-          <PrivateRoute allowedRoles={['admin']}>
+          <PrivateRoute allowedRoles={['admin', 'supervisor', 'employee']}>
             <Suspense fallback={<LoadingSpinner />}>
-              <HalamanKinerja />
-            </Suspense>
-          </PrivateRoute>
-        } />
-        <Route path="kinerja/analisis-beban-kerja" element={
-          <PrivateRoute allowedRoles={['employee']}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <WorkLoadPage />
-            </Suspense>
-          </PrivateRoute>
-        } />
-        <Route path="kinerja/perpustakaan-aktivitas" element={
-          <PrivateRoute allowedRoles={['admin']}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <ActivityLibraryPage />
-            </Suspense>
-          </PrivateRoute>
-        } />
-        <Route path="kinerja/kpi-target" element={
-          <PrivateRoute allowedRoles={['admin']}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <KpiTargetPage />
+              <ManajemenKinerjaPage />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="kinerja/:id" element={
-
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanDetailKinerja />
             </Suspense>
@@ -274,49 +262,49 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="notifikasi" element={
-          <PrivateRoute allowedRoles={['admin', 'employee']}>
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanNotifikasi />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="absensi-saya" element={
-          <PrivateRoute allowedRoles={['employee']}>
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanAbsensiSaya />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="cuti-saya" element={
-          <PrivateRoute allowedRoles={['employee']}>
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanCutiSaya />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="lembur-saya" element={
-          <PrivateRoute allowedRoles={['employee']}>
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanLemburSaya />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="penggajian-saya" element={
-          <PrivateRoute allowedRoles={['employee']}>
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanPenggajianSaya />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="kinerja-saya" element={
-          <PrivateRoute allowedRoles={['employee']}>
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanKinerjaSaya />
             </Suspense>
           </PrivateRoute>
         } />
         <Route path="pelatihan-saya" element={
-          <PrivateRoute allowedRoles={['employee']}>
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <PelatihanSaya />
             </Suspense>

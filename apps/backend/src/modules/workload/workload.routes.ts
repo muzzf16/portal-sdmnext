@@ -1,11 +1,11 @@
 
 import { Router } from 'express';
 import WorkloadController from './workload.controller';
-// import { authenticate } from '../../middleware/authMiddleware';
+import { authenticateToken } from '../../middleware/authMiddleware';
 
 const router = Router();
 
-// router.use(authenticate); // Enable if auth is ready
+router.use(authenticateToken);
 
 router.get('/:employeeId', WorkloadController.getAnalysis);
 router.post('/', WorkloadController.saveAnalysis);

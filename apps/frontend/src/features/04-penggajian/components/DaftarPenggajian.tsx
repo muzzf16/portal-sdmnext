@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDaftarPenggajian } from '../hooks/useDaftarPenggajian';
-import { Table, Button, Input, Select } from '@/shared/components/ui';
+import { Table, Button, Input } from '@/shared/components/ui';
+import MonthPicker from '@/shared/components/ui/MonthPicker';
 import FormInputGaji from './FormInputGaji';
 
 const DaftarPenggajian: React.FC = () => {
@@ -15,12 +16,10 @@ const DaftarPenggajian: React.FC = () => {
     fetchPenggajian();
   };
 
-  const availablePeriods = [...new Set(daftarPenggajian.map(p => p.period))];
-
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['Nama Pegawai', 'Periode', 'Gaji Bersih', 'Aksi'];
+
 
   return (
     <div className="mt-6">
@@ -34,16 +33,13 @@ const DaftarPenggajian: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cari..."
           />
-          <Select
-            id="filter-period"
-            label="Filter Periode"
-            value={filterPeriod}
-            onChange={(e) => setFilterPeriod(e.target.value)}
-            options={[
-              { value: '', label: 'Semua Periode' },
-              ...availablePeriods.map(p => ({ value: p, label: p }))
-            ]}
-          />
+          <div className="w-48">
+            <MonthPicker
+              value={filterPeriod}
+              onChange={setFilterPeriod}
+              label="Filter Periode"
+            />
+          </div>
         </div>
         <Button onClick={() => setIsModalOpen(true)}>Input Gaji</Button>
       </div>
@@ -54,7 +50,7 @@ const DaftarPenggajian: React.FC = () => {
         </div>
       )}
 
-      <Table headers={tableHeaders}>
+      <Table headers={['Nama Pegawai', 'Periode', 'Gaji Bersih', 'Status', 'Aksi']}>
         {daftarPenggajian.map(penggajian => (
           <tr key={penggajian.id}>
             <td className="py-4 px-6">{penggajian.employeeName}</td>
@@ -65,8 +61,16 @@ const DaftarPenggajian: React.FC = () => {
               minimumFractionDigits: 0
             }).format(penggajian.netSalary)}</td>
             <td className="py-4 px-6">
-              <Link 
-                to={`/dashboard/penggajian/${penggajian.id}`} 
+              <span className={`px-2 py-1 text-xs rounded-full font-bold ${penggajian.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
+                penggajian.status === 'Final' ? 'bg-green-100 text-green-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                {penggajian.status || 'Draft'}
+              </span>
+            </td>
+            <td className="py-4 px-6">
+              <Link
+                to={`/dashboard/penggajian/${penggajian.id}`}
                 className="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
               >
                 Lihat Detail

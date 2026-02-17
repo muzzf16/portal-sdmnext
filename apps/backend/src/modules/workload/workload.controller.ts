@@ -33,7 +33,7 @@ export default class WorkloadController {
                 }
             });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -41,12 +41,12 @@ export default class WorkloadController {
         try {
             const data = req.body;
             const result = await WorkloadService.saveAnalysis(data);
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 data: result
             });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 }

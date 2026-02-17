@@ -95,7 +95,7 @@ Master data yang menyimpan **daftar aktivitas standar beserta durasi normatif** 
 ### 4.2 Akses
 - **Path:** `/dashboard/kinerja/perpustakaan-aktivitas`
 - **Role:** Admin only
-- **Sidebar:** Perpustakaan Aktivitas
+- **Sidebar:** manejemen kinerja- tab Perpustakaan Aktivitas
 
 ### 4.3 Fitur
 - ✅ **CRUD Aktivitas** — Tambah, edit, hapus aktivitas standar
@@ -153,7 +153,7 @@ Formulir untuk mencatat **seluruh aktivitas kerja pegawai beserta frekuensinya**
 ### 5.2 Akses
 - **Path:** `/dashboard/kinerja/analisis-beban-kerja`
 - **Role:** Admin & Employee
-- **Sidebar:** Analisis Beban Kerja
+- **Sidebar:** manajemen kinerja- tab analisis beban kerja
 
 ### 5.3 Fitur
 - ✅ **Input Aktivitas** — Tambah baris aktivitas + durasi + frekuensi
@@ -218,7 +218,7 @@ Modul untuk **menetapkan target KPI per pegawai per periode** dan **memonitor pe
 ### 6.2 Akses
 - **Path:** `/dashboard/kinerja/kpi-target`
 - **Role:** Admin only
-- **Sidebar:** Manajemen KPI
+- **Sidebar:** manajemen kinerja- tab kpi target
 
 ### 6.3 Fitur
 - ✅ **CRUD KPI Target** — Buat, edit, hapus target KPI per pegawai
@@ -467,6 +467,22 @@ Inverse ("hari", lower is better):
 ```
 Skor_Akhir = Σ(skor_i × bobot_i) / Σ(bobot_i)
 ```
+
+### 9.6 Penentuan Target & Realisasi
+
+**1. Analisis Beban Kerja (ABK)**
+*   **Target (Standar):** Berasal dari **Perpustakaan Aktivitas** (Master Data) yang dikelola Admin. Setiap aktivitas memiliki **Durasi Standar** (misal: "Mengerjakan Laporan" = 60 menit). Pegawai tidak mengisi durasi ini secara manual jika memilih dari library untuk menjaga objektivitas.
+*   **Realisasi (Input Pegawai):** Pegawai hanya mengisi **Frekuensi** (seberapa sering aktivitas dilakukan dalam setahun: Harian, Mingguan, Bulanan, dst).
+*   **Hasil Perhitungan:** Sistem otomatis mengkalikan `Durasi Standar x Frekuensi` untuk mendapatkan **Total Jam Kerja per Tahun** dan menghitung **FTE (Full Time Equivalent)**.
+
+**2. KPI & Penilaian Kinerja**
+*   **Target:**
+    *   **Manual:** Admin/Atasan menetapkan angka target di awal periode (misal: Target Omzet 1 Milyar, Target Closing 100 Nasabah).
+    *   **Otomatis dari ABK:** Sistem bisa mengambil data frekuensi dari ABK sebagai target (misal: Jika di ABK pegawai menyanggupi 100 laporan/tahun, maka sistem set KPI Target = 100 laporan).
+*   **Realisasi:** Diinput oleh Admin/Atasan di akhir periode penilaian berdasarkan data aktual di lapangan (misal: Realisasi Omzet 900 Juta, Realisasi Closing 110 Nasabah).
+*   **Nilai (Scoring Otomatis):** Sistem otomatis menghitung skor (1-5) berdasarkan perbandingan Realisasi vs Target.
+    *   **Target Angka (Higher is Better):** `Realisasi / Target` (Contoh: 110/100 = 110% -> Skor 5/Sangat Baik).
+    *   **Target Waktu (Lower is Better):** `Target / Realisasi` (Contoh: Target H+3, Realisasi H+5 -> Terlambat -> Skor Turun).
 
 ---
 

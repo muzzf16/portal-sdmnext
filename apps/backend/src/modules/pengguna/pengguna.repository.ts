@@ -30,10 +30,10 @@ export const PenggunaRepository = {
     const hashedPassword = await bcrypt.hash(userData.password, salt);
 
     const newUserId = `user-${Date.now()}`;
-    
+
     // Start transaction
     await db.run('BEGIN TRANSACTION');
-    
+
     try {
       if (userData.employeeId) {
         // If employeeId is provided, link to existing employee
@@ -44,7 +44,7 @@ export const PenggunaRepository = {
       } else {
         // If no employeeId provided, create both user and employee record
         const newEmployeeId = `emp-${Date.now()}`;
-        
+
         // Create a new employee record
         const newEmployeeData = {
           id: newEmployeeId,
@@ -78,23 +78,23 @@ export const PenggunaRepository = {
           `INSERT INTO pegawai (${empColumns.join(',')}) VALUES (${empPlaceholders})`,
           Object.values(newEmployeeData)
         );
-        
+
         // Insert user
         await db.run(
           'INSERT INTO pengguna (id, name, email, password, role, employeeId) VALUES (?,?,?,?,?,?)',
           [newUserId, userData.name, userData.email, hashedPassword, userData.role || 'employee', newEmployeeId]
         );
       }
-      
+
       await db.run('COMMIT');
-      
+
       // Return the created user with employee details (if any)
       const user = await db.get('SELECT * FROM pengguna WHERE id = ?', newUserId);
       if (user.employeeId) {
         const employee = await PegawaiRepository.findById(user.employeeId);
         user.employeeDetails = employee;
       }
-      
+
       const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     } catch (error) {
@@ -117,7 +117,7 @@ export const PenggunaRepository = {
 
     const employee = await PegawaiRepository.findById(user.employeeId);
     user.employeeDetails = employee;
-    
+
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   },
@@ -129,12 +129,30 @@ export const PenggunaRepository = {
 
   async update(id: string, data: any) {
     const db = await openDb();
+
+    // Filter allowed fields
+    const allowedFields = ['name', 'email', 'role', 'employeeId'];
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    Object.keys(data).forEach(key => {
+      if (allowedFields.includes(key) && data[key] !== undefined) {
+        updates.push(`${key} = ?`);
+        values.push(data[key]);
+      }
+    });
+
+    if (updates.length === 0) return await this.findById(id);
+
+    values.push(id);
+
     const result = await db.run(
-      'UPDATE pengguna SET name = ?, email = ? WHERE id = ?',
-      [data.name, data.email, id]
+      `UPDATE pengguna SET ${updates.join(', ')} WHERE id = ?`,
+      values
     );
+
     if (result.changes === 0) throw new Error('User not found');
-    
+
     const updatedUser = await this.findById(id);
     return updatedUser;
   },

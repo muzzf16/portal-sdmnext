@@ -94,8 +94,14 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
     const onSubmit = async (data: WorkLoadAnalysis) => {
         setIsSubmitting(true);
+        // Ensure employeeId and year are included in the payload
+        const payload = {
+            ...data,
+            employeeId,
+            year
+        };
         try {
-            await saveWorkloadAnalysis(data);
+            await saveWorkloadAnalysis(payload);
             addToast('Laporan kerja berhasil disimpan', 'success');
             if (onSuccess) onSuccess();
             if (onSaved) onSaved();

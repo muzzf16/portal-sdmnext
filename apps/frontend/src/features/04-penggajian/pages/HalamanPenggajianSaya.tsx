@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { getPenggajian } from '../api/penggajianApi';
 import { Penggajian } from '../types';
-import DetailPenggajian from '../components/DetailPenggajian';
+import { DetailPenggajian } from '../components/DetailPenggajian';
 import { Card } from '../../../shared/components/ui/Card';
 import { Select } from '../../../shared/components/ui/Select';
 import { Button } from '../../../shared/components/ui/Button';
@@ -28,7 +28,10 @@ const HalamanPenggajianSaya: React.FC = () => {
       try {
         setLoading(true);
         const { data } = await getPenggajian({});
-        const userPayrolls = data.filter(p => p.employeeId === user.employeeId);
+        const userPayrolls = data.filter(p =>
+          p.employeeId === user.employeeId &&
+          (p.status === 'Final' || p.status === 'Paid')
+        );
         setPayrolls(userPayrolls);
         if (userPayrolls.length > 0) {
           const latestPeriod = userPayrolls.reduce((latest, p) => (p.period > latest ? p.period : latest), userPayrolls[0].period);

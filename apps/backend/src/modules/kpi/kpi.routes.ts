@@ -1,15 +1,18 @@
 import { Router } from 'express';
 import KpiController from './kpi.controller';
+import { authenticateToken, restrictTo } from '../../middleware/authMiddleware';
 
 const router = Router();
+
+router.use(authenticateToken);
 
 router.get('/', KpiController.getAll);
 router.get('/employee/:employeeId', KpiController.getByEmployeeId);
 router.get('/:id', KpiController.getById);
-router.post('/', KpiController.create);
-router.post('/generate-from-abk', KpiController.generateFromAbk);
-router.put('/:id', KpiController.update);
-router.put('/:id/actual', KpiController.updateActualValue);
-router.delete('/:id', KpiController.delete);
+router.post('/', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.create);
+router.post('/generate-from-abk', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.generateFromAbk);
+router.put('/:id', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.update);
+router.put('/:id/actual', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.updateActualValue);
+router.delete('/:id', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.delete);
 
 export default router;

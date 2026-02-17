@@ -252,5 +252,65 @@ export const PegawaiRepository = {
       ORDER BY name ASC
     `);
     return rows;
+  },
+
+  // === SUPERVISOR METHODS ===
+
+  async findByAtasanId(atasanId: string) {
+    const db = await openDb();
+    const rows = await db.all(`
+      SELECT p.*, 
+        j.nama as jabatanNama, j.level as jabatanLevel, j.department as jabatanDepartment
+      FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE p.atasan_id = ? AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')
+      ORDER BY p.name ASC
+    `, atasanId);
+    return parseJsonFields(rows);
+  },
+
+  async getSupervisorStats(atasanId: string) {
+    const db = await openDb();
+
+    // Total subordinates
+    const total = await db.get(
+      `SELECT COUNT(*) as count FROM pegawai WHERE atasan_id = ? AND (isActive = 1 OR statusKaryawan = 'aktif')`,
+      atasanId
+    );
+
+    // Attendance today (present)
+    const today = new Date().toISOString().split('T')[0];
+    const present = await db.get(
+      `SELECT COUNT(a.id) as count 
+       FROM absensi a
+       JOIN pegawai p ON a.employeeId = p.id
+       WHERE p.atasan_id = ? AND a.date = ? AND a.status = 'hadir'`,
+      atasanId, today
+    );
+
+    // On leave/sick/permission today
+    const onLeave = await db.get(
+      `SELECT COUNT(a.id) as count 
+       FROM absensi a
+       JOIN pegawai p ON a.employeeId = p.id
+       WHERE p.atasan_id = ? AND a.date = ? AND a.status IN ('izin', 'sakit', 'cuti')`,
+      atasanId, today
+    );
+
+    // Pending leave requests
+    const pendingLeaves = await db.get(
+      `SELECT COUNT(c.id) as count
+       FROM permintaan_cuti c
+       JOIN pegawai p ON c.employeeId = p.id
+       WHERE p.atasan_id = ? AND c.status = 'menunggu'`,
+      atasanId
+    );
+
+    return {
+      totalTeam: total?.count || 0,
+      presentToday: present?.count || 0,
+      onLeaveToday: onLeave?.count || 0,
+      pendingLeaves: pendingLeaves?.count || 0
+    };
   }
 };

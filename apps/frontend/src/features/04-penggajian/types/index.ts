@@ -10,4 +10,9 @@ export interface Penggajian {
   totalDeductions: number;
   grossSalary: number;
   netSalary: number;
+  status: 'Draft' | 'Final' | 'Paid';
+  totalAttendance?: number;
+  totalOvertime?: number;
+  totalLateness?: number;
 }
+// End of type definition

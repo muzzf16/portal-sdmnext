@@ -66,12 +66,12 @@ export const PenggajianRepository = {
   async create(data: any) {
     const db = await openDb();
     const newId = data.id || `payroll-${Date.now()}`;
-    
+
     // Calculate totals if not provided
     const totalIncome = data.incomes?.reduce((sum: number, inc: any) => sum + inc.amount, 0) || 0;
     const totalDeductions = data.deductions?.reduce((sum: number, ded: any) => sum + ded.amount, 0) || 0;
     const netSalary = data.baseSalary + totalIncome - totalDeductions;
-    
+
     const payrollData = {
       id: newId,
       employeeId: data.employeeId,
@@ -82,11 +82,15 @@ export const PenggajianRepository = {
       deductions: JSON.stringify(data.deductions || []),
       totalIncome,
       totalDeductions,
-      netSalary
+      netSalary,
+      status: data.status || 'Draft',
+      totalAttendance: data.totalAttendance || 0,
+      totalOvertime: data.totalOvertime || 0,
+      totalLateness: data.totalLateness || 0
     };
 
     await db.run(
-      'INSERT INTO penggajian (id, employeeId, employeeName, period, baseSalary, incomes, deductions, totalIncome, totalDeductions, netSalary) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO penggajian (id, employeeId, employeeName, period, baseSalary, incomes, deductions, totalIncome, totalDeductions, netSalary, status, totalAttendance, totalOvertime, totalLateness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       Object.values(payrollData)
     );
 
@@ -100,10 +104,10 @@ export const PenggajianRepository = {
     const totalIncome = data.incomes?.reduce((sum: number, inc: any) => sum + inc.amount, 0) || 0;
     const totalDeductions = data.deductions?.reduce((sum: number, ded: any) => sum + ded.amount, 0) || 0;
     const netSalary = data.baseSalary + totalIncome - totalDeductions;
-    
+
     // Create payroll data with only the fields that exist as columns in the database
     // Exclude calculated fields like grossSalary that are not stored in the database
-    const payrollData = {
+    const payrollData: any = {
       employeeId: data.employeeId,
       employeeName: data.employeeName,
       period: data.period,
@@ -114,6 +118,12 @@ export const PenggajianRepository = {
       totalDeductions,
       netSalary
     };
+
+    // Add new fields if present in data
+    if (data.status) payrollData.status = data.status;
+    if (data.totalAttendance !== undefined) payrollData.totalAttendance = data.totalAttendance;
+    if (data.totalOvertime !== undefined) payrollData.totalOvertime = data.totalOvertime;
+    if (data.totalLateness !== undefined) payrollData.totalLateness = data.totalLateness;
 
     const setClause = Object.keys(payrollData).map(key => `${key} = ?`).join(', ');
     const values = [...Object.values(payrollData), id];

@@ -14,7 +14,7 @@ const App: React.FC = () => {
 
   // Check system preference or stored preference
   useEffect(() => {
-    const isDark = localStorage.getItem('darkMode') === 'true' || 
+    const isDark = localStorage.getItem('darkMode') === 'true' ||
       (window.matchMedia('(prefers-color-scheme: dark)').matches && localStorage.getItem('darkMode') !== 'false');
     setDarkMode(isDark);
   }, []);
@@ -40,7 +40,7 @@ const App: React.FC = () => {
   }, [toggleDarkMode]);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ReactQueryProvider>
         <I18nProvider>
           <ToastProvider>

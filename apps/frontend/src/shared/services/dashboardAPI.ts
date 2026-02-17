@@ -9,3 +9,18 @@ export const getRecentActivity = async () => {
         throw error;
     }
 };
+
+export const getAdminDashboardData = async () => {
+    const response = await api.get('/dashboard/admin');
+    return response.data;
+};
+
+export const getSupervisorDashboardData = async () => {
+    const response = await api.get('/dashboard/supervisor');
+    return response.data;
+};
+
+export const getEmployeeDashboardData = async (employeeId: string) => {
+    const response = await api.get(`/dashboard/employee/${employeeId}`);
+    return response.data;
+};
