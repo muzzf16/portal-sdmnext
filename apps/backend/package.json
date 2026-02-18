@@ -10,7 +10,8 @@
     "migrate": "ts-node db/migrate.ts",
     "seed": "ts-node db/seed.ts",
     "reset": "ts-node db/reset.ts",
-    "seed:company-settings": "ts-node db/seed-company-settings.ts"
+    "seed:company-settings": "ts-node db/seed-company-settings.ts",
+    "migrate:notifications": "node run_notifications_migration.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

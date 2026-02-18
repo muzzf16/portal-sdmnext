@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const auth_pengguna_routes_1 = __importDefault(require("../modules/pengguna/auth.pengguna.routes"));
+const auth_routes_1 = __importDefault(require("../modules/pengguna/auth.routes"));
 const pengguna_routes_1 = __importDefault(require("../modules/pengguna/pengguna.routes"));
 const pegawai_routes_1 = __importDefault(require("../modules/pegawai/pegawai.routes"));
 const cuti_routes_1 = __importDefault(require("../modules/cuti/cuti.routes"));
@@ -22,8 +22,12 @@ const company_settings_routes_1 = __importDefault(require("../modules/company-se
 const laporan_routes_1 = __importDefault(require("../modules/laporan/laporan.routes"));
 const dashboard_routes_1 = __importDefault(require("../modules/dashboard/dashboard.routes"));
 const upload_1 = __importDefault(require("./upload"));
+const workload_routes_1 = __importDefault(require("../modules/workload/workload.routes"));
+const activity_library_routes_1 = __importDefault(require("../modules/activity-library/activity-library.routes"));
+const kpi_routes_1 = __importDefault(require("../modules/kpi/kpi.routes"));
+const jabatan_routes_1 = __importDefault(require("../modules/jabatan/jabatan.routes"));
 const router = (0, express_1.Router)();
-router.use('/auth', auth_pengguna_routes_1.default);
+router.use('/auth', auth_routes_1.default);
 router.use('/users', pengguna_routes_1.default);
 router.use('/employees', pegawai_routes_1.default);
 router.use('/leave-requests', cuti_routes_1.default);
@@ -40,6 +44,10 @@ router.use('/backup', backup_routes_1.default);
 router.use('/company-settings', company_settings_routes_1.default);
 router.use('/reports', laporan_routes_1.default);
 router.use('/dashboard', dashboard_routes_1.default);
+router.use('/workload', workload_routes_1.default);
+router.use('/activity-library', activity_library_routes_1.default);
+router.use('/kpi-targets', kpi_routes_1.default);
+router.use('/jabatan', jabatan_routes_1.default);
 router.use('/', upload_1.default);
 exports.default = router;
 //# sourceMappingURL=index.js.map

@@ -5,7 +5,7 @@ import { getEmployeeAttendanceSummary, getEmployeeWeeklyAttendance } from '../..
 import { getSisaCuti } from '../../../shared/services/leaveAPI';
 import { getEmployeeLatestPayroll } from '../../../shared/services/payrollAPI';
 import { getEmployeeRecentNotifications } from '../../../shared/services/notifikasiAPI';
-import { Loader2, Inbox, Calendar, CheckCircle, Wallet, User, Clock, Briefcase, BarChart3, GraduationCap, Bell } from 'lucide-react';
+import { Loader2, Inbox, Calendar, CheckCircle, Wallet, User, Clock, BarChart3, GraduationCap, Bell } from 'lucide-react';
 
 import { Absensi, Notifikasi, Penggajian } from '../../../shared/types/types';
 

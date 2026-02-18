@@ -115,8 +115,8 @@ const JabatanFormModal: React.FC<{
                 nama: nama.trim(),
                 level,
                 parent_id: parentId || null,
-                department: department.trim() || null,
-                deskripsi: deskripsi.trim() || null,
+                department: department.trim() || undefined,
+                deskripsi: deskripsi.trim() || undefined,
             };
             if (jabatan) {
                 await updateJabatan(jabatan.id, data);

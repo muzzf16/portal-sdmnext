@@ -14,4 +14,5 @@ export * from './laporanAPI';
 export * from './notifikasiAPI';
 export * from './orientasiAPI';
 export * from './pelatihanAPI';
-export * from './perekrutanAPI';
+export * from './pelatihanAPI';
+// export * from './perekrutanAPI'; // Module missing

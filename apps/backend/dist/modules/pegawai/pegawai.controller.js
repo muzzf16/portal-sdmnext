@@ -40,20 +40,20 @@ class PegawaiController {
     static async getAllPegawai(req, res, next) {
         try {
             const pegawai = await pegawai_service_1.default.getAllPegawai();
-            res.status(200).json(pegawai);
+            return res.status(200).json({ success: true, data: pegawai });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async getPegawaiById(req, res, next) {
         try {
             const { id } = req.params;
             const pegawai = await pegawai_service_1.default.getPegawaiById(id);
-            res.status(200).json(pegawai);
+            return res.status(200).json({ success: true, data: pegawai });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async createPegawai(req, res, next) {
@@ -76,10 +76,10 @@ class PegawaiController {
                 avatarUrl: avatarUrl || '/avatars/default-avatar.jpg'
             };
             const newPegawai = await pegawai_service_1.default.createPegawai(name, email, newPegawaiData);
-            res.status(201).json(newPegawai);
+            return res.status(201).json({ success: true, data: newPegawai });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async updatePegawai(req, res, next) {
@@ -105,20 +105,20 @@ class PegawaiController {
                 updatedPegawaiData.avatarUrl = avatarUrl;
             }
             const updatedPegawai = await pegawai_service_1.default.updatePegawai(id, name, email, updatedPegawaiData);
-            res.status(200).json(updatedPegawai);
+            return res.status(200).json({ success: true, data: updatedPegawai });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async deletePegawai(req, res, next) {
         try {
             const { id } = req.params;
             const result = await pegawai_service_1.default.deletePegawai(id);
-            res.status(200).json(result);
+            return res.status(200).json({ success: true, data: result });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async updatePegawaiPayrollInfo(req, res, next) {
@@ -126,28 +126,37 @@ class PegawaiController {
             const { id } = req.params;
             const payrollInfo = req.body;
             const result = await pegawai_service_1.default.updatePegawaiPayrollInfo(id, payrollInfo);
-            res.status(200).json(result);
+            return res.status(200).json({ success: true, data: result });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async getGenderDistribution(req, res, next) {
         try {
             const distribution = await pegawai_service_1.default.getGenderDistribution();
-            res.status(200).json(distribution);
+            return res.status(200).json({ success: true, data: distribution });
         }
         catch (error) {
-            next(error);
+            return next(error);
         }
     }
     static async getEducationDistribution(req, res, next) {
         try {
             const distribution = await pegawai_service_1.default.getEducationDistribution();
-            res.status(200).json(distribution);
+            return res.status(200).json({ success: true, data: distribution });
         }
         catch (error) {
-            next(error);
+            return next(error);
+        }
+    }
+    static async getDepartmentDistribution(req, res, next) {
+        try {
+            const distribution = await pegawai_service_1.default.getDepartmentDistribution();
+            return res.status(200).json({ success: true, data: distribution });
+        }
+        catch (error) {
+            return next(error);
         }
     }
 }

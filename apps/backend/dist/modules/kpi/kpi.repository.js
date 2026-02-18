@@ -1,0 +1,83 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.KpiRepository = void 0;
+const db_1 = require("../../config/db");
+exports.KpiRepository = {
+    async findAll(filters) {
+        const db = await (0, db_1.openDb)();
+        let query = 'SELECT * FROM kpi_targets';
+        const params = [];
+        const conditions = [];
+        if (filters?.employeeId) {
+            conditions.push('employeeId = ?');
+            params.push(filters.employeeId);
+        }
+        if (filters?.period) {
+            conditions.push('period = ?');
+            params.push(filters.period);
+        }
+        if (filters?.status) {
+            conditions.push('status = ?');
+            params.push(filters.status);
+        }
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+        query += ' ORDER BY created_at DESC';
+        return db.all(query, ...params);
+    },
+    async findByEmployeeId(employeeId) {
+        const db = await (0, db_1.openDb)();
+        return db.all('SELECT * FROM kpi_targets WHERE employeeId = ? ORDER BY period DESC, kpiName ASC', employeeId);
+    },
+    async findByEmployeePeriod(employeeId, period) {
+        const db = await (0, db_1.openDb)();
+        return db.all('SELECT * FROM kpi_targets WHERE employeeId = ? AND period = ? ORDER BY kpiName ASC', employeeId, period);
+    },
+    async findById(id) {
+        const db = await (0, db_1.openDb)();
+        return db.get('SELECT * FROM kpi_targets WHERE id = ?', id);
+    },
+    async create(data) {
+        const db = await (0, db_1.openDb)();
+        const id = data.id || `kpi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const now = new Date().toISOString();
+        await db.run(`INSERT INTO kpi_targets (id, employeeId, period, kpiName, targetValue, targetUnit, weight, actualValue, score, status, source, abkActivityId, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, data.employeeId, data.period, data.kpiName, data.targetValue || 0, data.targetUnit || '', data.weight || 0, data.actualValue || 0, data.score || 0, data.status || 'active', data.source || 'manual', data.abkActivityId || null, data.notes || '', now, now);
+        return this.findById(id);
+    },
+    async update(id, data) {
+        const db = await (0, db_1.openDb)();
+        const now = new Date().toISOString();
+        const fields = [];
+        const values = [];
+        const allowedFields = ['kpiName', 'targetValue', 'targetUnit', 'weight', 'actualValue', 'score', 'status', 'source', 'abkActivityId', 'notes'];
+        for (const field of allowedFields) {
+            if (data[field] !== undefined) {
+                fields.push(`${field} = ?`);
+                values.push(data[field]);
+            }
+        }
+        fields.push('updated_at = ?');
+        values.push(now);
+        values.push(id);
+        const result = await db.run(`UPDATE kpi_targets SET ${fields.join(', ')} WHERE id = ?`, ...values);
+        if (result.changes === 0)
+            return null;
+        return this.findById(id);
+    },
+    async updateActualValue(id, actualValue, score) {
+        const db = await (0, db_1.openDb)();
+        const now = new Date().toISOString();
+        const result = await db.run(`UPDATE kpi_targets SET actualValue = ?, score = ?, updated_at = ? WHERE id = ?`, actualValue, score, now, id);
+        if (result.changes === 0)
+            return null;
+        return this.findById(id);
+    },
+    async delete(id) {
+        const db = await (0, db_1.openDb)();
+        const result = await db.run('DELETE FROM kpi_targets WHERE id = ?', id);
+        return !!(result.changes && result.changes > 0);
+    }
+};
+//# sourceMappingURL=kpi.repository.js.map

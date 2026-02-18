@@ -3,6 +3,7 @@ declare class DashboardController {
     static getRecentActivity(req: Request, res: Response, next: NextFunction): Promise<void>;
     static getAdminDashboardData(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | undefined>;
     static getEmployeeDashboardData(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | undefined>;
+    static getSupervisorDashboardData(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | undefined>;
     private static getEmployeeStats;
     private static getAttendanceStats;
     private static getLeaveStats;

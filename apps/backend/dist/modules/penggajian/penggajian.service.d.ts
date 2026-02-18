@@ -16,6 +16,7 @@ declare class PenggajianService {
         message: string;
         data: any[];
     }>;
+    static updateStatus(id: string, status: 'Draft' | 'Final' | 'Paid'): Promise<any>;
     static generatePayslip(payrollId: string): Promise<Buffer>;
 }
 export default PenggajianService;

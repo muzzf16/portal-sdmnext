@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import authRoutes from '../modules/pengguna/auth.pengguna.routes';
+import authRoutes from '../modules/pengguna/auth.routes';
 import penggunaRoutes from '../modules/pengguna/pengguna.routes';
 import employeeRoutes from '../modules/pegawai/pegawai.routes';
 import leaveRoutes from '../modules/cuti/cuti.routes';

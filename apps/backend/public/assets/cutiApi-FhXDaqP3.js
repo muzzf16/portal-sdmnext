@@ -1,0 +1,1 @@
+import{e as t}from"./index-Bxn4Ppb0.js";const r=()=>t.get("/leave-requests"),u=e=>t.get(`/leave-requests/employee/${e}`),i=e=>t.post("/leave-requests",e),o=(e,a,s)=>t.put(`/leave-requests/${e}/status`,{status:a,rejectionReason:s});export{i as a,u as b,r as g,o as p};

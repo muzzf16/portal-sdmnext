@@ -3,7 +3,7 @@
 
 export const mockPegawai = [
   {
-    id: 1,
+    id: '1',
     nip: '123456789',
     name: 'Budi Santoso',
     email: 'budi.santoso@company.com',
@@ -22,7 +22,7 @@ export const mockPegawai = [
     numberOfChildren: 2
   },
   {
-    id: 2,
+    id: '2',
     nip: '987654321',
     name: 'Ani Lestari',
     email: 'ani.lestari@company.com',
@@ -41,7 +41,7 @@ export const mockPegawai = [
     numberOfChildren: 0
   },
   {
-    id: 3,
+    id: '3',
     nip: '456789123',
     name: 'Dedi Hidayat',
     email: 'dedi.hidayat@company.com',

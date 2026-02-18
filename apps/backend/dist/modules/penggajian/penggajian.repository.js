@@ -72,9 +72,13 @@ exports.PenggajianRepository = {
             deductions: JSON.stringify(data.deductions || []),
             totalIncome,
             totalDeductions,
-            netSalary
+            netSalary,
+            status: data.status || 'Draft',
+            totalAttendance: data.totalAttendance || 0,
+            totalOvertime: data.totalOvertime || 0,
+            totalLateness: data.totalLateness || 0
         };
-        await db.run('INSERT INTO penggajian (id, employeeId, employeeName, period, baseSalary, incomes, deductions, totalIncome, totalDeductions, netSalary) VALUES (?,?,?,?,?,?,?,?,?,?)', Object.values(payrollData));
+        await db.run('INSERT INTO penggajian (id, employeeId, employeeName, period, baseSalary, incomes, deductions, totalIncome, totalDeductions, netSalary, status, totalAttendance, totalOvertime, totalLateness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', Object.values(payrollData));
         const newRow = await db.get('SELECT * FROM penggajian WHERE id = ?', newId);
         return parseJsonFields([newRow])[0];
     },
@@ -94,6 +98,14 @@ exports.PenggajianRepository = {
             totalDeductions,
             netSalary
         };
+        if (data.status)
+            payrollData.status = data.status;
+        if (data.totalAttendance !== undefined)
+            payrollData.totalAttendance = data.totalAttendance;
+        if (data.totalOvertime !== undefined)
+            payrollData.totalOvertime = data.totalOvertime;
+        if (data.totalLateness !== undefined)
+            payrollData.totalLateness = data.totalLateness;
         const setClause = Object.keys(payrollData).map(key => `${key} = ?`).join(', ');
         const values = [...Object.values(payrollData), id];
         const result = await db.run(`UPDATE penggajian SET ${setClause} WHERE id = ?`, values);

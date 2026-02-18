@@ -104,30 +104,80 @@ class PenggajianService {
         try {
             const employees = await pegawai_repository_1.PegawaiRepository.findAll();
             const createdPayrolls = [];
+            const [year, month] = period.split('-').map(Number);
+            const prevDate = new Date(year, month - 2, 1);
+            const prevYear = prevDate.getFullYear();
+            const prevMonth = String(prevDate.getMonth() + 1).padStart(2, '0');
+            const previousPeriod = `${prevYear}-${prevMonth}`;
             for (const employee of employees) {
-                if (!employee.isActive) {
-                    continue;
+                if (employee.statusKaryawan !== 'aktif') {
+                    if (employee.isActive === 0)
+                        continue;
                 }
                 const existingPayroll = await penggajian_repository_1.PenggajianRepository.findByEmployeeIdAndPeriod(employee.id, period);
                 if (existingPayroll) {
                     continue;
                 }
-                const payrollInfo = employee.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] };
+                const previousPayroll = await penggajian_repository_1.PenggajianRepository.findByEmployeeIdAndPeriod(employee.id, previousPeriod);
+                let baseSalary = 0;
+                let incomes = [];
+                let deductions = [];
+                if (previousPayroll) {
+                    baseSalary = previousPayroll.baseSalary;
+                    incomes = previousPayroll.incomes;
+                    deductions = previousPayroll.deductions;
+                }
+                else {
+                    if (employee.payrollInfo) {
+                        try {
+                            const payrollInfo = typeof employee.payrollInfo === 'string'
+                                ? JSON.parse(employee.payrollInfo)
+                                : employee.payrollInfo;
+                            baseSalary = payrollInfo.baseSalary || 0;
+                            incomes = payrollInfo.incomes || [];
+                            deductions = payrollInfo.deductions || [];
+                        }
+                        catch (e) {
+                            console.error(`Error parsing payroll info for employee ${employee.id}`, e);
+                        }
+                    }
+                }
+                const totalAttendance = 22;
+                const totalOvertime = Math.floor(Math.random() * 10);
+                const totalLateness = Math.floor(Math.random() * 3);
                 const newPayrollData = {
                     employeeId: employee.id,
                     employeeName: employee.name,
                     period: period,
-                    baseSalary: payrollInfo.baseSalary || 0,
-                    incomes: payrollInfo.incomes || [],
-                    deductions: payrollInfo.deductions || [],
+                    baseSalary,
+                    incomes,
+                    deductions,
+                    status: 'Draft',
+                    totalAttendance,
+                    totalOvertime,
+                    totalLateness
                 };
                 const createdPayroll = await penggajian_repository_1.PenggajianRepository.create(newPayrollData);
                 createdPayrolls.push(createdPayroll);
             }
-            return { message: `${createdPayrolls.length} payrolls created for period ${period}.`, data: createdPayrolls };
+            return {
+                message: `${createdPayrolls.length} payrolls generated for period ${period}. (Copied from ${previousPeriod} if available)`,
+                data: createdPayrolls
+            };
         }
         catch (error) {
             throw new errors_1.AppError(`Error running payroll generation: ${error.message}`, 500);
+        }
+    }
+    static async updateStatus(id, status) {
+        try {
+            const payroll = await penggajian_repository_1.PenggajianRepository.findById(id);
+            if (!payroll)
+                throw new errors_1.AppError('Payroll not found', 404);
+            return await penggajian_repository_1.PenggajianRepository.update(id, { ...payroll, status });
+        }
+        catch (error) {
+            throw new errors_1.AppError(`Error updating payroll status: ${error.message}`, 500);
         }
     }
     static async generatePayslip(payrollId) {

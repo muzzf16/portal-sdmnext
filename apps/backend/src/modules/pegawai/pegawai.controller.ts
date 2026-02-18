@@ -44,7 +44,7 @@ class PegawaiController {
       const pegawai = await PegawaiService.getAllPegawai();
       return res.status(200).json({ success: true, data: pegawai });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -54,7 +54,7 @@ class PegawaiController {
       const pegawai = await PegawaiService.getPegawaiById(id);
       return res.status(200).json({ success: true, data: pegawai });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -83,7 +83,7 @@ class PegawaiController {
       const newPegawai = await PegawaiService.createPegawai(name, email, newPegawaiData);
       return res.status(201).json({ success: true, data: newPegawai });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -116,7 +116,7 @@ class PegawaiController {
       const updatedPegawai = await PegawaiService.updatePegawai(id, name, email, updatedPegawaiData);
       return res.status(200).json({ success: true, data: updatedPegawai });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -126,7 +126,7 @@ class PegawaiController {
       const result = await PegawaiService.deletePegawai(id);
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -137,7 +137,7 @@ class PegawaiController {
       const result = await PegawaiService.updatePegawaiPayrollInfo(id, payrollInfo);
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -146,7 +146,7 @@ class PegawaiController {
       const distribution = await PegawaiService.getGenderDistribution();
       return res.status(200).json({ success: true, data: distribution });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -155,7 +155,7 @@ class PegawaiController {
       const distribution = await PegawaiService.getEducationDistribution();
       return res.status(200).json({ success: true, data: distribution });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -164,7 +164,7 @@ class PegawaiController {
       const distribution = await PegawaiService.getDepartmentDistribution();
       return res.status(200).json({ success: true, data: distribution });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 

@@ -12,9 +12,9 @@ export default class KpiController {
                 status: status as string | undefined,
             };
             const data = await KpiService.getAll(filters);
-            res.status(200).json({ success: true, data });
+            return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -22,9 +22,9 @@ export default class KpiController {
         try {
             const { employeeId } = req.params;
             const data = await KpiService.getByEmployeeId(employeeId);
-            res.status(200).json({ success: true, data });
+            return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -33,9 +33,9 @@ export default class KpiController {
             const { employeeId } = req.params;
             const { period } = req.query;
             const data = await KpiService.getByEmployeePeriod(employeeId, period as string);
-            res.status(200).json({ success: true, data });
+            return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -43,18 +43,18 @@ export default class KpiController {
         try {
             const { id } = req.params;
             const data = await KpiService.getById(id);
-            res.status(200).json({ success: true, data });
+            return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const data = await KpiService.create(req.body);
-            res.status(201).json({ success: true, data });
+            return res.status(201).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -62,9 +62,9 @@ export default class KpiController {
         try {
             const { id } = req.params;
             const data = await KpiService.update(id, req.body);
-            res.status(200).json({ success: true, data });
+            return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -78,7 +78,7 @@ export default class KpiController {
             const data = await KpiService.updateActualValue(id, actualValue);
             return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -86,9 +86,9 @@ export default class KpiController {
         try {
             const { id } = req.params;
             const data = await KpiService.delete(id);
-            res.status(200).json({ success: true, ...data });
+            return res.status(200).json({ success: true, ...data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -101,7 +101,7 @@ export default class KpiController {
             const data = await KpiService.generateFromAbk(employeeId, parseInt(year), period);
             return res.status(201).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 }

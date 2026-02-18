@@ -9,6 +9,7 @@ declare class PenggajianController {
     static addSalaryComponent(req: Request, res: Response, next: NextFunction): Promise<void>;
     static runPayroll(req: Request, res: Response, next: NextFunction): Promise<void>;
     static downloadPayslip(req: Request, res: Response, next: NextFunction): Promise<void>;
+    static updateStatus(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 export default PenggajianController;
 //# sourceMappingURL=penggajian.controller.d.ts.map

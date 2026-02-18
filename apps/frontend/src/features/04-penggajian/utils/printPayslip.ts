@@ -204,7 +204,7 @@ export const printPayslip = (
             </div>
             <div class="detail-item">
               <dt>Tanggal Pembayaran</dt>
-              <dd>${new Date(payroll.tanggalPembayaran).toLocaleDateString('id-ID')}</dd>
+              <dd>${payroll.tanggalPembayaran ? new Date(payroll.tanggalPembayaran).toLocaleDateString('id-ID') : '-'}</dd>
             </div>
           </dl>
 

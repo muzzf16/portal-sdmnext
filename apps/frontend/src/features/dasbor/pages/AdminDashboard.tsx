@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getEmployees, getEmployeeGenderData, getEmployeeEducationData, getEmployeeDepartmentData } from '../../../shared/services/employeeAPI';
@@ -5,7 +6,7 @@ import { getTodayAttendanceCount } from '../../../shared/services/attendanceAPI'
 import { getPendingLeaveRequestsCount } from '../../../shared/services/leaveAPI';
 import { getExpiringContractsCount } from '../../../shared/services/kontrakAPI';
 import {
-  Users, Clock, Calendar, FileText, Eye, BarChart3, DollarSign, UserCheck, File, Building2,
+  Users, Clock, Calendar, FileText, Eye, BarChart3, DollarSign, UserCheck, Building2,
   Loader2, Inbox
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -67,7 +68,7 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     setError(`Gagal memuat ${label}.`);
-    console.error(`Error fetching ${label}:`, error);
+    console.error(`Error fetching ${label}: `, error);
   }, [logout, navigate]);
 
   useEffect(() => {
@@ -229,7 +230,7 @@ const AdminDashboard: React.FC = () => {
               className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl shadow transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
             >
               <div className="flex items-center">
-                <div className={`p-3 rounded-lg ${stat.bgColor}`} aria-hidden="true">
+                <div className={`p - 3 rounded - lg ${stat.bgColor} `} aria-hidden="true">
                   <stat.icon size={24} className={stat.color} aria-hidden="true" />
                 </div>
                 <div className="ml-4">
@@ -257,11 +258,11 @@ const AdminDashboard: React.FC = () => {
                   <Pie data={genderData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value"
                     label={(props) => {
                       const { name, percent } = props as any;
-                      return `${name} ${(Number(percent) * 100).toFixed(0)}%`;
+                      return `${name} ${(Number(percent) * 100).toFixed(0)}% `;
                     }}
                   >
                     {genderData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell - ${index} `} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -310,11 +311,11 @@ const AdminDashboard: React.FC = () => {
                   <Pie data={departmentData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value"
                     label={(props) => {
                       const { name, percent } = props as any;
-                      return `${name} ${(Number(percent) * 100).toFixed(0)}%`;
+                      return `${name} ${(Number(percent) * 100).toFixed(0)}% `;
                     }}
                   >
                     {departmentData.map((_, index) => (
-                      <Cell key={`dept-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`dept - ${index} `} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -346,7 +347,7 @@ const AdminDashboard: React.FC = () => {
                 title={action.title}
               >
                 <div className="flex justify-center mb-3">
-                  <div className={`p-3 rounded-lg ${action.color}`}>
+                  <div className={`p - 3 rounded - lg ${action.color} `}>
                     <action.icon size={24} />
                   </div>
                 </div>

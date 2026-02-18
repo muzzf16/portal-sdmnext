@@ -14,5 +14,6 @@ export interface Penggajian {
   totalAttendance?: number;
   totalOvertime?: number;
   totalLateness?: number;
+  tanggalPembayaran?: string;
 }
 // End of type definition

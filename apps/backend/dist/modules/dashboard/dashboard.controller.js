@@ -9,6 +9,7 @@ const permintaanCuti_repository_1 = require("../cuti/permintaanCuti.repository")
 const penggajian_repository_1 = require("../penggajian/penggajian.repository");
 const penilaianKinerja_repository_1 = require("../kinerja/penilaianKinerja.repository");
 const kontrak_repository_1 = require("../kontrak/kontrak.repository");
+const errors_1 = require("../../utils/errors");
 const dashboard_service_1 = __importDefault(require("./dashboard.service"));
 class DashboardController {
     static async getRecentActivity(req, res, next) {
@@ -76,6 +77,30 @@ class DashboardController {
                     leaveSummary,
                     payrollSummary,
                     performanceSummary
+                }
+            });
+        }
+        catch (error) {
+            next(error);
+            return;
+        }
+    }
+    static async getSupervisorDashboardData(req, res, next) {
+        try {
+            const user = req.user;
+            if (!user || !user.employeeId) {
+                throw new errors_1.AppError('User not authenticated or not linked to an employee', 401);
+            }
+            const supervisorId = user.employeeId;
+            const [stats, subordinates] = await Promise.all([
+                pegawai_repository_1.PegawaiRepository.getSupervisorStats(supervisorId),
+                pegawai_repository_1.PegawaiRepository.findByAtasanId(supervisorId)
+            ]);
+            return res.status(200).json({
+                success: true,
+                data: {
+                    stats,
+                    subordinates
                 }
             });
         }

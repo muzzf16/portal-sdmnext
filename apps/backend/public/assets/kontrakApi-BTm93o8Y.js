@@ -1,0 +1,1 @@
+import{e as a}from"./index-C16ccCUI.js";const s=()=>a.get("/contracts"),e=t=>a.get(`/contracts/${t}`),n=t=>a.post("/contracts",t),c=t=>a.post("/contracts",t,{headers:{"Content-Type":"multipart/form-data"}}),r=t=>a.delete(`/contracts/${t}`);export{n as a,c as b,e as c,r as d,s as g};

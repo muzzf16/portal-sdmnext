@@ -100,7 +100,19 @@ exports.PenggunaRepository = {
     },
     async update(id, data) {
         const db = await (0, db_1.openDb)();
-        const result = await db.run('UPDATE pengguna SET name = ?, email = ? WHERE id = ?', [data.name, data.email, id]);
+        const allowedFields = ['name', 'email', 'role', 'employeeId'];
+        const updates = [];
+        const values = [];
+        Object.keys(data).forEach(key => {
+            if (allowedFields.includes(key) && data[key] !== undefined) {
+                updates.push(`${key} = ?`);
+                values.push(data[key]);
+            }
+        });
+        if (updates.length === 0)
+            return await this.findById(id);
+        values.push(id);
+        const result = await db.run(`UPDATE pengguna SET ${updates.join(', ')} WHERE id = ?`, values);
         if (result.changes === 0)
             throw new Error('User not found');
         const updatedUser = await this.findById(id);
