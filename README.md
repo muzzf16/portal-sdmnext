@@ -312,5 +312,6 @@ Proyek ini dilisensikan di bawah MIT License - lihat file LICENSE untuk detail l
 
 ## Kontak
 
-Untuk pertanyaan atau dukungan, silakan hubungi tim pengembang.#   p o r t a l - s d m n e x t  
+Untuk pertanyaan atau dukungan, silakan hubungi tim pengembang.#   p o r t a l - s d m n e x t 
+ 
  
