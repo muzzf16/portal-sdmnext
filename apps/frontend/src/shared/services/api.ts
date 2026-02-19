@@ -2,7 +2,11 @@ import axios, { type AxiosResponse, type AxiosError, type InternalAxiosRequestCo
 
 // Create an axios instance
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api`,
+  /* 
+    Use relative path '/api' by default to leverage Nginx proxy. 
+    This avoids CORS issues and hardcoded domains.
+  */
+  baseURL: import.meta.env.VITE_API_BASE || '/api',
 });
 
 // Request interceptor to add auth token
@@ -10,11 +14,11 @@ api.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     // Get token from wherever you're storing it (localStorage, context, etc.)
     const token = localStorage.getItem('accessToken');
-    
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error: AxiosError) => {
@@ -38,23 +42,23 @@ api.interceptors.response.use(
         // Implement token refresh logic
         // This would call your token refresh endpoint
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         if (refreshToken) {
           // Make a request to refresh the token
-          const refreshResponse = await axios.post(`${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api/auth/refresh`, {
+          const refreshResponse = await axios.post(`${import.meta.env.VITE_API_BASE || '/api'}/auth/refresh`, {
             refreshToken
           });
-          
+
           const { accessToken } = refreshResponse.data;
-          
+
           // Store the new access token
           localStorage.setItem('accessToken', accessToken);
-          
+
           // Retry the original request with the new token
           if (originalRequest.headers) {
             (originalRequest.headers as any).Authorization = `Bearer ${accessToken}`;
           }
-          
+
           return axios(originalRequest);
         }
       } catch (refreshError) {
@@ -62,10 +66,10 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        
+
         // Redirect to login page
         window.location.href = '/login';
-        
+
         return Promise.reject(refreshError);
       }
     }
