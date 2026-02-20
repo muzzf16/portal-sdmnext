@@ -73,3 +73,18 @@ export interface KpiTarget {
   updated_at?: string;
 }
 
+export interface DailyActivity {
+  id_daily_activity: number;
+  id_pegawai: number;
+  id_kpi_target?: number;
+  activityName: string;
+  tanggal: string;
+  jam_mulai: string;
+  jam_selesai: string;
+  durasiMenit: number;
+  status: 'pending' | 'approved' | 'rejected';
+  evidenceUrl?: string;
+  catatan?: string;
+  created_at?: string;
+  updated_at?: string;
+}

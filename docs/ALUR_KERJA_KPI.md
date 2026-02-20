@@ -430,8 +430,8 @@ Total Menit = Durasi × (
 
 ### 9.2 FTE (Full Time Equivalent)
 ```
-Kapasitas_Tahun = 264 hari × 8 jam × 60 menit = 126.720 menit
-FTE% = (Total_Menit / 126.720) × 100
+Kapasitas_Tahun = (264 hari - Hari_Cuti_Sakit) × 8 jam × 60 menit
+FTE% = (Total_Menit / Kapasitas_Tahun) × 100
 
 Status:
   > 100%  → Overload  (🔴)
@@ -612,7 +612,7 @@ Skor_Akhir = Σ(skor_i × bobot_i) / Σ(bobot_i)
 
 ```sql
 CREATE TABLE activity_library (
-    id TEXT PRIMARY KEY,
+    id_activity_library INTEGER PRIMARY KEY AUTOINCREMENT,
     position TEXT NOT NULL,
     department TEXT,
     activityName TEXT NOT NULL,
@@ -627,30 +627,55 @@ CREATE TABLE activity_library (
 
 ```sql
 CREATE TABLE kpi_targets (
-    id TEXT PRIMARY KEY,
-    employeeId TEXT NOT NULL,
+    id_kpi_target INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_pegawai INTEGER NOT NULL,
     period TEXT NOT NULL,
     kpiName TEXT NOT NULL,
+    metricType TEXT CHECK(metricType IN ('maximize', 'minimize')) DEFAULT 'maximize',
     targetValue REAL NOT NULL DEFAULT 0,
     targetUnit TEXT,
     weight INTEGER NOT NULL DEFAULT 0,
     actualValue REAL DEFAULT 0,
+    evidenceUrl TEXT,
     score REAL DEFAULT 0,
-    status TEXT CHECK(status IN ('active','completed','cancelled')) DEFAULT 'active',
+    status TEXT CHECK(status IN ('draft', 'waiting_approval', 'active', 'completed', 'cancelled')) DEFAULT 'draft',
     source TEXT CHECK(source IN ('abk','manual')) DEFAULT 'manual',
-    abkActivityId TEXT,
+    abkActivityId INTEGER,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
+    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
+);
+```
+
+### Tabel `daily_activities`
+```sql
+CREATE TABLE daily_activities (
+    id_daily_activity INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_pegawai INTEGER NOT NULL,
+    id_kpi_target INTEGER,
+    activityName TEXT NOT NULL,
+    tanggal DATE NOT NULL,
+    jam_mulai TIME,
+    jam_selesai TIME,
+    durasiMenit INTEGER,
+    status TEXT CHECK(status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    evidenceUrl TEXT,
+    catatan TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE,
+    FOREIGN KEY (id_kpi_target) REFERENCES kpi_targets(id_kpi_target) ON DELETE SET NULL
 );
 ```
 
 ### Relasi
 
 ```
-pegawai.id ← kpi_targets.employeeId
-activity_library.id ← kpi_targets.abkActivityId (opsional)
+pegawai.id_pegawai ← kpi_targets.id_pegawai
+activity_library.id_activity_library ← kpi_targets.abkActivityId (opsional)
+pegawai.id_pegawai ← daily_activities.id_pegawai
+kpi_targets.id_kpi_target ← daily_activities.id_kpi_target (opsional)
 analisis_beban_kerja → (generate) → kpi_targets
 ```
 

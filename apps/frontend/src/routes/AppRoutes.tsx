@@ -50,6 +50,7 @@ const HalamanDetailKontrak = lazy(() => import('../features/05-kontrak/pages/Hal
 const ManajemenKinerjaPage = lazy(() => import('../features/06-kinerja/pages/ManajemenKinerjaPage'));
 const HalamanKinerjaSaya = lazy(() => import('../features/06-kinerja/pages/HalamanKinerjaSaya'));
 const HalamanDetailKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanDetailKinerja'));
+const AktivitasHarianPage = lazy(() => import('../features/06-kinerja/pages/AktivitasHarianPage'));
 
 // Recruitment
 const HalamanPerekrutan = lazy(() => import('../features/07-perekrutan/pages/HalamanPerekrutan'));
@@ -300,6 +301,13 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['employee', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanKinerjaSaya />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="kinerja/aktivitas-harian" element={
+          <PrivateRoute allowedRoles={['employee', 'supervisor']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <AktivitasHarianPage />
             </Suspense>
           </PrivateRoute>
         } />
