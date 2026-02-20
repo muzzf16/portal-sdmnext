@@ -2,7 +2,7 @@ import React from 'react';
 import { usePelatihan } from '../hooks/usePelatihan';
 import { Table } from '@/shared/components/ui';
 
-const VITE_API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3333';
+const VITE_API_URL = import.meta.env.VITE_API_BASE || '';
 
 const DaftarPelatihan: React.FC = () => {
   const { pelatihan, loading, error } = usePelatihan();
@@ -24,10 +24,10 @@ const DaftarPelatihan: React.FC = () => {
             <td className="py-4 px-6">{new Date(item.tanggal_selesai).toLocaleDateString('id-ID')}</td>
             <td className="py-4 px-6">
               {item.nomor_sertifikat ? (
-                <a 
-                  href={`${VITE_API_URL}/documents/${item.nomor_sertifikat}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href={`${VITE_API_URL}/documents/${item.nomor_sertifikat}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center px-3 py-1 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
                 >
                   Lihat Sertifikat

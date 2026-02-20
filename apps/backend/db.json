@@ -1,0 +1,45 @@
+{
+    "users": [
+        {
+            "id": 1,
+            "name": "Admin SDM",
+            "email": "admin@company.com",
+            "password": "password123",
+            "role": "admin",
+            "employeeDetails": {
+                "id": "EMP001"
+            }
+        }
+    ],
+    "employees": [
+        {
+            "id": "EMP001",
+            "name": "Admin SDM",
+            "nip": "123456789",
+            "position": "Administrator",
+            "pangkat": "IV/a",
+            "golongan": "Pembina",
+            "department": "HRD",
+            "joinDate": "2020-01-01",
+            "avatarUrl": "",
+            "jenis_kelamin": "L",
+            "leaveBalance": 12,
+            "isActive": true,
+            "address": "Jl. Sudirman No. 1",
+            "phone": "08123456789",
+            "pob": "Jakarta",
+            "dob": "1990-01-01",
+            "religion": "Islam",
+            "maritalStatus": "Menikah",
+            "numberOfChildren": 2,
+            "educationHistory": [],
+            "workHistory": [],
+            "trainingCertificates": [],
+            "payrollInfo": {}
+        }
+    ],
+    "leaveRequests": [],
+    "payrolls": [],
+    "performanceReviews": [],
+    "attendance": []
+}
