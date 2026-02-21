@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { Download, Users, Search } from 'lucide-react';
-import { getAdminLogAktivitasSummaryWla } from '../api/logAktivitasHarianApi';
+import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
+import { getAdminLogAktivitasSummaryWla, getAdminDetailLogsWla, updateLogAktivitasStatusWla } from '../api/logAktivitasHarianApi';
 import { AdminWlaSummary } from '../types';
 import clsx from 'clsx';
 
@@ -12,6 +12,10 @@ const AdminWlaSummaryPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
+    const [detailLogs, setDetailLogs] = useState<Record<string, any[]>>({});
+    const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
 
     const fetchSummary = async () => {
         setLoading(true);
@@ -29,10 +33,11 @@ const AdminWlaSummaryPage: React.FC = () => {
 
     useEffect(() => {
         fetchSummary();
+        setExpandedEmployee(null);
+        setDetailLogs({});
     }, [selectedDate]);
 
-    // Helpers for calculating FTE
-    const EFFECTIVE_WORKING_MINUTES = 480; // 8 hours * 60
+    const EFFECTIVE_WORKING_MINUTES = 480;
 
     const getFteStatus = (minutes: number) => {
         const percentage = (minutes / EFFECTIVE_WORKING_MINUTES) * 100;
@@ -74,6 +79,48 @@ const AdminWlaSummaryPage: React.FC = () => {
         document.body.removeChild(link);
     };
 
+    const handleToggleExpand = async (s: AdminWlaSummary) => {
+        const key = String(s.id_pegawai);
+        if (expandedEmployee === key) {
+            setExpandedEmployee(null);
+            return;
+        }
+        setExpandedEmployee(key);
+        if (!detailLogs[key]) {
+            setDetailLoading(prev => ({ ...prev, [key]: true }));
+            try {
+                const res = await getAdminDetailLogsWla(selectedDate, key);
+                setDetailLogs(prev => ({ ...prev, [key]: res?.data?.data || [] }));
+            } catch {
+                setDetailLogs(prev => ({ ...prev, [key]: [] }));
+            } finally {
+                setDetailLoading(prev => ({ ...prev, [key]: false }));
+            }
+        }
+    };
+
+    const handleUpdateStatus = async (logId: number, status: 'approved' | 'rejected', employeeKey: string) => {
+        setUpdatingId(logId);
+        try {
+            await updateLogAktivitasStatusWla(logId, status);
+            // Refresh detail logs for the employee
+            const res = await getAdminDetailLogsWla(selectedDate, employeeKey);
+            setDetailLogs(prev => ({ ...prev, [employeeKey]: res?.data?.data || [] }));
+            // Also refresh the summary row so duration/FTE updates automatically
+            await fetchSummary();
+        } catch (err) {
+            alert('Gagal mengubah status log.');
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        if (status === 'approved') return 'bg-green-100 text-green-800';
+        if (status === 'rejected') return 'bg-red-100 text-red-800';
+        return 'bg-yellow-100 text-yellow-800'; // pending
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -112,8 +159,6 @@ const AdminWlaSummaryPage: React.FC = () => {
                                 />
                             </div>
                         </div>
-
-                        {/* Export Button if needed later */}
                         <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-white shadow-sm" onClick={handleExport}>
                             <Download className="w-4 h-4 mr-2" />
                             Export CSV
@@ -136,12 +181,13 @@ const AdminWlaSummaryPage: React.FC = () => {
                                     <th className="px-6 py-4 border-b text-center">Durasi Total</th>
                                     <th className="px-6 py-4 border-b text-center">Beban (FTE)</th>
                                     <th className="px-6 py-4 border-b text-center">Status</th>
+                                    <th className="px-6 py-4 border-b text-center">Detail</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                             <div className="flex justify-center items-center">
                                                 <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mr-2"></span>
                                                 Memuat agregasi data...
@@ -150,7 +196,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                                     </tr>
                                 ) : filteredSummaries.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                             Tidak ada data untuk tanggal terpilih atau pencarian tidak cocok.
                                         </td>
                                     </tr>
@@ -159,47 +205,143 @@ const AdminWlaSummaryPage: React.FC = () => {
                                         const durasi = s.total_durasi_menit || 0;
                                         const percent = Math.round((durasi / EFFECTIVE_WORKING_MINUTES) * 100);
                                         const status = getFteStatus(durasi);
+                                        const key = String(s.id_pegawai);
+                                        const isExpanded = expandedEmployee === key;
+                                        const logs = detailLogs[key] || [];
+                                        const isDetailLoading = detailLoading[key];
 
                                         return (
-                                            <tr key={s.id_pegawai || idx} className="hover:bg-indigo-50/30 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="font-semibold text-gray-900">{s.nama_lengkap}</div>
-                                                    <div className="text-xs text-gray-500">NIP: {s.nip}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="font-medium text-gray-800">{s.departemen}</div>
-                                                    <div className="text-xs text-gray-500">{s.jabatan}</div>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {s.jumlah_log ? (
-                                                        <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium text-xs">
-                                                            {s.jumlah_log} input
-                                                        </span>
-                                                    ) : <span className="text-gray-400">-</span>}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {durasi > 0 ? (
-                                                        <div className="font-bold text-gray-900">{durasi} <span className="font-normal text-gray-500 text-xs text-center block">menit</span></div>
-                                                    ) : <span className="text-gray-400">-</span>}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {durasi > 0 ? (
-                                                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1 dark:bg-gray-700">
-                                                            <div className={clsx("h-2.5 rounded-full", percent > 100 ? "bg-red-500" : (percent >= 80 ? "bg-green-500" : "bg-yellow-500"))} style={{ width: `${Math.min(percent, 100)}%` }}></div>
-                                                        </div>
-                                                    ) : null}
-                                                    <span className="text-xs font-semibold">{percent}%</span>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {durasi > 0 ? (
-                                                        <span className={clsx("px-2.5 py-1 text-xs font-medium rounded-full", status.color)}>
-                                                            {status.label}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Belum Log</span>
-                                                    )}
-                                                </td>
-                                            </tr>
+                                            <React.Fragment key={s.id_pegawai || idx}>
+                                                <tr className="hover:bg-indigo-50/30 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-semibold text-gray-900">{s.nama_lengkap}</div>
+                                                        <div className="text-xs text-gray-500">NIP: {s.nip}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-medium text-gray-800">{s.departemen}</div>
+                                                        <div className="text-xs text-gray-500">{s.jabatan}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {s.jumlah_log ? (
+                                                            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium text-xs">
+                                                                {s.jumlah_log} input
+                                                            </span>
+                                                        ) : <span className="text-gray-400">-</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {durasi > 0 ? (
+                                                            <div className="font-bold text-gray-900">{durasi} <span className="font-normal text-gray-500 text-xs text-center block">menit</span></div>
+                                                        ) : <span className="text-gray-400">-</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {durasi > 0 ? (
+                                                            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1 dark:bg-gray-700">
+                                                                <div className={clsx("h-2.5 rounded-full", percent > 100 ? "bg-red-500" : (percent >= 80 ? "bg-green-500" : "bg-yellow-500"))} style={{ width: `${Math.min(percent, 100)}%` }}></div>
+                                                            </div>
+                                                        ) : null}
+                                                        <span className="text-xs font-semibold">{percent}%</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {durasi > 0 ? (
+                                                            <span className={clsx("px-2.5 py-1 text-xs font-medium rounded-full", status.color)}>
+                                                                {status.label}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Belum Log</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {s.jumlah_log > 0 && (
+                                                            <button
+                                                                onClick={() => handleToggleExpand(s)}
+                                                                className="text-indigo-600 hover:text-indigo-900 flex items-center mx-auto text-xs font-medium"
+                                                            >
+                                                                {isExpanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+                                                                {isExpanded ? 'Tutup' : 'Lihat & Approve'}
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+
+                                                {/* Expanded detail row */}
+                                                {isExpanded && (
+                                                    <tr>
+                                                        <td colSpan={7} className="px-0 py-0 bg-indigo-50/40">
+                                                            <div className="px-8 py-4 border-t border-indigo-100">
+                                                                <h4 className="text-sm font-semibold text-indigo-900 mb-3">
+                                                                    Detail Log Aktivitas — {s.nama_lengkap} ({selectedDate})
+                                                                </h4>
+                                                                {isDetailLoading ? (
+                                                                    <div className="text-sm text-gray-500 py-4 text-center">Memuat detail...</div>
+                                                                ) : logs.length === 0 ? (
+                                                                    <div className="text-sm text-gray-500 py-2">Tidak ada log ditemukan.</div>
+                                                                ) : (
+                                                                    <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                                                                        <thead className="bg-indigo-100 text-indigo-800 text-xs uppercase">
+                                                                            <tr>
+                                                                                <th className="px-4 py-2 text-left">Aktivitas</th>
+                                                                                <th className="px-4 py-2 text-center">Frekuensi</th>
+                                                                                <th className="px-4 py-2 text-center">Durasi</th>
+                                                                                <th className="px-4 py-2 text-left">Catatan</th>
+                                                                                <th className="px-4 py-2 text-center">Status</th>
+                                                                                <th className="px-4 py-2 text-center">Aksi</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-100 bg-white">
+                                                                            {logs.map((log: any) => (
+                                                                                <tr key={log.id_log}>
+                                                                                    <td className="px-4 py-3">
+                                                                                        <div className="font-medium">{log.activityName || log.id_activity_library}</div>
+                                                                                        <div className="text-xs text-gray-400">{log.category || ''}</div>
+                                                                                    </td>
+                                                                                    <td className="px-4 py-3 text-center">{log.frekuensi}x</td>
+                                                                                    <td className="px-4 py-3 text-center font-medium">{log.total_durasi_terhitung} menit</td>
+                                                                                    <td className="px-4 py-3 text-xs text-gray-500">{log.catatan || '-'}</td>
+                                                                                    <td className="px-4 py-3 text-center">
+                                                                                        <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium", getStatusBadge(log.status_approval || 'pending'))}>
+                                                                                            {log.status_approval || 'pending'}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td className="px-4 py-3 text-center">
+                                                                                        <div className="flex gap-2 justify-center">
+                                                                                            <button
+                                                                                                onClick={() => handleUpdateStatus(log.id_log, 'approved', key)}
+                                                                                                disabled={updatingId === log.id_log || log.status_approval === 'approved'}
+                                                                                                title="Approve"
+                                                                                                className={clsx(
+                                                                                                    "p-1.5 rounded-full transition-colors",
+                                                                                                    log.status_approval === 'approved'
+                                                                                                        ? "bg-green-100 text-green-400 cursor-default"
+                                                                                                        : "bg-green-50 text-green-600 hover:bg-green-100"
+                                                                                                )}
+                                                                                            >
+                                                                                                <CheckCircle className="h-4 w-4" />
+                                                                                            </button>
+                                                                                            <button
+                                                                                                onClick={() => handleUpdateStatus(log.id_log, 'rejected', key)}
+                                                                                                disabled={updatingId === log.id_log || log.status_approval === 'rejected'}
+                                                                                                title="Reject"
+                                                                                                className={clsx(
+                                                                                                    "p-1.5 rounded-full transition-colors",
+                                                                                                    log.status_approval === 'rejected'
+                                                                                                        ? "bg-red-100 text-red-400 cursor-default"
+                                                                                                        : "bg-red-50 text-red-600 hover:bg-red-100"
+                                                                                                )}
+                                                                                            >
+                                                                                                <XCircle className="h-4 w-4" />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
                                         )
                                     })
                                 )}

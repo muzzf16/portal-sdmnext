@@ -13,11 +13,28 @@ const FormKinerja: React.FC = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [kpiRows, setKpiRows] = useState([{ id: Date.now(), name: '', score: 0, weight: 0 }]);
 
-  // Auto-fill reviewer name from user session
+  // Auto-fill reviewer name and penilaiId (NIP) from user session + employee API
   React.useEffect(() => {
-    if (user && user.name) {
-      setValue('reviewerName', user.name);
-    }
+    const fillReviewerInfo = async () => {
+      if (!user) return;
+      if (user.name) setValue('reviewerName', user.name);
+
+      // Fetch NIP from employee data using user.employeeId
+      if (user.employeeId) {
+        try {
+          const res = await getPegawai();
+          const allEmployees = Array.isArray(res.data) ? res.data : res.data?.data || [];
+          const currentEmployee = allEmployees.find((e: any) => e.id === user.employeeId);
+          if (currentEmployee?.nip) {
+            setValue('penilaiId', currentEmployee.nip);
+          }
+        } catch {
+          // fallback: use employeeId if fetch fails
+          setValue('penilaiId', user.employeeId);
+        }
+      }
+    };
+    fillReviewerInfo();
   }, [user, setValue]);
 
   // Load employees for dropdown
@@ -59,6 +76,7 @@ const FormKinerja: React.FC = () => {
         try {
           const res = await getKpiTargets({ employeeId: selectedEmployeeId, period: selectedPeriod });
           const targetKpis = res.data?.data || res.data;
+          console.log('Fetched KPIs for auto-fill:', targetKpis);
 
           if (Array.isArray(targetKpis) && targetKpis.length > 0) {
             const mappedKpis = targetKpis.map(kpi => ({
@@ -147,8 +165,10 @@ const FormKinerja: React.FC = () => {
             <label htmlFor="employee" className="block text-sm font-medium text-slate-700 mb-1">Pilih Pegawai</label>
             <select
               id="employee"
-              onChange={handleEmployeeChange}
-              value={watch('employeeId') || ''}
+              {...register('employeeId', {
+                required: 'Pegawai wajib dipilih',
+                onChange: handleEmployeeChange
+              })}
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             >
               <option value="">Pilih Pegawai</option>
@@ -161,13 +181,21 @@ const FormKinerja: React.FC = () => {
             {errors.employeeId && <span className="text-red-500 text-sm">{errors.employeeId.message}</span>}
           </div>
           <div>
-            <label htmlFor="period" className="block text-sm font-medium text-slate-700 mb-1">Periode</label>
-            <input
+            <label htmlFor="period" className="block text-sm font-medium text-slate-700 mb-1">Periode Semester</label>
+            <select
               id="period"
-              type="month"
               {...register('period', { required: 'Periode wajib diisi' })}
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
-            />
+            >
+              <option value="">Pilih Periode</option>
+              {[...Array(3)].map((_, i) => {
+                const year = new Date().getFullYear() - i;
+                return [
+                  <option key={`${year}-S1`} value={`${year}-S1`}>{year} - Semester 1</option>,
+                  <option key={`${year}-S2`} value={`${year}-S2`}>{year} - Semester 2</option>,
+                ];
+              })}
+            </select>
             {errors.period && <span className="text-red-500 text-sm">{errors.period.message}</span>}
           </div>
           <div>

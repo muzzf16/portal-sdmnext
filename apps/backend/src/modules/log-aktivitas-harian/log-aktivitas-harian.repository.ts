@@ -75,12 +75,13 @@ export default class LogAktivitasHarianRepository {
     static async getAllByDate(tanggal: string) {
         const db = await openDb();
         // Aggregating per employee for the admin dashboard
+        // Only count logs that are NOT rejected (pending or approved)
         return db.all(
             `SELECT 
                 p.id as id_pegawai, p.name as nama_lengkap, p.nip, p.position as jabatan, p.department as departemen,
-                SUM(l.frekuensi) as total_aktivitas,
-                SUM(l.total_durasi_terhitung) as total_durasi_menit,
-                COUNT(l.id_log) as jumlah_log
+                SUM(CASE WHEN l.status_approval IS NULL OR l.status_approval != 'rejected' THEN l.frekuensi ELSE 0 END) as total_aktivitas,
+                SUM(CASE WHEN l.status_approval IS NULL OR l.status_approval != 'rejected' THEN l.total_durasi_terhitung ELSE 0 END) as total_durasi_menit,
+                COUNT(CASE WHEN l.status_approval IS NULL OR l.status_approval != 'rejected' THEN 1 END) as jumlah_log
              FROM pegawai p
              LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal = ?
              GROUP BY p.id

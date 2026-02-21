@@ -13,30 +13,34 @@ export const Table: React.FC<TableProps> = ({
   className,
 }) => {
   return (
-    <div className="overflow-x-auto relative shadow-soft-shadow sm:rounded-lg">
-      <table className={clsx("w-full text-sm text-left text-gray-500 dark:text-gray-400", className)}>
-        <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
-          <tr>
+    <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800">
+      <table className={clsx("w-full text-sm text-left", className)}>
+        <thead>
+          <tr className="bg-neutral-50 dark:bg-neutral-800/80 border-b border-neutral-200 dark:border-neutral-700/50">
             {headers.map((header, index) => (
-              <th key={index} scope="col" className="py-3 px-6 border-b border-gray-200 dark:border-gray-600">
+              <th
+                key={index}
+                scope="col"
+                className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+              >
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700/50">
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
               return React.cloneElement(child, {
                 className: clsx(
-                  'bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600',
+                  'text-neutral-700 dark:text-neutral-300 hover:bg-primary-50/50 dark:hover:bg-neutral-700/30 transition-colors duration-150',
                   child.props.className
                 ),
                 children: React.Children.map(child.props.children, (cell) => {
                   if (React.isValidElement(cell) && cell.type === 'td') {
                     const cellProps = cell.props as { className?: string };
                     return React.cloneElement(cell as React.ReactElement, {
-                      className: clsx('py-4 px-6', cellProps.className)
+                      className: clsx('px-6 py-4', cellProps.className)
                     } as any);
                   }
                   return cell;

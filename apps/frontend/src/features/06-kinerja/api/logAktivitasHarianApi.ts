@@ -23,5 +23,8 @@ export const getLogAktivitasSummaryWla = (startDate: string, endDate: string, id
 export const getAdminLogAktivitasSummaryWla = (tanggal: string) =>
     api.get('/log-aktivitas-harian/admin/summary', { params: { tanggal } });
 
+export const getAdminDetailLogsWla = (tanggal: string, id_pegawai: string) =>
+    api.get('/log-aktivitas-harian/admin/logs', { params: { tanggal, id_pegawai } });
+
 export const updateLogAktivitasStatusWla = (id: number | string, status: 'approved' | 'rejected') =>
     api.put(`/log-aktivitas-harian/${id}/status`, { status });

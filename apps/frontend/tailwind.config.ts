@@ -5,7 +5,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Enable dark mode with 'dark' class
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -18,7 +18,7 @@ export default {
         'primary-500': '#3b82f6',
         'primary-600': '#2563eb',
         'primary-700': '#1d4ed8',
-        'primary-800': '#1e3a8a', // primary-dark-blue
+        'primary-800': '#1e3a8a',
         'primary-dark-blue': '#1e3a8a',
         'primary-900': '#1a365d',
 
@@ -28,7 +28,7 @@ export default {
         'secondary-200': '#fed7aa',
         'secondary-300': '#fdba74',
         'secondary-400': '#fb923c',
-        'secondary-500': '#f97316', // secondary-orange
+        'secondary-500': '#f97316',
         'secondary-600': '#ea580c',
         'secondary-700': '#c2410c',
         'secondary-800': '#9a3412',
@@ -40,7 +40,7 @@ export default {
         'accent-200': '#fde68a',
         'accent-300': '#fcd34d',
         'accent-400': '#fbbf24',
-        'accent-500': '#FDB813', // accent-yellow (egg yolk yellow)
+        'accent-500': '#FDB813',
         'accent-600': '#d97706',
         'accent-700': '#b45309',
         'accent-800': '#92400e',
@@ -59,7 +59,7 @@ export default {
         'neutral-900': '#0f172a',
       },
       fontFamily: {
-        'sans': ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        'sans': ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
         'serif': ['Playfair Display', 'ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
       },
       borderRadius: {
@@ -94,7 +94,59 @@ export default {
       },
       boxShadow: {
         'soft-shadow': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-      }
+        'card': '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
+        'card-hover': '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+        'elevated': '0 20px 40px -12px rgba(0, 0, 0, 0.12)',
+        'sidebar': '4px 0 24px -2px rgba(0, 0, 0, 0.12)',
+        'inner-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+        'button': '0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 1px rgba(0, 0, 0, 0.04)',
+        'button-hover': '0 4px 12px rgba(37, 99, 235, 0.25)',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInLeft: {
+          '0%': { opacity: '0', transform: 'translateX(-16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInRight: {
+          '0%': { opacity: '0', transform: 'translateX(16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'pulse-soft': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
+        },
+      },
+      animation: {
+        'fadeIn': 'fadeIn 0.3s ease-out',
+        'fadeInUp': 'fadeInUp 0.4s ease-out',
+        'slideInLeft': 'slideInLeft 0.3s ease-out',
+        'slideInRight': 'slideInRight 0.3s ease-out',
+        'scaleIn': 'scaleIn 0.2s ease-out',
+        'shimmer': 'shimmer 2s infinite',
+        'pulse-soft': 'pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      backdropBlur: {
+        'xs': '2px',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'bounce-soft': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      },
     },
   },
   plugins: [],

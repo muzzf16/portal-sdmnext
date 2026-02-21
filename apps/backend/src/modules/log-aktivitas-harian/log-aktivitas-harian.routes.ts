@@ -14,6 +14,7 @@ router.get('/summary', LogAktivitasHarianController.getSummary);
 
 // Admin / Supervisor endpoints
 router.get('/admin/summary', restrictTo('admin', 'pimpinan', 'supervisor'), LogAktivitasHarianController.getAdminSummary);
+router.get('/admin/logs', restrictTo('admin', 'pimpinan', 'supervisor'), LogAktivitasHarianController.getAdminLogs);
 router.put('/:id/status', restrictTo('admin', 'pimpinan', 'supervisor'), LogAktivitasHarianController.updateStatus);
 
 export default router;
