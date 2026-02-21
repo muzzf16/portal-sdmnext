@@ -11,7 +11,7 @@ export const useKinerja = (id: string) => {
     const fetchKinerja = async () => {
       try {
         const { data } = await getPenilaianKinerjaById(id);
-        setKinerja(data);
+        setKinerja(data.data);
       } catch (err) {
         setError(err as Error);
       }

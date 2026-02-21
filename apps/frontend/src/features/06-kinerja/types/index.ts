@@ -88,3 +88,32 @@ export interface DailyActivity {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface LogAktivitasHarian {
+  id_log: number;
+  id_pegawai: number;
+  tanggal: string;
+  id_activity_library: number;
+  frekuensi: number;
+  total_durasi_terhitung: number;
+  status_approval: 'pending' | 'approved' | 'rejected';
+  catatan?: string;
+  created_at?: string;
+
+  // Joined fields
+  activityName?: string;
+  durationMinutes?: number;
+  outputUnit?: string;
+  category?: string;
+}
+
+export interface AdminWlaSummary {
+  id_pegawai: number;
+  nama_lengkap: string;
+  nip: string;
+  jabatan: string;
+  departemen: string;
+  total_aktivitas: number;
+  total_durasi_menit: number;
+  jumlah_log: number;
+}

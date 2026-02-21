@@ -4,8 +4,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { WorkLoadAnalysis, WorkLoadItem, ActivityLibraryItem } from '../types';
 import { saveWorkloadAnalysis, getWorkloadAnalysis } from '../api/workloadApi';
 import { getActivityByPosition } from '../api/activityLibraryApi';
+import { getPegawaiById } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
-// import { useAuth } from '@/app/providers/AuthProvider'; // Assuming this exists
 
 // Constants for calculation
 const DAYS_IN_YEAR = 264;
@@ -29,8 +29,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
             department: '', // Should be pre-filled
             status: 'draft',
             items: [
-                { activityName: 'Doa pagi dan pengarahan', durationMinutes: 30, freqDaily: 1, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 },
-                { activityName: 'Menyalakan komputer CS dan printer CS', durationMinutes: 1, freqDaily: 1, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 },
+                { activityName: '', durationMinutes: 0, freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 },
             ]
         }
     });
@@ -83,14 +82,39 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     // Effect to load data if initialData is not provided but employeeId/year is valid
     useEffect(() => {
         if (!initialData && employeeId) {
-            getWorkloadAnalysis(employeeId, year).then(res => {
-                if (res.data) {
-                    reset(res.data);
-                }
-            }).catch(err => console.error(err));
-        }
-    }, [employeeId, year, initialData, reset]);
+            const fetchAndPrefill = async () => {
+                let wlaExists = false;
+                try {
+                    const res = await getWorkloadAnalysis(employeeId, year);
+                    const responseData = res.data?.data;
 
+                    if (responseData && responseData.id) {
+                        reset(responseData);
+                        wlaExists = true;
+                    } else if (responseData && Object.keys(responseData).length > 0 && responseData.items) {
+                        reset(responseData);
+                        wlaExists = true;
+                    }
+                } catch (err) {
+                    // API might throw 404 if not found
+                    console.log('WLA record not found, will pre-fill from employee profile');
+                }
+
+                if (!wlaExists) {
+                    try {
+                        const empRes = await getPegawaiById(employeeId);
+                        if (empRes.data) {
+                            setValue('position', empRes.data.position || '');
+                            setValue('department', empRes.data.department || '');
+                        }
+                    } catch (empErr) {
+                        console.error('Failed to pre-fill employee data', empErr);
+                    }
+                }
+            };
+            fetchAndPrefill();
+        }
+    }, [employeeId, year, initialData, reset, setValue]);
 
     const onSubmit = async (data: WorkLoadAnalysis) => {
         setIsSubmitting(true);
@@ -128,11 +152,11 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Posisi</label>
-                        <input {...register('position')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2" placeholder="e.g. Teller" />
+                        <input {...register('position')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2 bg-gray-50 text-gray-500" placeholder="Auto-filled" readOnly />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Departemen/Divisi</label>
-                        <input {...register('department')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2" placeholder="e.g. Operasional" />
+                        <input {...register('department')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2 bg-gray-50 text-gray-500" placeholder="Auto-filled" readOnly />
                     </div>
                 </div>
             </div>
@@ -169,15 +193,15 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                                         <input {...register(`items.${index}.activityName` as const, { required: true })} className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-1" placeholder="Nama aktivitas" />
                                     </td>
                                     <td className="px-3 py-2">
-                                        <input type="number" {...register(`items.${index}.durationMinutes` as const, { valueAsNumber: true })} className="w-16 text-center border-gray-300 rounded-md shadow-sm sm:text-sm border p-1" />
+                                        <input type="number" min="0" {...register(`items.${index}.durationMinutes` as const, { valueAsNumber: true })} className="w-16 text-center border-gray-300 rounded-md shadow-sm sm:text-sm border p-1" />
                                     </td>
-                                    <td className="px-1 py-2"><input type="number" {...register(`items.${index}.freqDaily` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" {...register(`items.${index}.freqWeekly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" {...register(`items.${index}.freqMonthly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" {...register(`items.${index}.freqQuarterly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" {...register(`items.${index}.freqSemester` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" {...register(`items.${index}.freqYearly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-3 py-2 text-right font-mono">
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqDaily` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqWeekly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqMonthly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqQuarterly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqSemester` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqYearly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-3 py-2 text-right font-mono text-gray-900 font-medium bg-gray-50">
                                         {rowTotal.toLocaleString()}
                                     </td>
                                     <td className="px-3 py-2 text-center">
@@ -234,8 +258,8 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                                 defaultValue=""
                             >
                                 <option value="" disabled>📚 Pilih dari Library ({position})</option>
-                                {libraryActivities.map(act => (
-                                    <option key={act.id} value={act.id}>{act.activityName} ({act.durationMinutes} mnt)</option>
+                                {libraryActivities.map((act, idx) => (
+                                    <option key={act.id || `act-${idx}`} value={act.id || idx}>{act.activityName} ({act.durationMinutes} mnt)</option>
                                 ))}
                             </select>
                         )}

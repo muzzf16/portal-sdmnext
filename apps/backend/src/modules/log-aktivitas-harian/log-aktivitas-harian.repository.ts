@@ -1,0 +1,100 @@
+import { openDb } from '../../config/db';
+
+export default class LogAktivitasHarianRepository {
+
+    static async create(payload: { id_pegawai: string | number, tanggal: string, id_activity_library: string | number, frekuensi: number, total_durasi_terhitung: number, catatan?: string }) {
+        const db = await openDb();
+        const result = await db.run(
+            `INSERT INTO log_aktivitas_harian 
+             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            payload.id_pegawai,
+            payload.tanggal,
+            payload.id_activity_library,
+            payload.frekuensi,
+            payload.total_durasi_terhitung,
+            payload.catatan || null
+        );
+        return { id_log: result.lastID, ...payload };
+    }
+
+    static async createBulk(id_pegawai: string | number, tanggal: string, logs: { id_pegawai: string | number, tanggal: string, id_activity_library: string | number, frekuensi: number, total_durasi_terhitung: number, catatan?: string }[]) {
+        const db = await openDb();
+
+        // Delete existing logs to prevent duplicates
+        await db.run('DELETE FROM log_aktivitas_harian WHERE id_pegawai = ? AND tanggal = ?', id_pegawai, tanggal);
+
+        if (!logs || logs.length === 0) return { message: `Existing logs cleared. No new logs inserted.`, changes: 0 };
+
+        // Construct bulk insert values
+        // Note: SQLite supports bulk insert via multiple VALUES clauses
+        const placeholders = logs.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+        const values = logs.flatMap(log => [
+            log.id_pegawai,
+            log.tanggal,
+            log.id_activity_library,
+            log.frekuensi,
+            log.total_durasi_terhitung,
+            log.catatan || null
+        ]);
+
+        const result = await db.run(
+            `INSERT INTO log_aktivitas_harian 
+             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan) 
+             VALUES ${placeholders}`,
+            ...values
+        );
+        return { message: `${logs.length} logs inserted successfully`, changes: result.changes };
+    }
+
+    static async getByPegawaiAndDate(id_pegawai: string | number, tanggal: string) {
+        const db = await openDb();
+        return db.all(
+            `SELECT l.*, a.activityName, a.durationMinutes, a.outputUnit, a.category 
+             FROM log_aktivitas_harian l
+             JOIN activity_library a ON l.id_activity_library = a.id
+             WHERE l.id_pegawai = ? AND l.tanggal = ?
+             ORDER BY l.created_at DESC`,
+            id_pegawai,
+            tanggal
+        );
+    }
+
+    static async getSummaryByPegawai(id_pegawai: string | number, startDate: string, endDate: string) {
+        const db = await openDb();
+        return db.get(
+            `SELECT 
+                SUM(frekuensi) as total_aktivitas,
+                SUM(total_durasi_terhitung) as total_durasi_menit
+             FROM log_aktivitas_harian
+             WHERE id_pegawai = ? AND tanggal >= ? AND tanggal <= ? AND status_approval IN ('pending', 'approved')`,
+            id_pegawai, startDate, endDate
+        );
+    }
+
+    static async getAllByDate(tanggal: string) {
+        const db = await openDb();
+        // Aggregating per employee for the admin dashboard
+        return db.all(
+            `SELECT 
+                p.id as id_pegawai, p.name as nama_lengkap, p.nip, p.position as jabatan, p.department as departemen,
+                SUM(l.frekuensi) as total_aktivitas,
+                SUM(l.total_durasi_terhitung) as total_durasi_menit,
+                COUNT(l.id_log) as jumlah_log
+             FROM pegawai p
+             LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal = ?
+             GROUP BY p.id
+             ORDER BY p.department, p.name ASC`,
+            tanggal
+        );
+    }
+
+    static async updateStatus(id_log: number, status: 'approved' | 'rejected') {
+        const db = await openDb();
+        await db.run(
+            `UPDATE log_aktivitas_harian SET status_approval = ?, updated_at = CURRENT_TIMESTAMP WHERE id_log = ?`,
+            status, id_log
+        );
+        return { id_log, status_approval: status };
+    }
+}

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ActivityLibraryItem } from '../types';
+import { getJabatanList, Jabatan } from '../../01-pegawai/api/jabatanApi';
 import { getActivityLibrary, getActivityPositions, createActivity, updateActivity, deleteActivity } from '../api/activityLibraryApi';
 import { useToast } from '@/app/providers/ToastContext';
 
 const ActivityLibraryPage: React.FC = () => {
     const [activities, setActivities] = useState<ActivityLibraryItem[]>([]);
+    const [jabatanList, setJabatanList] = useState<Jabatan[]>([]);
     const [positions, setPositions] = useState<string[]>([]);
     const [filterPosition, setFilterPosition] = useState('');
     const [loading, setLoading] = useState(true);
@@ -22,6 +24,7 @@ const ActivityLibraryPage: React.FC = () => {
         try {
             const filters = filterPosition ? { position: filterPosition } : undefined;
             const res = await getActivityLibrary(filters);
+            console.log("Activity Library Response Data:", res.data?.data);
             setActivities(res.data?.data || []);
         } catch (err) {
             console.error(err);
@@ -31,10 +34,14 @@ const ActivityLibraryPage: React.FC = () => {
 
     const fetchPositions = async () => {
         try {
-            const res = await getActivityPositions();
+            const [res, jabatanRes] = await Promise.all([
+                getActivityPositions(),
+                getJabatanList()
+            ]);
             setPositions(res.data?.data || []);
+            setJabatanList(jabatanRes || []);
         } catch (err) {
-            console.error(err);
+            console.error('Failed to fetch data:', err);
         }
     };
 
@@ -79,8 +86,8 @@ const ActivityLibraryPage: React.FC = () => {
             await deleteActivity(id);
             addToast('Aktivitas berhasil dihapus', 'success');
             fetchData();
-        } catch (err) {
-            addToast('Gagal menghapus aktivitas', 'error');
+        } catch (err: any) {
+            addToast(err.response?.data?.message || 'Gagal menghapus aktivitas', 'error');
         }
     };
 
@@ -130,14 +137,26 @@ const ActivityLibraryPage: React.FC = () => {
                     <h3 className="text-lg font-medium mb-4">{editingItem ? 'Edit Aktivitas' : 'Tambah Aktivitas Baru'}</h3>
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Jabatan *</label>
-                            <input value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required placeholder="e.g. CS, Teller" />
+                            <label className="block text-sm font-medium text-gray-700">Posisi/Jabatan <span className="text-red-500">*</span></label>
+                            <select
+                                value={form.position}
+                                onChange={e => {
+                                    const selectedPos = e.target.value;
+                                    const jabatan = jabatanList.find(j => j.nama === selectedPos);
+                                    setForm({ ...form, position: selectedPos, department: jabatan?.department || '' });
+                                }}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2"
+                            >
+                                <option value="">-- Pilih Posisi --</option>
+                                {jabatanList.map(j => (
+                                    <option key={j.id} value={j.nama}>{j.nama}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Departemen</label>
-                            <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" placeholder="e.g. Operasional" />
+                            <label className="block text-sm font-medium text-gray-700">Departemen <span className="text-red-500">*</span></label>
+                            <input value={form.department} readOnly
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2 bg-gray-50 text-gray-500" placeholder="Auto-filled" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nama Aktivitas *</label>

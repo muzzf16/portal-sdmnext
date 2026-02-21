@@ -1,0 +1,36 @@
+{
+  "acts": [
+    "CS",
+    "Teller",
+    "Collection",
+    "HRD",
+    "IT",
+    "Analis Kredit",
+    "Accounting",
+    "Treasury",
+    "Admin Lelang",
+    "Funding"
+  ],
+  "users": [
+    "KABID Umum & SDM",
+    "SPI",
+    "KABID Kepatuhan",
+    "KABID Dana",
+    "KABID Kredit",
+    "Kasubid Akunting",
+    "Kasubid Adminitrasi Kredit",
+    "Kasubid Umum Kepala kantor kas",
+    "Kasubid Dana",
+    "Kasubid Marketing & Analis Kredit",
+    "Kasubid Pembinaan Nasabah",
+    "Funding Officer",
+    "Staf Umum",
+    "Customer Service",
+    "Account Officer",
+    "Staf Pelaporan Dan IT",
+    "STAF DANA",
+    "Teller",
+    "Direktur UTAMA",
+    "Direktur YMFK"
+  ]
+}

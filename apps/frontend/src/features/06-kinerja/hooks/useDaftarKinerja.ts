@@ -11,7 +11,7 @@ export const useDaftarKinerja = () => {
     const fetchKinerja = async () => {
       try {
         const { data } = await getPenilaianKinerja();
-        setDaftarKinerja(data);
+        setDaftarKinerja(data.data || []);
       } catch (err) {
         setError(err as Error);
       }

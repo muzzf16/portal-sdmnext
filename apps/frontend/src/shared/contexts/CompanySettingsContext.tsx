@@ -26,9 +26,10 @@ export const CompanySettingsProvider: React.FC<{ children: ReactNode }> = ({ chi
       .then((response) => {
         const data = response.data;
         const API_URL = import.meta.env.VITE_API_BASE || '/api';
+        const BASE_URL = API_URL.replace(/\/api$/, ''); // Removes '/api' from the end
         if (data.logo && !data.logo.startsWith('http')) {
-          // Prepend the base URL if it's a relative path
-          data.logo = `${API_URL}${data.logo}`;
+          // Prepend the base URL (without /api) if it's a relative path
+          data.logo = `${BASE_URL}${data.logo}`;
         }
         setSettings(data);
       })

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { Kinerja } from '../types';
 import { buatPenilaianKinerja } from '../api/kinerjaApi';
+import { getKpiTargets } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 
 const FormKinerja: React.FC = () => {
@@ -41,12 +42,43 @@ const FormKinerja: React.FC = () => {
   const handleEmployeeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedEmployeeId = e.target.value;
     const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId);
-    
+
     if (selectedEmployee) {
       setValue('employeeId', selectedEmployeeId);
       setValue('employeeName', selectedEmployee.name);
     }
   };
+
+  const selectedEmployeeId = watch('employeeId');
+  const selectedPeriod = watch('period');
+
+  // Auto-fill KPI rows if employee and period are selected
+  React.useEffect(() => {
+    const fetchKpis = async () => {
+      if (selectedEmployeeId && selectedPeriod) {
+        try {
+          const res = await getKpiTargets({ employeeId: selectedEmployeeId, period: selectedPeriod });
+          const targetKpis = res.data?.data || res.data;
+
+          if (Array.isArray(targetKpis) && targetKpis.length > 0) {
+            const mappedKpis = targetKpis.map(kpi => ({
+              id: kpi.id || Date.now() + Math.random(),
+              name: kpi.kpiName || kpi.name || '',
+              score: kpi.score || 0,
+              weight: kpi.weight || 0
+            }));
+            setKpiRows(mappedKpis);
+          } else {
+            // Reset to one empty row if no KPIs found
+            setKpiRows([{ id: Date.now(), name: '', score: 0, weight: 0 }]);
+          }
+        } catch (err) {
+          console.error('Failed to auto-fetch KPIs:', err);
+        }
+      }
+    };
+    fetchKpis();
+  }, [selectedEmployeeId, selectedPeriod]);
 
   // Function to prepare data for submission with KPIs
   const prepareSubmissionData = (formData: Omit<Kinerja, 'id' | 'overallScore' | 'status' | 'createdAt'>, status: string) => {
@@ -101,7 +133,7 @@ const FormKinerja: React.FC = () => {
 
   // Function to update KPI row data
   const updateKpiRow = (id: number, field: string, value: string | number) => {
-    setKpiRows(kpiRows.map(row => 
+    setKpiRows(kpiRows.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
   };
@@ -184,7 +216,7 @@ const FormKinerja: React.FC = () => {
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             ></textarea>
           </div>
-          
+
           {/* Dynamic KPI Table */}
           <div className="md:col-span-2">
             <div className="flex justify-between items-center mb-2">
@@ -268,7 +300,7 @@ const FormKinerja: React.FC = () => {
             />
           </div>
         </div>
-        
+
         {/* Draft/Submit buttons */}
         <div className="flex space-x-4">
           <button

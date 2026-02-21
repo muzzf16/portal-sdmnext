@@ -8,6 +8,8 @@ const HalamanKinerjaContent = lazy(() => import('./HalamanKinerja'));
 const ActivityLibraryContent = lazy(() => import('./ActivityLibraryPage'));
 const WorkLoadContent = lazy(() => import('./WorkLoadPage'));
 const KpiTargetContent = lazy(() => import('./KpiTargetPage'));
+const AdminWlaSummaryContent = lazy(() => import('./AdminWlaSummaryPage'));
+const LogWlaContent = lazy(() => import('./LogAktivitasWlaPage'));
 
 interface TabDef {
     id: string;
@@ -70,6 +72,28 @@ const ManajemenKinerjaPage: React.FC = () => {
             component: (
                 <Suspense fallback={<TabSpinner />}>
                     <KpiTargetContent />
+                </Suspense>
+            ),
+        },
+        {
+            id: 'rekap-wla',
+            label: 'Rekap WLA Harian',
+            icon: <BarChart2 size={18} />,
+            roles: ['admin', 'supervisor'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <AdminWlaSummaryContent />
+                </Suspense>
+            ),
+        },
+        {
+            id: 'log-wla',
+            label: 'Log WLA Harian',
+            icon: <BookOpen size={18} />,
+            roles: ['admin', 'supervisor', 'employee'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <LogWlaContent />
                 </Suspense>
             ),
         },

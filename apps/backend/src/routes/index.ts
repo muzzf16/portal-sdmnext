@@ -21,6 +21,7 @@ import workloadRoutes from '../modules/workload/workload.routes';
 import activityLibraryRoutes from '../modules/activity-library/activity-library.routes';
 import kpiRoutes from '../modules/kpi/kpi.routes';
 import jabatanRoutes from '../modules/jabatan/jabatan.routes';
+import logAktivitasHarianRoutes from '../modules/log-aktivitas-harian/log-aktivitas-harian.routes';
 
 const router = Router();
 
@@ -45,6 +46,7 @@ router.use('/workload', workloadRoutes);
 router.use('/activity-library', activityLibraryRoutes);
 router.use('/kpi-targets', kpiRoutes);
 router.use('/jabatan', jabatanRoutes);
+router.use('/log-aktivitas-harian', logAktivitasHarianRoutes);
 router.use('/', uploadRoutes);
 
 

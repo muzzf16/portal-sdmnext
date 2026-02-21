@@ -9,7 +9,7 @@ export const ActivityLibraryRepository = {
         const conditions: string[] = [];
 
         if (filters?.position) {
-            conditions.push('position = ?');
+            conditions.push('LOWER(position) = LOWER(?)');
             params.push(filters.position);
         }
         if (filters?.department) {
@@ -32,7 +32,7 @@ export const ActivityLibraryRepository = {
     async findByPosition(position: string) {
         const db = await openDb();
         return db.all(
-            'SELECT * FROM activity_library WHERE position = ? ORDER BY activityName ASC',
+            'SELECT * FROM activity_library WHERE LOWER(position) = LOWER(?) ORDER BY activityName ASC',
             position
         );
     },

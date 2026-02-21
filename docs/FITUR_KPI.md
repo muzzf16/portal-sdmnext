@@ -35,6 +35,20 @@ Sistem harus menyimpan "Norma Waktu" (Durasi Standar) untuk setiap tugas agar pe
 *   **Accounting:** Jurnal harian (10 menit), Closing bulanan (5 hari).
 *   **Treasury:** Proses invoice (5 menit), Rekonsiliasi bank (60 menit).
 
+## Proposed Changes
+
+### Component `Activity Library`
+#### [MODIFY] `ActivityLibraryPage.tsx`
+- Replace free-text inputs for `position` and `department` inside the Create/Edit form with dropdowns (`<select>`).
+- Fetch the master list of positions using `getJabatanList()` from `jabatanApi.ts`.
+- When an administrator selects a `jabatan` (position), automatically populate the `department` field to prevent typos and ensure it matches the employee database.
+
+### Component `Log WLA`
+#### [MODIFY] `WorkLoadForm.tsx`
+- Make the `position` and `department` inputs read-only. Currently, they are auto-filled by the selected employee or the logged-in user, but making them read-only guarantees they cannot be manually tampered with, avoiding mismatch errors.
+
+## Verification Plan
+
 ---
 
 ### 3. Modul Fungsional Aplikasi
@@ -85,3 +99,18 @@ Aplikasi harus menghasilkan laporan otomatis:
 
 **Kesimpulan untuk Developer:**
 Inti dari aplikasi ini adalah **Database Durasi Standar** yang kuat. Jangan biarkan user menginput durasi secara manual setiap saat agar data tetap objektif. Aplikasi harus mengubah input "Frekuensi" menjadi "Nilai Kinerja" secara otomatis.
+
+---
+
+### 6. FAQ (Pertanyaan yang Sering Diajukan)
+
+**Q: Mengapa Bobot tetap 20% padahal target dan realisasi tercapai semua (misal skor 5/Sangat Baik)?**
+**A:** Karena ada perbedaan konsep antara **Skor** dan **Bobot**:
+- **Bobot (Weight):** Menunjukkan *tingkat prioritas* atau *tingkat kepentingan* suatu KPI dibandingkan KPI lain sebelum pekerjaan dilakukan. Ketika mengklik tombol "⚡ Generate dari ABK", sistem secara otomatis mengambil 5 aktivitas teratas berdasarkan Analisis Beban Kerja dan membaginya rata (100% ÷ 5 = 20%). Bobot tidak akan berubah secara otomatis berdasarkan capaian Anda; bobot hanya bisa diubah secara manual jika dirasa ada KPI yang lebih penting dari yang lain.
+- **Skor (Score):** Menunjukkan presentase *pencapaian/keberhasilan* Realisasi berbanding Target. Ini yang dinilai dari 1 hingga 5. Skor 5 (Sangat Baik) diberikan jika realisasi mencapai 100% atau lebih dari target yang ditentukan.
+
+**Q: Mengapa Skor Rata-rata Tertimbang saya sangat tinggi atau rendah?**
+**A:** Skor Rata-rata (Tertimbang) dihitung dari rumus: `Total (Skor × Bobot) ÷ Total Bobot`. Jika total bobot Anda melebihi 100% (misal karena Anda membuat KPI manual tanpa menyesuaikan bobot KPI sebelumnya), perhitungannya bisa bias. Sangat disarankan untuk mengedit (Manual Edit) bobot KPI Anda sedemikian rupa agar akumulasi totalnya berjumlah tepat 100%.
+
+**Q: Bagaimana jika target saya satuannya "hari" alih-alih jumlah, seperti "Selesai H+3"?**
+**A:** Sistem HRMS memiliki algoritma perhitungan *inverse* terpisah untuk satuan target waktu (hari). Jika "100 jumlah" maka makin tinggi aktual makin baik. Sebaliknya, jika unitnya "hari" (misal H+3), maka makin rendah nilainya makin baik. Realisasi H+2 atau H+3 akan mendapatkan Skor 5 (Sangat Baik), sedangkan Realisasi H+5 akan mendapat skor rendah.

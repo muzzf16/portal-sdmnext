@@ -63,6 +63,9 @@ export default class ActivityLibraryService {
             return { message: 'Activity deleted successfully' };
         } catch (error: any) {
             if (error instanceof AppError) throw error;
+            if (error.message && error.message.includes('SQLITE_CONSTRAINT')) {
+                throw new AppError('Tidak dapat menghapus aktivitas karena sudah digunakan oleh log pegawai / beban kerja.', 400);
+            }
             throw new AppError(`Error deleting activity: ${error.message}`, 500);
         }
     }

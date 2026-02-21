@@ -77,7 +77,6 @@ const DashboardLayout: React.FC = () => {
     { to: '/dashboard/cuti-saya', icon: <Briefcase size={20} />, text: 'Cuti Saya', roles: ['employee', 'supervisor'] },
     { to: '/dashboard/penggajian-saya', icon: <DollarSign size={20} />, text: 'Gaji Saya', roles: ['employee', 'supervisor'] },
     { to: '/dashboard/kinerja-saya', icon: <BarChart2 size={20} />, text: 'Kinerja Saya', roles: ['employee', 'supervisor'] },
-    { to: '/dashboard/kinerja/aktivitas-harian', icon: <Calendar size={20} />, text: 'Aktivitas Harian', roles: ['employee', 'supervisor', 'admin'] },
     { to: '/dashboard/pelatihan-saya', icon: <Award size={20} />, text: 'Pelatihan Saya', roles: ['employee', 'supervisor'] },
   ];
 

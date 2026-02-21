@@ -17,10 +17,11 @@ const HalamanKinerjaSaya: React.FC = () => {
         setLoading(true);
         const employeeId = user.employeeId;
         if (!employeeId) return;
-        const { data } = await getPenilaianKinerjaByEmployeeId(employeeId);
-        if (data.length > 0) {
+        const response = await getPenilaianKinerjaByEmployeeId(employeeId);
+        const kinerjaList = response.data.data;
+        if (kinerjaList && kinerjaList.length > 0) {
           // Assuming the API returns reviews sorted by date, otherwise sort here
-          setLatestPerformance(data[0]);
+          setLatestPerformance(kinerjaList[0]);
         }
         setLoading(false);
       } catch (err) {

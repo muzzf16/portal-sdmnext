@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { KpiTarget } from '../types';
-import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk } from '../api/kpiApi';
+import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { Download } from 'lucide-react';
 
 const KpiTargetPage: React.FC = () => {
     const { user } = useAuth();
@@ -14,6 +15,7 @@ const KpiTargetPage: React.FC = () => {
     const [selectedEmployee, setSelectedEmployee] = useState('');
     const [selectedPeriod, setSelectedPeriod] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const { addToast } = useToast();
 
     // Form state
@@ -62,14 +64,34 @@ const KpiTargetPage: React.FC = () => {
     const handleCreateKpi = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await createKpiTarget(form as any);
-            addToast('KPI target berhasil dibuat', 'success');
+            if (editingId) {
+                await updateKpiTarget(editingId, form as any);
+                addToast('KPI target berhasil diupdate', 'success');
+            } else {
+                await createKpiTarget(form as any);
+                addToast('KPI target berhasil dibuat', 'success');
+            }
             setShowForm(false);
+            setEditingId(null);
             setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: '' });
             fetchKpis();
-        } catch (err) {
-            addToast('Gagal membuat KPI target', 'error');
+        } catch (err: any) {
+            addToast(err?.response?.data?.message || 'Gagal menyimpan KPI target', 'error');
         }
+    };
+
+    const handleEditClick = (kpi: KpiTarget) => {
+        setForm({
+            employeeId: kpi.employeeId,
+            period: kpi.period,
+            kpiName: kpi.kpiName,
+            targetValue: kpi.targetValue,
+            targetUnit: kpi.targetUnit || '%',
+            weight: kpi.weight || 0,
+            notes: kpi.notes || ''
+        });
+        setEditingId(kpi.id);
+        setShowForm(true);
     };
 
     const handleUpdateActual = async (kpi: KpiTarget) => {
@@ -143,6 +165,36 @@ const KpiTargetPage: React.FC = () => {
         ? kpis.reduce((sum, k) => sum + (k.score || 0) * (k.weight || 0), 0) / totalWeight
         : 0;
 
+    const handleExport = () => {
+        if (kpis.length === 0) {
+            alert('Tidak ada data KPI untuk diexport');
+            return;
+        }
+
+        const headers = ['Nama KPI', 'Pegawai', 'Periode', 'Target', 'Realisasi', 'Skor', 'Bobot (%)', 'Status', 'Sumber', 'Catatan'];
+        const csvContent = [
+            headers.join(','),
+            ...kpis.map(kpi => {
+                const emp = employees.find(e => e.id === kpi.employeeId);
+                const empName = emp ? emp.name : kpi.employeeId;
+                const target = `${kpi.targetValue} ${kpi.targetUnit}`;
+                const realisasi = `${kpi.actualValue || 0} ${kpi.targetUnit}`;
+
+                return `"${kpi.kpiName}","${empName}","${kpi.period}","${target}","${realisasi}","${kpi.score || 0}","${kpi.weight || 0}%","${kpi.status}","${kpi.source}","${kpi.notes || ''}"`;
+            })
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Target_KPI_${selectedPeriod || 'Semua'}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -151,13 +203,21 @@ const KpiTargetPage: React.FC = () => {
                     <p className="text-gray-600 mt-1">Setting target KPI, monitoring realisasi, dan scoring otomatis</p>
                 </div>
                 <div className="flex gap-2">
+                    <button onClick={handleExport} className="px-4 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 text-sm flex items-center">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export CSV
+                    </button>
                     {role !== 'employee' && (
                         <>
                             <button onClick={handleGenerateFromAbk}
                                 className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm">
                                 ⚡ Generate dari ABK
                             </button>
-                            <button onClick={() => setShowForm(!showForm)}
+                            <button onClick={() => {
+                                setEditingId(null);
+                                setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: '' });
+                                setShowForm(!showForm);
+                            }}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
                                 + Tambah KPI Target
                             </button>
@@ -211,7 +271,7 @@ const KpiTargetPage: React.FC = () => {
             {/* Create Form */}
             {showForm && (
                 <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-medium mb-4">Tambah KPI Target</h3>
+                    <h3 className="text-lg font-medium mb-4">{editingId ? 'Edit KPI Target' : 'Tambah KPI Target'}</h3>
                     <form onSubmit={handleCreateKpi} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Pegawai *</label>
@@ -319,7 +379,10 @@ const KpiTargetPage: React.FC = () => {
                                     <td className="px-4 py-3 text-sm text-gray-600">{kpi.source === 'abk' ? '📊 ABK' : '✏️ Manual'}</td>
                                     <td className="px-4 py-3 text-center">
                                         {role !== 'employee' && (
-                                            <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-sm">Hapus</button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button onClick={() => handleEditClick(kpi)} className="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
+                                                <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-sm">Hapus</button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
