@@ -47,8 +47,8 @@ const DetailKinerja: React.FC<DetailKinerjaProps> = ({ performanceId }) => {
             <p className="text-gray-500 text-sm mt-1">Periode: {kinerja.period}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${kinerja.status === 'Completed' ? 'bg-green-100 text-green-800' :
-              kinerja.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
-                'bg-yellow-100 text-yellow-800'
+            kinerja.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
+              'bg-yellow-100 text-yellow-800'
             }`}>
             {kinerja.status}
           </span>
@@ -81,6 +81,8 @@ const DetailKinerja: React.FC<DetailKinerjaProps> = ({ performanceId }) => {
               <thead className="bg-gray-50 text-gray-600 text-xs uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Nama KPI</th>
+                  <th className="px-4 py-3 text-center">Target</th>
+                  <th className="px-4 py-3 text-center">Realisasi</th>
                   <th className="px-4 py-3 text-center">Skor</th>
                   <th className="px-4 py-3 text-center">Bobot (%)</th>
                   <th className="px-4 py-3 text-center">Kontribusi</th>
@@ -90,7 +92,18 @@ const DetailKinerja: React.FC<DetailKinerjaProps> = ({ performanceId }) => {
                 {kpis.map((kpi: any, i: number) => (
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="px-4 py-3">{kpi.name}</td>
-                    <td className="px-4 py-3 text-center font-medium">{kpi.score}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">
+                      {kpi.targetValue ? `${kpi.targetValue} ${kpi.targetUnit || ''}` : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-center text-gray-600">
+                      {kpi.actualValue !== undefined ? `${kpi.actualValue} ${kpi.targetUnit || ''}` : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`font-semibold ${kpi.score >= 4 ? 'text-emerald-600' :
+                          kpi.score >= 3 ? 'text-yellow-600' :
+                            kpi.score >= 2 ? 'text-orange-600' : 'text-red-600'
+                        }`}>{kpi.score}</span>
+                    </td>
                     <td className="px-4 py-3 text-center">{kpi.weight}%</td>
                     <td className="px-4 py-3 text-center text-gray-500">
                       {((kpi.score * kpi.weight) / 100).toFixed(2)}

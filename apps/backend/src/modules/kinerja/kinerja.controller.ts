@@ -57,7 +57,10 @@ class KinerjaController {
   static async addFeedbackKinerja(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { feedback } = req.body;
+      const feedback = req.body.employeeFeedback || req.body.feedback;
+      if (!feedback) {
+        return res.status(400).json({ success: false, message: 'employeeFeedback is required' });
+      }
       const result = await KinerjaService.addFeedbackKinerja(id, feedback);
       res.status(200).json({ success: true, data: result });
     } catch (error) {

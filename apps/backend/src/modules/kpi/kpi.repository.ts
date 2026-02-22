@@ -96,12 +96,31 @@ export const KpiRepository = {
         return this.findById(id);
     },
 
-    async updateActualValue(id: string, actualValue: number, score: number) {
+    async updateActualValue(id: string, actualValue: number, score: number, evidenceUrl?: string) {
+        const db = await openDb();
+        const now = new Date().toISOString();
+        if (evidenceUrl) {
+            const result = await db.run(
+                `UPDATE kpi_targets SET actualValue = ?, score = ?, evidenceUrl = ?, updated_at = ? WHERE id = ?`,
+                actualValue, score, evidenceUrl, now, id
+            );
+            if (result.changes === 0) return null;
+        } else {
+            const result = await db.run(
+                `UPDATE kpi_targets SET actualValue = ?, score = ?, updated_at = ? WHERE id = ?`,
+                actualValue, score, now, id
+            );
+            if (result.changes === 0) return null;
+        }
+        return this.findById(id);
+    },
+
+    async updateEvidence(id: string, evidenceUrl: string) {
         const db = await openDb();
         const now = new Date().toISOString();
         const result = await db.run(
-            `UPDATE kpi_targets SET actualValue = ?, score = ?, updated_at = ? WHERE id = ?`,
-            actualValue, score, now, id
+            `UPDATE kpi_targets SET evidenceUrl = ?, updated_at = ? WHERE id = ?`,
+            evidenceUrl, now, id
         );
         if (result.changes === 0) return null;
         return this.findById(id);

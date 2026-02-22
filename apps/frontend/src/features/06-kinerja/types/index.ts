@@ -65,10 +65,11 @@ export interface KpiTarget {
   weight: number;
   actualValue: number;
   score: number;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'draft' | 'waiting_approval' | 'active' | 'completed' | 'cancelled';
   source: 'abk' | 'manual';
   abkActivityId?: string;
   notes?: string;
+  evidenceUrl?: string;
   created_at?: string;
   updated_at?: string;
 }

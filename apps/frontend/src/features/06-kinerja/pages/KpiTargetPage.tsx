@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { KpiTarget } from '../types';
-import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget } from '../api/kpiApi';
+import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget, syncKpiFromWla } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw, Paperclip, X } from 'lucide-react';
 
 const KpiTargetPage: React.FC = () => {
     const { user } = useAuth();
@@ -18,10 +18,32 @@ const KpiTargetPage: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const { addToast } = useToast();
 
+    // Realisasi modal state (Gap 5)
+    const [actualModal, setActualModal] = useState<{ open: boolean; kpi: KpiTarget | null }>({ open: false, kpi: null });
+    const [actualInput, setActualInput] = useState(0);
+    const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+    const [actualSubmitting, setActualSubmitting] = useState(false);
+
     // Form state
     const [form, setForm] = useState({
         employeeId: '', period: '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: ''
     });
+
+    // Generate predefined period options
+    const periodOptions = React.useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const years = [currentYear, currentYear + 1, currentYear + 2];
+        const options: { value: string; label: string }[] = [];
+        years.forEach(y => {
+            options.push({ value: `${y}-S1`, label: `${y} - Semester 1 (Jan-Jun)` });
+            options.push({ value: `${y}-S2`, label: `${y} - Semester 2 (Jul-Des)` });
+            options.push({ value: `${y}-Q1`, label: `${y} - Kuartal 1 (Jan-Mar)` });
+            options.push({ value: `${y}-Q2`, label: `${y} - Kuartal 2 (Apr-Jun)` });
+            options.push({ value: `${y}-Q3`, label: `${y} - Kuartal 3 (Jul-Sep)` });
+            options.push({ value: `${y}-Q4`, label: `${y} - Kuartal 4 (Okt-Des)` });
+        });
+        return options;
+    }, []);
 
     const fetchKpis = async () => {
         setLoading(true);
@@ -94,16 +116,25 @@ const KpiTargetPage: React.FC = () => {
         setShowForm(true);
     };
 
-    const handleUpdateActual = async (kpi: KpiTarget) => {
-        const value = prompt(`Masukkan realisasi untuk "${kpi.kpiName}" (target: ${kpi.targetValue} ${kpi.targetUnit}):`, String(kpi.actualValue || 0));
-        if (value === null) return;
+    const handleUpdateActual = (kpi: KpiTarget) => {
+        setActualModal({ open: true, kpi });
+        setActualInput(kpi.actualValue || 0);
+        setEvidenceFile(null);
+    };
+
+    const handleActualSubmit = async () => {
+        if (!actualModal.kpi) return;
+        setActualSubmitting(true);
         try {
-            await updateActualValue(kpi.id, parseFloat(value));
+            await updateActualValue(actualModal.kpi.id, actualInput, evidenceFile || undefined);
             addToast('Realisasi berhasil diupdate — skor dihitung otomatis', 'success');
+            setActualModal({ open: false, kpi: null });
+            setEvidenceFile(null);
             fetchKpis();
         } catch (err) {
             addToast('Gagal update realisasi', 'error');
         }
+        setActualSubmitting(false);
     };
 
     const handleDelete = async (id: string) => {
@@ -122,15 +153,36 @@ const KpiTargetPage: React.FC = () => {
             addToast('Pilih pegawai terlebih dahulu', 'error');
             return;
         }
-        const period = prompt('Masukkan periode KPI (e.g. 2026-S1):', `${new Date().getFullYear()}-S1`);
-        if (!period) return;
+        if (!selectedPeriod) {
+            addToast('Pilih periode terlebih dahulu', 'error');
+            return;
+        }
+        if (!confirm(`Generate KPI dari ABK untuk periode ${selectedPeriod}?`)) return;
         try {
-            await generateKpiFromAbk(selectedEmployee, new Date().getFullYear(), period);
+            await generateKpiFromAbk(selectedEmployee, new Date().getFullYear(), selectedPeriod);
             addToast('KPI berhasil digenerate dari data ABK!', 'success');
-            setSelectedPeriod(period);
             fetchKpis();
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal generate KPI dari ABK', 'error');
+        }
+    };
+
+    const handleSyncFromWla = async () => {
+        if (!selectedEmployee) {
+            addToast('Pilih pegawai terlebih dahulu', 'error');
+            return;
+        }
+        if (!selectedPeriod) {
+            addToast('Masukkan periode terlebih dahulu (e.g. 2026-S1)', 'error');
+            return;
+        }
+        try {
+            const res = await syncKpiFromWla(selectedEmployee, selectedPeriod);
+            const data = res.data?.data || res.data;
+            addToast(`Berhasil sync ${data.synced || 0} KPI dari rekap WLA (${data.startDate} s/d ${data.endDate})`, 'success');
+            fetchKpis();
+        } catch (err: any) {
+            addToast(err?.response?.data?.message || 'Gagal sync realisasi dari WLA', 'error');
         }
     };
 
@@ -152,11 +204,20 @@ const KpiTargetPage: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         const colors: Record<string, string> = {
+            draft: 'bg-gray-100 text-gray-700',
+            waiting_approval: 'bg-amber-100 text-amber-800',
             active: 'bg-blue-100 text-blue-800',
             completed: 'bg-green-100 text-green-800',
-            cancelled: 'bg-gray-100 text-gray-800',
+            cancelled: 'bg-red-100 text-red-800',
         };
-        return colors[status] || 'bg-gray-100 text-gray-800';
+        const labels: Record<string, string> = {
+            draft: 'Draft',
+            waiting_approval: 'Menunggu',
+            active: 'Aktif',
+            completed: 'Selesai',
+            cancelled: 'Batal',
+        };
+        return { className: colors[status] || 'bg-gray-100 text-gray-800', label: labels[status] || status };
     };
 
     // Calculate summary
@@ -164,6 +225,37 @@ const KpiTargetPage: React.FC = () => {
     const weightedScore = totalWeight > 0
         ? kpis.reduce((sum, k) => sum + (k.score || 0) * (k.weight || 0), 0) / totalWeight
         : 0;
+
+    // Approval workflow handlers (Gap 4)
+    const handleSubmitForApproval = async (kpi: KpiTarget) => {
+        try {
+            await updateKpiTarget(kpi.id, { status: 'waiting_approval' } as any);
+            addToast(`KPI "${kpi.kpiName}" diajukan untuk persetujuan`, 'success');
+            fetchKpis();
+        } catch (err: any) {
+            addToast('Gagal mengajukan KPI', 'error');
+        }
+    };
+
+    const handleApproveKpi = async (kpi: KpiTarget) => {
+        try {
+            await updateKpiTarget(kpi.id, { status: 'active' } as any);
+            addToast(`KPI "${kpi.kpiName}" disetujui dan aktif`, 'success');
+            fetchKpis();
+        } catch (err: any) {
+            addToast('Gagal menyetujui KPI', 'error');
+        }
+    };
+
+    const handleCompleteKpi = async (kpi: KpiTarget) => {
+        try {
+            await updateKpiTarget(kpi.id, { status: 'completed' } as any);
+            addToast(`KPI "${kpi.kpiName}" ditandai selesai`, 'success');
+            fetchKpis();
+        } catch (err: any) {
+            addToast('Gagal menyelesaikan KPI', 'error');
+        }
+    };
 
     const handleExport = () => {
         if (kpis.length === 0) {
@@ -213,6 +305,11 @@ const KpiTargetPage: React.FC = () => {
                                 className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm">
                                 ⚡ Generate dari ABK
                             </button>
+                            <button onClick={handleSyncFromWla}
+                                className="px-4 py-2 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 text-sm flex items-center">
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Sync Realisasi dari WLA
+                            </button>
                             <button onClick={() => {
                                 setEditingId(null);
                                 setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: '' });
@@ -241,8 +338,13 @@ const KpiTargetPage: React.FC = () => {
                 </div>
                 <div>
                     <label className="text-sm font-medium text-gray-700 mr-2">Periode:</label>
-                    <input type="text" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)}
-                        placeholder="e.g. 2026-S1" className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32" />
+                    <select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">Semua Periode</option>
+                        {periodOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -285,8 +387,13 @@ const KpiTargetPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Periode *</label>
-                            <input value={form.period} onChange={e => setForm({ ...form, period: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required placeholder="e.g. 2026-S1" />
+                            <select value={form.period} onChange={e => setForm({ ...form, period: e.target.value })}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required>
+                                <option value="">Pilih Periode</option>
+                                {periodOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nama KPI *</label>
@@ -363,6 +470,11 @@ const KpiTargetPage: React.FC = () => {
                                                 {kpi.actualValue || 0} {kpi.targetUnit}
                                             </span>
                                         )}
+                                        {kpi.evidenceUrl && (
+                                            <a href={kpi.evidenceUrl} target="_blank" rel="noreferrer" className="inline-flex ml-1 text-green-600 hover:text-green-800" title="Lihat Bukti">
+                                                <Paperclip className="w-3.5 h-3.5" />
+                                            </a>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold ${getScoreColor(kpi.score)}`}>
@@ -372,16 +484,29 @@ const KpiTargetPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm font-mono">{kpi.weight}%</td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(kpi.status)}`}>
-                                            {kpi.status}
-                                        </span>
+                                        {(() => {
+                                            const s = getStatusBadge(kpi.status); return (
+                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${s.className}`}>
+                                                    {s.label}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{kpi.source === 'abk' ? '📊 ABK' : '✏️ Manual'}</td>
                                     <td className="px-4 py-3 text-center">
                                         {role !== 'employee' && (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => handleEditClick(kpi)} className="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
-                                                <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-sm">Hapus</button>
+                                            <div className="flex items-center justify-center gap-1 flex-wrap">
+                                                {kpi.status === 'draft' && (
+                                                    <button onClick={() => handleSubmitForApproval(kpi)} className="text-amber-600 hover:text-amber-800 text-xs font-medium px-2 py-1 rounded border border-amber-300 hover:bg-amber-50">Ajukan</button>
+                                                )}
+                                                {kpi.status === 'waiting_approval' && (
+                                                    <button onClick={() => handleApproveKpi(kpi)} className="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 rounded border border-emerald-300 hover:bg-emerald-50">Aktifkan</button>
+                                                )}
+                                                {kpi.status === 'active' && (
+                                                    <button onClick={() => handleCompleteKpi(kpi)} className="text-green-600 hover:text-green-800 text-xs font-medium px-2 py-1 rounded border border-green-300 hover:bg-green-50">✓ Selesai</button>
+                                                )}
+                                                <button onClick={() => handleEditClick(kpi)} className="text-indigo-600 hover:text-indigo-800 text-xs px-2 py-1">Edit</button>
+                                                <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-xs px-2 py-1">Hapus</button>
                                             </div>
                                         )}
                                     </td>
@@ -392,6 +517,55 @@ const KpiTargetPage: React.FC = () => {
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+            {/* Realisasi + Evidence Modal (Gap 5) */}
+            {actualModal.open && actualModal.kpi && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h3 className="text-lg font-semibold text-gray-900">Update Realisasi</h3>
+                            <button onClick={() => setActualModal({ open: false, kpi: null })} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                        </div>
+                        <div className="px-6 py-5 space-y-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">KPI: <span className="font-semibold text-gray-900">{actualModal.kpi.kpiName}</span></p>
+                                <p className="text-xs text-gray-500">Target: {actualModal.kpi.targetValue} {actualModal.kpi.targetUnit}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Realisasi ({actualModal.kpi.targetUnit})</label>
+                                <input type="number" value={actualInput} onChange={e => setActualInput(parseFloat(e.target.value) || 0)}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-400"
+                                    min={0} step="any" autoFocus />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Bukti / Evidence <span className="text-gray-400 font-normal">(opsional)</span></label>
+                                {evidenceFile ? (
+                                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                                        <Paperclip className="w-4 h-4 text-green-600" />
+                                        <span className="text-sm text-green-800 truncate flex-1">{evidenceFile.name}</span>
+                                        <button onClick={() => setEvidenceFile(null)} className="text-red-500 hover:text-red-700"><X className="w-4 h-4" /></button>
+                                    </div>
+                                ) : (
+                                    <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                                        <Paperclip className="w-4 h-4 text-gray-400" />
+                                        <span className="text-sm text-gray-500">Pilih file (gambar/PDF/dokumen)</span>
+                                        <input type="file" className="hidden" accept="image/*,.pdf,.doc,.docx,.txt" onChange={e => setEvidenceFile(e.target.files?.[0] || null)} />
+                                    </label>
+                                )}
+                                {actualModal.kpi.evidenceUrl && !evidenceFile && (
+                                    <p className="text-xs text-gray-500 mt-1">📎 Bukti sebelumnya: <a href={actualModal.kpi.evidenceUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">Lihat</a></p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+                            <button onClick={() => setActualModal({ open: false, kpi: null })} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100">Batal</button>
+                            <button onClick={handleActualSubmit} disabled={actualSubmitting}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                                {actualSubmitting ? 'Menyimpan...' : 'Simpan'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

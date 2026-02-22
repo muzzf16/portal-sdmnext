@@ -75,7 +75,11 @@ export default class KpiController {
             if (actualValue === undefined) {
                 return res.status(400).json({ success: false, message: 'actualValue is required' });
             }
-            const data = await KpiService.updateActualValue(id, actualValue);
+            // Optional evidence file from multer
+            const evidenceUrl = (req as any).file
+                ? `/documents/${(req as any).file.filename}`
+                : (req.body.evidenceUrl || undefined);
+            const data = await KpiService.updateActualValue(id, parseFloat(actualValue), evidenceUrl);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);
@@ -92,6 +96,20 @@ export default class KpiController {
         }
     }
 
+    static async uploadEvidence(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id } = req.params;
+            if (!(req as any).file) {
+                return res.status(400).json({ success: false, message: 'Evidence file is required' });
+            }
+            const evidenceUrl = `/documents/${(req as any).file.filename}`;
+            const data = await KpiService.updateEvidence(id, evidenceUrl);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
     static async generateFromAbk(req: Request, res: Response, next: NextFunction) {
         try {
             const { employeeId, year, period } = req.body;
@@ -100,6 +118,19 @@ export default class KpiController {
             }
             const data = await KpiService.generateFromAbk(employeeId, parseInt(year), period);
             return res.status(201).json({ success: true, data });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
+    static async syncRealisasiFromWla(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { employeeId, period } = req.body;
+            if (!employeeId || !period) {
+                return res.status(400).json({ success: false, message: 'employeeId and period are required' });
+            }
+            const data = await KpiService.syncRealisasiFromWla(employeeId, period);
+            return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);
         }

@@ -11,7 +11,7 @@ const FormKinerja: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, setValue, watch, getValues } = useForm<Omit<Kinerja, 'id' | 'overallScore' | 'status' | 'createdAt'>>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [kpiRows, setKpiRows] = useState([{ id: Date.now(), name: '', score: 0, weight: 0 }]);
+  const [kpiRows, setKpiRows] = useState<{ id: any; name: string; score: number; weight: number; targetValue: number; actualValue: number; targetUnit: string; fromKpiTarget: boolean }[]>([{ id: Date.now(), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
 
   // Auto-fill reviewer name and penilaiId (NIP) from user session + employee API
   React.useEffect(() => {
@@ -23,7 +23,7 @@ const FormKinerja: React.FC = () => {
       if (user.employeeId) {
         try {
           const res = await getPegawai();
-          const allEmployees = Array.isArray(res.data) ? res.data : res.data?.data || [];
+          const allEmployees = Array.isArray(res.data) ? res.data : [];
           const currentEmployee = allEmployees.find((e: any) => e.id === user.employeeId);
           if (currentEmployee?.nip) {
             setValue('penilaiId', currentEmployee.nip);
@@ -83,12 +83,15 @@ const FormKinerja: React.FC = () => {
               id: kpi.id || Date.now() + Math.random(),
               name: kpi.kpiName || kpi.name || '',
               score: kpi.score || 0,
-              weight: kpi.weight || 0
+              weight: kpi.weight || 0,
+              targetValue: kpi.targetValue || 0,
+              actualValue: kpi.actualValue || 0,
+              targetUnit: kpi.targetUnit || '',
+              fromKpiTarget: true  // Mark as auto-pulled (locked)
             }));
             setKpiRows(mappedKpis);
           } else {
-            // Reset to one empty row if no KPIs found
-            setKpiRows([{ id: Date.now(), name: '', score: 0, weight: 0 }]);
+            setKpiRows([{ id: Date.now(), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
           }
         } catch (err) {
           console.error('Failed to auto-fetch KPIs:', err);
@@ -139,7 +142,7 @@ const FormKinerja: React.FC = () => {
 
   // Function to add a new KPI row
   const addKpiRow = () => {
-    setKpiRows([...kpiRows, { id: Date.now(), name: '', score: 0, weight: 0 }]);
+    setKpiRows([...kpiRows, { id: Date.now(), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
   };
 
   // Function to remove a KPI row
@@ -197,6 +200,17 @@ const FormKinerja: React.FC = () => {
               })}
             </select>
             {errors.period && <span className="text-red-500 text-sm">{errors.period.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="reviewType" className="block text-sm font-medium text-slate-700 mb-1">Jenis Review</label>
+            <select
+              id="reviewType"
+              {...register('reviewType' as any)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            >
+              <option value="end-period">Akhir Periode</option>
+              <option value="mid-period">Tengah Periode (Mid-Review)</option>
+            </select>
           </div>
           <div>
             <label htmlFor="reviewerName" className="block text-sm font-medium text-slate-700 mb-1">Nama Penilai</label>
@@ -261,56 +275,70 @@ const FormKinerja: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama KPI</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bobot (%)</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama KPI</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Realisasi</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bobot (%)</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {kpiRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={row.id} className={row.fromKpiTarget ? 'bg-blue-50/50' : ''}>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <input
                           type="text"
                           value={row.name}
                           onChange={(e) => updateKpiRow(row.id, 'name', e.target.value)}
-                          className="w-full px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+                          readOnly={row.fromKpiTarget}
+                          className={`w-full px-3 py-1 border rounded-md shadow-sm focus:outline-none ${row.fromKpiTarget ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' : 'border-gray-300 focus:ring-primary-dark-blue focus:border-primary-dark-blue'}`}
                           placeholder="Nama KPI"
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="number"
-                          min="0"
-                          max="5"
-                          step="0.1"
-                          value={row.score}
-                          onChange={(e) => updateKpiRow(row.id, 'score', parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
-                          placeholder="Skor (0-5)"
-                        />
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {row.fromKpiTarget ? `${row.targetValue} ${row.targetUnit}` : '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={row.weight}
-                          onChange={(e) => updateKpiRow(row.id, 'weight', parseInt(e.target.value) || 0)}
-                          className="w-full px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
-                          placeholder="Bobot (%)"
-                        />
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {row.fromKpiTarget ? `${row.actualValue} ${row.targetUnit}` : '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {kpiRows.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeKpiRow(row.id)}
-                            className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
-                          >
-                            Hapus
-                          </button>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.fromKpiTarget ? (
+                          <span className={`font-semibold text-sm ${row.score >= 4 ? 'text-emerald-600' :
+                            row.score >= 3 ? 'text-yellow-600' :
+                              row.score >= 2 ? 'text-orange-600' : 'text-red-600'
+                            }`}>{row.score}/5</span>
+                        ) : (
+                          <input
+                            type="number" min="0" max="5" step="0.1"
+                            value={row.score}
+                            onChange={(e) => updateKpiRow(row.id, 'score', parseFloat(e.target.value) || 0)}
+                            className="w-20 px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+                            placeholder="0-5"
+                          />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.fromKpiTarget ? (
+                          <span className="text-sm text-gray-700 font-medium">{row.weight}%</span>
+                        ) : (
+                          <input
+                            type="number" min="0" max="100"
+                            value={row.weight}
+                            onChange={(e) => updateKpiRow(row.id, 'weight', parseInt(e.target.value) || 0)}
+                            className="w-20 px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+                            placeholder="%"
+                          />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.fromKpiTarget ? (
+                          <span className="text-xs text-blue-500 font-medium">🔒 Dari KPI</span>
+                        ) : (
+                          kpiRows.length > 1 && (
+                            <button type="button" onClick={() => removeKpiRow(row.id)}
+                              className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700">Hapus</button>
+                          )
                         )}
                       </td>
                     </tr>
