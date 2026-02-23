@@ -4,14 +4,14 @@ import { getPenilaianKinerjaByEmployeeId, updateEmployeeFeedback } from '../api/
 import { getKpiTargets } from '../api/kpiApi';
 import { Kinerja, KpiTarget } from '../types';
 import DetailKinerja from '../components/DetailKinerja';
-import { Target, TrendingUp, Award, ChevronDown, ChevronUp, MessageSquare, Send } from 'lucide-react';
+import { Target, Award, ChevronDown, ChevronUp, MessageSquare, Send } from 'lucide-react';
 import { useToast } from '@/app/providers/ToastContext';
 
 const HalamanKinerjaSaya: React.FC = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [latestPerformance, setLatestPerformance] = useState<Kinerja | null>(null);
-  const [allPerformances, setAllPerformances] = useState<Kinerja[]>([]);
+  const [_allPerformances, setAllPerformances] = useState<Kinerja[]>([]);
   const [kpis, setKpis] = useState<KpiTarget[]>([]);
   const [loading, setLoading] = useState(true);
   const [kpiLoading, setKpiLoading] = useState(true);
@@ -195,9 +195,9 @@ const HalamanKinerjaSaya: React.FC = () => {
                       <div className="flex items-center gap-2 ml-4">
                         {kpi.score > 0 && (
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${kpi.score >= 4 ? 'bg-emerald-50 text-emerald-700' :
-                              kpi.score >= 3 ? 'bg-yellow-50 text-yellow-700' :
-                                kpi.score >= 2 ? 'bg-orange-50 text-orange-700' :
-                                  'bg-red-50 text-red-700'
+                            kpi.score >= 3 ? 'bg-yellow-50 text-yellow-700' :
+                              kpi.score >= 2 ? 'bg-orange-50 text-orange-700' :
+                                'bg-red-50 text-red-700'
                             }`}>
                             Skor {kpi.score} — {getScoreLabel(kpi.score)}
                           </span>
@@ -236,8 +236,8 @@ const HalamanKinerjaSaya: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900">Penilaian Kinerja</h2>
             {latestPerformance && (
               <span className={`ml-2 px-2 py-0.5 text-xs rounded-full font-medium ${latestPerformance.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
-                  latestPerformance.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
-                    'bg-yellow-100 text-yellow-700'
+                latestPerformance.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
+                  'bg-yellow-100 text-yellow-700'
                 }`}>
                 {latestPerformance.status}
               </span>

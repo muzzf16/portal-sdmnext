@@ -2,7 +2,7 @@ import api from '../../../shared/services/api';
 
 export interface LogAktivitasWlaPayload {
     id_pegawai?: number;
-    id_activity_library: number;
+    id_activity_library: string | number;
     tanggal: string;
     frekuensi: number;
     catatan?: string;

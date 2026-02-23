@@ -22,7 +22,7 @@ export default class LogAktivitasHarianController {
             });
             return res.status(201).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -46,7 +46,7 @@ export default class LogAktivitasHarianController {
             );
             return res.status(201).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -62,7 +62,7 @@ export default class LogAktivitasHarianController {
             const data = await LogAktivitasHarianService.getMyLogs(id_pegawai, tanggal);
             return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -79,7 +79,7 @@ export default class LogAktivitasHarianController {
             const data = await LogAktivitasHarianService.getSummary(id_pegawai, startDate, endDate);
             return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -93,7 +93,7 @@ export default class LogAktivitasHarianController {
             const data = await LogAktivitasHarianService.getMyLogs(id_pegawai, tanggal);
             return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -106,7 +106,7 @@ export default class LogAktivitasHarianController {
             const data = await LogAktivitasHarianService.getAdminSummaryByDate(tanggal);
             return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 
@@ -122,7 +122,7 @@ export default class LogAktivitasHarianController {
             const data = await LogAktivitasHarianService.updateStatus(Number(id_log), status as any);
             return res.status(200).json({ success: true, data });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     }
 }

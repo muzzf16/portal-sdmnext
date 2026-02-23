@@ -242,6 +242,20 @@ const AppRoutes: React.FC = () => {
             </Suspense>
           </PrivateRoute>
         } />
+        <Route path="log-aktivitas" element={
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <LogAktivitasWlaPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="wla-summary" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminWlaSummaryPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
         <Route path="perekrutan" element={
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>

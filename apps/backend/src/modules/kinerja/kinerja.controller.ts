@@ -62,9 +62,9 @@ class KinerjaController {
         return res.status(400).json({ success: false, message: 'employeeFeedback is required' });
       }
       const result = await KinerjaService.addFeedbackKinerja(id, feedback);
-      res.status(200).json({ success: true, data: result });
+      return res.status(200).json({ success: true, data: result });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
