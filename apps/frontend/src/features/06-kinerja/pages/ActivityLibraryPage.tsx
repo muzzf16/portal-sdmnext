@@ -25,6 +25,12 @@ const ActivityLibraryPage: React.FC = () => {
             const filters = filterPosition ? { position: filterPosition } : undefined;
             const res = await getActivityLibrary(filters);
             console.log("Activity Library Response Data:", res.data?.data);
+            if (res.data?.data?.length > 0) {
+                console.log("First item keys:", Object.keys(res.data.data[0]));
+                console.log("First item id:", res.data.data[0].id, "type:", typeof res.data.data[0].id);
+                const nullItems = res.data.data.filter((a: any) => !a.id);
+                if (nullItems.length > 0) console.warn(`WARNING: ${nullItems.length} items have null/undefined id!`);
+            }
             setActivities(res.data?.data || []);
         } catch (err) {
             console.error(err);
