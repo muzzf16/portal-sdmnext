@@ -5,10 +5,10 @@ import { Pegawai } from '../types';
 const processPegawaiData = (pegawaiData: any): Pegawai => {
   const processedData = { ...pegawaiData };
 
-  // Avatar URL is already served directly via Nginx proxy (/avatars, /uploads)
-  // No need to prepend /api - Nginx has direct location blocks for these paths
-  if (processedData.avatarUrl && !processedData.avatarUrl.startsWith('http')) {
-    // Keep the URL as-is (e.g., /avatars/default-avatar.jpg or /uploads/avatars/avatar-xxx.jpg)
+  // Fix avatar URL: strip any absolute localhost prefix to make it relative
+  // DB may contain "http://localhost:3333/uploads/avatars/..." from local dev
+  if (processedData.avatarUrl) {
+    processedData.avatarUrl = processedData.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '');
   }
 
   // Safely parse JSON string fields

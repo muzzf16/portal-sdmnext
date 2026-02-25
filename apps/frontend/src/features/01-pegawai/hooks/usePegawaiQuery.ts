@@ -4,8 +4,11 @@ import { getPegawai, getPegawaiById, createPegawai, updatePegawai, deletePegawai
 import { Pegawai } from '../types';
 
 const constructAvatarUrl = (pegawaiData: Pegawai): Pegawai => {
-  // Avatar URL is served directly via Nginx proxy (/avatars, /uploads)
-  // No /api prefix needed
+  // Fix avatar URL: strip absolute localhost prefix from dev environment
+  if (pegawaiData?.avatarUrl) {
+    const fixedUrl = pegawaiData.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '');
+    return { ...pegawaiData, avatarUrl: fixedUrl };
+  }
   return pegawaiData;
 };
 
