@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import { getPegawaiById } from '../api/employeeApi';
 import { Pegawai } from '../types';
 
-const VITE_API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3333';
-
 const processPegawaiData = (pegawaiData: any): Pegawai => {
   const processedData = { ...pegawaiData };
 
   // Construct full avatar URL
   if (processedData.avatarUrl && !processedData.avatarUrl.startsWith('http')) {
-    processedData.avatarUrl = `${VITE_API_URL}${processedData.avatarUrl}`;
+    processedData.avatarUrl = `/api${processedData.avatarUrl}`;
   }
 
   // Safely parse JSON string fields
@@ -38,11 +36,11 @@ const processPegawaiData = (pegawaiData: any): Pegawai => {
         }
       }
     } else if (processedData[field] === null || processedData[field] === undefined) {
-        if (field === 'payrollInfo') {
-            processedData[field] = {};
-        } else {
-            processedData[field] = [];
-        }
+      if (field === 'payrollInfo') {
+        processedData[field] = {};
+      } else {
+        processedData[field] = [];
+      }
     }
   });
 
@@ -69,7 +67,7 @@ export const usePegawai = (id: string) => {
         } else {
           pegawaiData = response;
         }
-        
+
         const processedPegawai = processPegawaiData(pegawaiData);
         setPegawai(processedPegawai);
 

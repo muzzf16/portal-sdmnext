@@ -79,3 +79,4 @@ export const ActivityLibraryRepository = {
         return !!(result.changes && result.changes > 0);
     }
 };
+

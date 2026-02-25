@@ -1,4 +1,12 @@
 node_modules
 dist
 .env
-database.sqlite
+*.sqlite
+*.sqlite3
+docker_db_backup*
+check_schema.js
+fix_null_ids.js
+*.log
+.git
+.gitignore
+README.md
