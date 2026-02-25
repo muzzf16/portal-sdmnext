@@ -4,9 +4,8 @@ import { getPegawai, getPegawaiById, createPegawai, updatePegawai, deletePegawai
 import { Pegawai } from '../types';
 
 const constructAvatarUrl = (pegawaiData: Pegawai): Pegawai => {
-  if (pegawaiData && pegawaiData.avatarUrl && !pegawaiData.avatarUrl.startsWith('http')) {
-    return { ...pegawaiData, avatarUrl: `/api${pegawaiData.avatarUrl}` };
-  }
+  // Avatar URL is served directly via Nginx proxy (/avatars, /uploads)
+  // No /api prefix needed
   return pegawaiData;
 };
 
