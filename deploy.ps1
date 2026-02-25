@@ -70,7 +70,7 @@ try {
 }
 
 # ---- STEP 2: Build & Restart Containers ----
-Write-Header "Step 2: Docker Build & Restart"
+Write-Header 'Step 2: Docker Build and Restart'
 
 $services = @()
 if (-not $SkipBackend) { $services += "backend" }
@@ -132,5 +132,5 @@ if ($Logs) {
 }
 
 Write-Host ""
-Write-Ok "Deploy complete! 🚀"
+Write-Ok 'Deploy complete!'
 Write-Host ""
