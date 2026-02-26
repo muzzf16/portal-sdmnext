@@ -207,13 +207,20 @@ export default class KpiService {
                     }
                 }
 
-                const targetFrequency =
+                let periodFactor = 1;
+                if (period.match(/-S[12]$/i)) periodFactor = 0.5;
+                else if (period.match(/-Q[1-4]$/i)) periodFactor = 0.25;
+                else if (period.match(/-\d{2}$/)) periodFactor = 1 / 12;
+
+                const annualFrequency =
                     (item.freqDaily || 0) * 264 +
                     (item.freqWeekly || 0) * 52 +
                     (item.freqMonthly || 0) * 12 +
                     (item.freqQuarterly || 0) * 4 +
                     (item.freqSemester || 0) * 2 +
                     (item.freqYearly || 0);
+
+                const targetFrequency = Math.ceil(annualFrequency * periodFactor);
 
                 // Last item gets the remainder to ensure total = exactly availableWeight
                 const weight = i === topItems.length - 1

@@ -34,13 +34,26 @@ const KpiTargetPage: React.FC = () => {
         const currentYear = new Date().getFullYear();
         const years = [currentYear, currentYear + 1, currentYear + 2];
         const options: { value: string; label: string }[] = [];
+
+        const monthNames = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
         years.forEach(y => {
+            // Semester
             options.push({ value: `${y}-S1`, label: `${y} - Semester 1 (Jan-Jun)` });
             options.push({ value: `${y}-S2`, label: `${y} - Semester 2 (Jul-Des)` });
+            // Kuartal
             options.push({ value: `${y}-Q1`, label: `${y} - Kuartal 1 (Jan-Mar)` });
             options.push({ value: `${y}-Q2`, label: `${y} - Kuartal 2 (Apr-Jun)` });
             options.push({ value: `${y}-Q3`, label: `${y} - Kuartal 3 (Jul-Sep)` });
             options.push({ value: `${y}-Q4`, label: `${y} - Kuartal 4 (Okt-Des)` });
+            // Bulanan
+            monthNames.forEach((m, idx) => {
+                const monthStr = String(idx + 1).padStart(2, '0');
+                options.push({ value: `${y}-${monthStr}`, label: `${y} - ${m}` });
+            });
         });
         return options;
     }, []);
@@ -458,16 +471,16 @@ const KpiTargetPage: React.FC = () => {
                                         <div className="text-sm font-medium text-gray-900">{kpi.kpiName}</div>
                                         {kpi.notes && <div className="text-xs text-gray-500 mt-1">{kpi.notes}</div>}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-mono">{kpi.targetValue} {kpi.targetUnit}</td>
+                                    <td className="px-4 py-3 text-center text-sm font-mono">{kpi.targetValue} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}</td>
                                     <td className="px-4 py-3 text-center">
                                         {role !== 'employee' ? (
                                             <button onClick={() => handleUpdateActual(kpi)}
                                                 className="font-mono text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer">
-                                                {kpi.actualValue || 0} {kpi.targetUnit}
+                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
                                             </button>
                                         ) : (
                                             <span className="font-mono text-sm text-gray-700">
-                                                {kpi.actualValue || 0} {kpi.targetUnit}
+                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
                                             </span>
                                         )}
                                         {kpi.evidenceUrl && (
@@ -530,10 +543,10 @@ const KpiTargetPage: React.FC = () => {
                         <div className="px-6 py-5 space-y-4">
                             <div>
                                 <p className="text-sm text-gray-600 mb-1">KPI: <span className="font-semibold text-gray-900">{actualModal.kpi.kpiName}</span></p>
-                                <p className="text-xs text-gray-500">Target: {actualModal.kpi.targetValue} {actualModal.kpi.targetUnit}</p>
+                                <p className="text-xs text-gray-500">Target: {actualModal.kpi.targetValue} {actualModal.kpi.targetUnit === 'jumlah' ? '' : actualModal.kpi.targetUnit}</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Realisasi ({actualModal.kpi.targetUnit})</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Realisasi ({actualModal.kpi.targetUnit === 'jumlah' ? 'Total' : actualModal.kpi.targetUnit})</label>
                                 <input type="number" value={actualInput} onChange={e => setActualInput(parseFloat(e.target.value) || 0)}
                                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-400"
                                     min={0} step="any" autoFocus />

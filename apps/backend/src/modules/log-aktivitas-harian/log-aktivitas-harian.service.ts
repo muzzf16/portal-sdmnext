@@ -31,7 +31,7 @@ export default class LogAktivitasHarianService {
         return newLog;
     }
 
-    static async createBulkLogs(id_pegawai: string | number, tanggal: string, logsData: { id_activity_library: string | number, frekuensi: number, catatan?: string }[]) {
+    static async createBulkLogs(id_pegawai: string | number, tanggal: string, logsData: { id_activity_library: string | number, frekuensi: number, catatan?: string, lampiran?: string }[]) {
         if (!id_pegawai || !tanggal || !logsData || logsData.length === 0) {
             throw new Error('id_pegawai, tanggal, and logs data are required');
         }
@@ -52,7 +52,8 @@ export default class LogAktivitasHarianService {
                         id_activity_library: log.id_activity_library,
                         frekuensi: log.frekuensi,
                         total_durasi_terhitung,
-                        catatan: log.catatan
+                        catatan: log.catatan,
+                        lampiran: log.lampiran
                     });
                 }
             }

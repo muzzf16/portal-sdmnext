@@ -85,10 +85,10 @@ const DashboardLayout: React.FC = () => {
 
   const avatarUrl = useMemo(() => {
     const directUrl = user?.avatarUrl;
-    if (directUrl) return directUrl.startsWith('http') ? directUrl : `/api${directUrl}`;
+    if (directUrl) return directUrl.startsWith('http') ? directUrl : directUrl;
     const employeeUrl = user?.employeeDetails?.avatarUrl;
-    if (employeeUrl) return employeeUrl.startsWith('http') ? employeeUrl : `/api${employeeUrl}`;
-    return `/api/avatars/default-avatar.jpg`;
+    if (employeeUrl) return employeeUrl.startsWith('http') ? employeeUrl : employeeUrl;
+    return `/avatars/default-avatar.jpg`;
   }, [user]);
 
   const handleToggleUserMenu = useCallback(() => setIsUserMenuOpen(p => !p), []);

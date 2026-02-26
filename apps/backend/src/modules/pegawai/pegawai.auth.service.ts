@@ -1,17 +1,20 @@
 import { PegawaiRepository } from './pegawai.repository';
 import { PenggunaRepository } from '../pengguna/pengguna.repository';
 import { AppError } from '../../utils/errors';
-import bcrypt from 'bcrypt';
+import PegawaiService from './pegawai.service';
 
 class PegawaiAuthService {
   /**
    * Creates both employee and corresponding user account in a single transaction
    */
-  static async createEmployeeWithUser(pegawaiData: any, photo?: Express.Multer.File) {
+  static async createEmployeeWithUser(pegawaiData: any) {
+    let employee;
     try {
-      // Create employee first - PegawaiRepository.create will use the provided data or defaults
-      const employee = await PegawaiRepository.create(pegawaiData);
-      
+      const { name, email, ...restData } = pegawaiData;
+
+      // Use PegawaiService to get the proper validation and database mapping
+      employee = await PegawaiService.createPegawai(name, email, restData);
+
       // Create corresponding user account
       const userData = {
         name: pegawaiData.name,
@@ -20,16 +23,21 @@ class PegawaiAuthService {
         role: 'employee',
         employeeId: employee.id // Link to the newly created employee
       };
-      
-      const user = await PenggunaRepository.create(userData);
-      
-      return { employee, user };
+
+      try {
+        const user = await PenggunaRepository.create(userData);
+        return { employee, user };
+      } catch (userCreateErr) {
+        // If user creation fails, rollback the created employee
+        await PegawaiRepository.delete(employee.id);
+        throw userCreateErr;
+      }
     } catch (error: any) {
-      if (error.message.includes('UNIQUE constraint failed')) {
-        // If NIP or email already exists, delete the employee we just created to maintain consistency
-        if (error.message.includes('pegawai.nip')) {
-          await PegawaiRepository.delete(pegawaiData.id || `emp-${Date.now()}`);
-        }
+      if (error instanceof AppError) {
+        throw error; // Preserves the original 400 status from PegawaiService validation
+      }
+
+      if (error.message.includes('UNIQUE constraint failed') || error.message.includes('Email already exists')) {
         throw new AppError(`Data already exists: ${error.message}`, 400);
       }
       throw new AppError(`Error creating employee and user: ${error.message}`, 500);

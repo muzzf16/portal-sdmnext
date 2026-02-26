@@ -7,8 +7,8 @@ const router = Router();
 router.use(authenticateToken);
 
 // Employee endpoints
-router.post('/bulk', LogAktivitasHarianController.createBulkLog);
-router.post('/', LogAktivitasHarianController.createLog);
+router.post('/bulk', LogAktivitasHarianController.uploadAny, LogAktivitasHarianController.createBulkLog);
+router.post('/', LogAktivitasHarianController.uploadAny, LogAktivitasHarianController.createLog);
 router.get('/my-logs', LogAktivitasHarianController.getMyLogs);
 router.get('/summary', LogAktivitasHarianController.getSummary);
 

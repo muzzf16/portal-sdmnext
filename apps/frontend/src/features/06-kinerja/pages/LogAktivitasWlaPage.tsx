@@ -20,8 +20,8 @@ const LogAktivitasWlaPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    // Map of activity ID to { frekuensi, catatan }
-    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string }>>({});
+    // Map of activity ID to { frekuensi, catatan, file }
+    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, file?: File | null }>>({});
 
     const fetchMyLogs = async () => {
         if (!user?.employeeId && !user?.id) return;
@@ -81,13 +81,14 @@ const LogAktivitasWlaPage: React.FC = () => {
         }
     }, [myLogs]);
 
-    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan', value: any) => {
+    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'file', value: any) => {
         setFormInputs(prev => ({
             ...prev,
             [id]: {
                 ...prev[id],
                 frekuensi: prev[id]?.frekuensi || 0,
                 catatan: prev[id]?.catatan || '',
+                file: prev[id]?.file || null,
                 [field]: value
             }
         }));
@@ -99,7 +100,8 @@ const LogAktivitasWlaPage: React.FC = () => {
             .map(([id, data]) => ({
                 id_activity_library: id,
                 frekuensi: Number(data.frekuensi),
-                catatan: data.catatan
+                catatan: data.catatan,
+                file: data.file
             }));
 
         if (payloadLogs.length === 0) {
@@ -179,7 +181,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                             <div className="space-y-4">
                                 {library.map((act, index) => {
                                     const actId = String(act.id || '');
-                                    const val = formInputs[actId] || { frekuensi: '', catatan: '' };
+                                    const val = formInputs[actId] || { frekuensi: '', catatan: '', file: null };
                                     return (
                                         <div key={act.id || `act-${index}`} className="border border-gray-200 p-4 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
                                             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3">
@@ -211,8 +213,16 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                         value={val.catatan}
                                                         onChange={(e) => handleInputChange(actId, 'catatan', e.target.value)}
                                                         placeholder="Catatan opsional..."
-                                                        className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-indigo-500"
+                                                        className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 mb-2"
                                                     />
+                                                    <div className="flex items-center text-xs">
+                                                        <label className="text-gray-500 font-medium mr-2">Upload Berkas:</label>
+                                                        <input
+                                                            type="file"
+                                                            className="text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                                            onChange={(e) => handleInputChange(actId, 'file', e.target.files ? e.target.files[0] : null)}
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -275,6 +285,14 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                     <p className="text-xs text-gray-500 mt-2 italic border-l-2 border-gray-200 pl-2">
                                                         "{log.catatan}"
                                                     </p>
+                                                )}
+                                                {log.lampiran && (
+                                                    <div className="mt-2">
+                                                        <a href={log.lampiran} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center">
+                                                            <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                                            Lihat Lampiran Berkas
+                                                        </a>
+                                                    </div>
                                                 )}
                                             </div>
                                             <div className="ml-4">

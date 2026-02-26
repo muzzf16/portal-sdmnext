@@ -99,6 +99,7 @@ export interface LogAktivitasHarian {
   total_durasi_terhitung: number;
   status_approval: 'pending' | 'approved' | 'rejected';
   catatan?: string;
+  lampiran?: string;
   created_at?: string;
 
   // Joined fields

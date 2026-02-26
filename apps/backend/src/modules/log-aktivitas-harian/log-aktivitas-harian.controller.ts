@@ -1,11 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
 import LogAktivitasHarianService from './log-aktivitas-harian.service';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = 'public/uploads/documents';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'doc-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+});
 
 interface AuthRequest extends Request {
     user?: any;
 }
 
 export default class LogAktivitasHarianController {
+    static uploadAny = upload.any();
 
     static async createLog(req: AuthRequest, res: Response, next: NextFunction) {
         try {
@@ -28,17 +54,32 @@ export default class LogAktivitasHarianController {
 
     static async createBulkLog(req: AuthRequest, res: Response, next: NextFunction) {
         try {
-            console.log("createBulkLog req.body:", req.body);
-            console.log("createBulkLog req.user:", req.user);
             const id_pegawai = req.user?.employeeId || req.user?.id || req.body.id_pegawai;
-            const { tanggal, logs } = req.body;
-            console.log("Resolved id_pegawai:", id_pegawai, "Type:", typeof id_pegawai);
+            const { tanggal } = req.body;
+            let logs = req.body.logs;
+
+            if (typeof logs === 'string') {
+                try {
+                    logs = JSON.parse(logs);
+                } catch (e) {
+                    return res.status(400).json({ success: false, message: 'Invalid logs format' });
+                }
+            }
 
             if (!tanggal || !logs || !Array.isArray(logs)) {
                 return res.status(400).json({ success: false, message: 'tanggal and logs array are required' });
             }
 
-            // Remove Number() wrapping since id_pegawai might be a UUID string like 'emp-123'
+            // Attach file URLs if any
+            if (req.files && Array.isArray(req.files)) {
+                logs.forEach((log: any) => {
+                    const file = (req.files as Express.Multer.File[]).find(f => f.fieldname === `file_${log.id_activity_library}`);
+                    if (file) {
+                        log.lampiran = `/uploads/documents/${file.filename}`;
+                    }
+                });
+            }
+
             const data = await LogAktivitasHarianService.createBulkLogs(
                 id_pegawai,
                 tanggal,

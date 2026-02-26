@@ -18,7 +18,7 @@ export default class LogAktivitasHarianRepository {
         return { id_log: result.lastID, ...payload };
     }
 
-    static async createBulk(id_pegawai: string | number, tanggal: string, logs: { id_pegawai: string | number, tanggal: string, id_activity_library: string | number, frekuensi: number, total_durasi_terhitung: number, catatan?: string }[]) {
+    static async createBulk(id_pegawai: string | number, tanggal: string, logs: { id_pegawai: string | number, tanggal: string, id_activity_library: string | number, frekuensi: number, total_durasi_terhitung: number, catatan?: string, lampiran?: string }[]) {
         const db = await openDb();
 
         // Delete existing logs to prevent duplicates
@@ -28,19 +28,20 @@ export default class LogAktivitasHarianRepository {
 
         // Construct bulk insert values
         // Note: SQLite supports bulk insert via multiple VALUES clauses
-        const placeholders = logs.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+        const placeholders = logs.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
         const values = logs.flatMap(log => [
             log.id_pegawai,
             log.tanggal,
             log.id_activity_library,
             log.frekuensi,
             log.total_durasi_terhitung,
-            log.catatan || null
+            log.catatan || null,
+            log.lampiran || null
         ]);
 
         const result = await db.run(
             `INSERT INTO log_aktivitas_harian 
-             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan) 
+             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan, lampiran) 
              VALUES ${placeholders}`,
             ...values
         );

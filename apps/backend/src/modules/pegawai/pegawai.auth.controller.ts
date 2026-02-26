@@ -4,12 +4,29 @@ import PegawaiAuthService from './pegawai.auth.service';
 class PegawaiAuthController {
   static async createEmployeeWithUser(req: Request, res: Response, next: NextFunction) {
     try {
-      // Extract all employee data from request body
-      const employeeData = { ...req.body };
-      
-      const photo = req.file;
+      let avatarUrl = req.body.avatarUrl;
+      if (req.file) {
+        avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      }
 
-      const result = await PegawaiAuthService.createEmployeeWithUser(employeeData, photo);
+      const { name, email, ...pegawaiData } = req.body;
+
+      if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
+        try {
+          pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
+        } catch (e) {
+          throw new Error('Invalid educationHistory JSON format.');
+        }
+      }
+
+      const newPegawaiData = {
+        ...pegawaiData,
+        avatarUrl: avatarUrl || '/avatars/default-avatar.jpg',
+        name,
+        email
+      };
+
+      const result = await PegawaiAuthService.createEmployeeWithUser(newPegawaiData);
 
       res.status(201).json({
         success: true,
