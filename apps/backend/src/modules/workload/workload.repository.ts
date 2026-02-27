@@ -60,10 +60,10 @@ export const WorkloadRepository = {
 
         await db.run(
             `INSERT INTO detail_beban_kerja (
-        id, analysisId, activityName, outputUnit, durationMinutes, 
+        id, analysisId, activityId, activityName, outputUnit, durationMinutes, 
         freqDaily, freqWeekly, freqMonthly, freqQuarterly, freqSemester, freqYearly, totalMinutes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            id, item.analysisId, item.activityName, item.outputUnit || '', item.durationMinutes,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, item.analysisId, item.activityId || null, item.activityName, item.outputUnit || '', item.durationMinutes,
             item.freqDaily || 0, item.freqWeekly || 0, item.freqMonthly || 0,
             item.freqQuarterly || 0, item.freqSemester || 0, item.freqYearly || 0, item.totalMinutes
         );

@@ -258,6 +258,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                                     const act = libraryActivities.find(a => a.id === e.target.value);
                                     if (act) {
                                         append({
+                                            activityId: act.id,
                                             activityName: act.activityName,
                                             outputUnit: act.outputUnit,
                                             durationMinutes: act.durationMinutes,

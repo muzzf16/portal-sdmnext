@@ -18,6 +18,7 @@ export interface Kinerja {
 
 export interface WorkLoadItem {
   id?: string;
+  activityId?: string;
   activityName: string;
   outputUnit?: string;
   durationMinutes: number;
