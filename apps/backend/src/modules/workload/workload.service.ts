@@ -87,8 +87,10 @@ export default class WorkloadService {
                 status: data.status || 'draft'
             });
         } else {
-            // Update Header
+            // Update Header (also update position/department if provided)
             await WorkloadRepository.updateAnalysisHeader(analysis.id, {
+                position: data.position,
+                department: data.department,
                 totalYearlyMinutes,
                 status: data.status || analysis.status
             });

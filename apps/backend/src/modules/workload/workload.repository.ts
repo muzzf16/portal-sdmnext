@@ -40,9 +40,9 @@ export const WorkloadRepository = {
         const now = new Date().toISOString();
         await db.run(
             `UPDATE analisis_beban_kerja 
-       SET totalYearlyMinutes = ?, status = ?, updated_at = ?
+       SET position = COALESCE(NULLIF(?, ''), position), department = COALESCE(NULLIF(?, ''), department), totalYearlyMinutes = ?, status = ?, updated_at = ?
        WHERE id = ?`,
-            data.totalYearlyMinutes, data.status, now, id
+            data.position || '', data.department || '', data.totalYearlyMinutes, data.status, now, id
         );
         return this.findAnalysisById(id);
     },

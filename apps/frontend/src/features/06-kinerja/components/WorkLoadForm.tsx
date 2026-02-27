@@ -83,33 +83,45 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     useEffect(() => {
         if (!initialData && employeeId) {
             const fetchAndPrefill = async () => {
-                let wlaExists = false;
+                let wlaData: any = null;
                 try {
                     const res = await getWorkloadAnalysis(employeeId, year);
                     const responseData = res.data?.data;
 
-                    if (responseData && responseData.id) {
-                        reset(responseData);
-                        wlaExists = true;
-                    } else if (responseData && Object.keys(responseData).length > 0 && responseData.items) {
-                        reset(responseData);
-                        wlaExists = true;
+                    if (responseData && (responseData.id || (responseData.items && responseData.items.length > 0))) {
+                        wlaData = responseData;
                     }
                 } catch (err) {
                     // API might throw 404 if not found
                     console.log('WLA record not found, will pre-fill from employee profile');
                 }
 
-                if (!wlaExists) {
-                    try {
-                        const empRes = await getPegawaiById(employeeId);
-                        if (empRes.data) {
-                            setValue('position', empRes.data.position || '');
-                            setValue('department', empRes.data.department || '');
-                        }
-                    } catch (empErr) {
-                        console.error('Failed to pre-fill employee data', empErr);
+                // Always fetch employee profile to ensure position/department are correct
+                let empPosition = '';
+                let empDepartment = '';
+                try {
+                    const empRes = await getPegawaiById(employeeId);
+                    if (empRes.data) {
+                        empPosition = empRes.data.position || '';
+                        empDepartment = empRes.data.department || '';
                     }
+                } catch (empErr) {
+                    console.error('Failed to fetch employee data', empErr);
+                }
+
+                if (wlaData) {
+                    // If WLA record exists but has empty position/department, fill from employee profile
+                    if (!wlaData.position || wlaData.position.trim() === '') {
+                        wlaData.position = empPosition;
+                    }
+                    if (!wlaData.department || wlaData.department.trim() === '') {
+                        wlaData.department = empDepartment;
+                    }
+                    reset(wlaData);
+                } else {
+                    // No WLA record, just set position/department from employee profile
+                    setValue('position', empPosition);
+                    setValue('department', empDepartment);
                 }
             };
             fetchAndPrefill();
