@@ -17,7 +17,6 @@ const LogAktivitasWlaPage: React.FC = () => {
     const [myLogs, setMyLogs] = useState<LogAktivitasHarian[]>([]);
     const [library, setLibrary] = useState<ActivityLibraryItem[]>([]);
     const [assignedTasks, setAssignedTasks] = useState<AssignedTask[]>([]);
-    const [loadingTasks, setLoadingTasks] = useState(false);
     const [loadingLogs, setLoadingLogs] = useState(false);
     const [loadingLibrary, setLoadingLibrary] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -71,15 +70,12 @@ const LogAktivitasWlaPage: React.FC = () => {
 
     const fetchTasks = async () => {
         if (!user?.employeeId && !user?.id) return;
-        setLoadingTasks(true);
         try {
             const res = await getTasksByEmployee(user?.employeeId || user?.id as string, 'pending');
             const fetchedData = res?.data?.data || [];
             setAssignedTasks(Array.isArray(fetchedData) ? fetchedData : []);
         } catch (err) {
             console.error("Gagal memuat tugas", err);
-        } finally {
-            setLoadingTasks(false);
         }
     };
 

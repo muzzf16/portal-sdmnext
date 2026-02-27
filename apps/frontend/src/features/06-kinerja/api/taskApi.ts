@@ -1,4 +1,4 @@
-import api from '../../../shared/utils/apiService';
+import api from '../../../shared/services/api';
 
 export const getTasksBySupervisor = (supervisorId: string) => {
     return api.get(`/tasks/supervisor/${supervisorId}`);
