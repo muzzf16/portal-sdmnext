@@ -22,6 +22,7 @@ import activityLibraryRoutes from '../modules/activity-library/activity-library.
 import kpiRoutes from '../modules/kpi/kpi.routes';
 import jabatanRoutes from '../modules/jabatan/jabatan.routes';
 import logAktivitasHarianRoutes from '../modules/log-aktivitas-harian/log-aktivitas-harian.routes';
+import taskRoutes from '../modules/task/task.routes';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ router.use('/activity-library', activityLibraryRoutes);
 router.use('/kpi-targets', kpiRoutes);
 router.use('/jabatan', jabatanRoutes);
 router.use('/log-aktivitas-harian', logAktivitasHarianRoutes);
+router.use('/tasks', taskRoutes);
 router.use('/', uploadRoutes);
 
 

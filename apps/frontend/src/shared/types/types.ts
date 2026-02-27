@@ -85,6 +85,21 @@ export interface Pegawai {
   tanggalKeluar?: string;
 }
 
+export interface AssignedTask {
+  id: string;
+  supervisor_id: string;
+  employee_id: string;
+  task_name: string;
+  description?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  employee_name?: string;
+  employee_position?: string;
+  supervisor_name?: string;
+  supervisor_position?: string;
+}
+
 /**
  * Employment history interface
  */
