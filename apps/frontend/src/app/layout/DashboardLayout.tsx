@@ -116,7 +116,6 @@ const DashboardLayout: React.FC = () => {
       label: 'Kinerja & Pengembangan',
       items: [
         { to: '/dashboard/kinerja', icon: <BarChart2 size={18} />, text: 'Manajemen Kinerja', roles: ['admin', 'supervisor', 'employee'] },
-        { to: '/dashboard/penugasan', icon: <Briefcase size={18} />, text: 'Manajemen Penugasan', roles: ['admin', 'supervisor'] },
         { to: '/dashboard/perekrutan', icon: <UserPlus size={18} />, text: 'Perekrutan', roles: ['admin'] },
         { to: '/dashboard/pelatihan', icon: <Award size={18} />, text: 'Manajemen Pelatihan', roles: ['admin'] },
       ],

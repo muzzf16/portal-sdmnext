@@ -15,8 +15,10 @@ const ActivityLibraryPage: React.FC = () => {
     const { addToast } = useToast();
 
     // Form state
-    const [form, setForm] = useState({
-        position: '', department: '', activityName: '', durationMinutes: 0, outputUnit: '', category: ''
+    const [form, setForm] = useState<{
+        position: string; department: string; activityName: string; durationMinutes: number | string; outputUnit: string; category: string;
+    }>({
+        position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: ''
     });
 
     const fetchData = async () => {
@@ -44,7 +46,8 @@ const ActivityLibraryPage: React.FC = () => {
                 getActivityPositions(),
                 getJabatanList()
             ]);
-            setPositions(res.data?.data || []);
+
+            setPositions((res.data?.data || []).filter((p: string) => p !== 'Semua Jabatan'));
             setJabatanList(jabatanRes || []);
         } catch (err) {
             console.error('Failed to fetch data:', err);
@@ -55,7 +58,7 @@ const ActivityLibraryPage: React.FC = () => {
     useEffect(() => { fetchPositions(); }, []);
 
     const resetForm = () => {
-        setForm({ position: '', department: '', activityName: '', durationMinutes: 0, outputUnit: '', category: '' });
+        setForm({ position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: '' });
         setEditingItem(null);
         setShowForm(false);
     };
@@ -72,11 +75,12 @@ const ActivityLibraryPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const payload = { ...form, durationMinutes: Number(form.durationMinutes) };
             if (editingItem) {
-                await updateActivity(editingItem.id, form);
+                await updateActivity(editingItem.id, payload);
                 addToast('Aktivitas berhasil diupdate', 'success');
             } else {
-                await createActivity(form as any);
+                await createActivity(payload as any);
                 addToast('Aktivitas berhasil ditambahkan', 'success');
             }
             resetForm();
@@ -129,7 +133,8 @@ const ActivityLibraryPage: React.FC = () => {
                     onChange={(e) => setFilterPosition(e.target.value)}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 >
-                    <option value="">Semua Jabatan</option>
+                    <option value="">Tampilkan Semua Jabatan</option>
+                    <option value="Semua Jabatan">Khusus 'Semua Jabatan'</option>
                     {positions.map(p => (
                         <option key={p} value={p}>{p}</option>
                     ))}
@@ -148,12 +153,17 @@ const ActivityLibraryPage: React.FC = () => {
                                 value={form.position}
                                 onChange={e => {
                                     const selectedPos = e.target.value;
-                                    const jabatan = jabatanList.find(j => j.nama === selectedPos);
-                                    setForm({ ...form, position: selectedPos, department: jabatan?.department || '' });
+                                    if (selectedPos === 'Semua Jabatan') {
+                                        setForm({ ...form, position: selectedPos, department: 'Semua Departemen' });
+                                    } else {
+                                        const jabatan = jabatanList.find(j => j.nama === selectedPos);
+                                        setForm({ ...form, position: selectedPos, department: jabatan?.department || '' });
+                                    }
                                 }}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm border p-2"
                             >
                                 <option value="">-- Pilih Posisi --</option>
+                                <option value="Semua Jabatan">Semua Jabatan</option>
                                 {jabatanList.map(j => (
                                     <option key={j.id} value={j.nama}>{j.nama}</option>
                                 ))}
@@ -171,7 +181,7 @@ const ActivityLibraryPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Durasi Standar (menit) *</label>
-                            <input type="number" value={form.durationMinutes} onChange={e => setForm({ ...form, durationMinutes: parseInt(e.target.value) || 0 })}
+                            <input type="number" value={form.durationMinutes} onChange={e => setForm({ ...form, durationMinutes: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required min={0} />
                         </div>
                         <div>

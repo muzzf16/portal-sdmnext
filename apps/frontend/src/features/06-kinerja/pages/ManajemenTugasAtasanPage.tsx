@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
-import { getTasksBySupervisor, createTask, deleteTask } from '../api/taskApi';
+import { getTasksBySupervisor, createTask, deleteTask, updateTaskStatus } from '../api/taskApi';
 import { AssignedTask } from '../../../shared/types/types';
 import { Pegawai } from '../../01-pegawai/types';
 import { useToast } from '../../../app/providers/ToastContext';
@@ -90,6 +90,18 @@ const ManajemenTugasAtasanPage: React.FC = () => {
         } catch (error) {
             console.error(error);
             addToast('Gagal menghapus tugas', 'error');
+        }
+    };
+
+    const handleApproveTask = async (id: string) => {
+        if (!window.confirm('Setujui tugas ini?')) return;
+        try {
+            await updateTaskStatus(id, 'approved');
+            addToast('Tugas disetujui', 'success');
+            if (user?.employeeId) fetchData(user.employeeId);
+        } catch (error) {
+            console.error(error);
+            addToast('Gagal menyetujui tugas', 'error');
         }
     };
 
@@ -199,22 +211,33 @@ const ManajemenTugasAtasanPage: React.FC = () => {
                                                     {task.description && <div className="text-xs text-gray-500 mt-1">{task.description}</div>}
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                                        task.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                            'bg-yellow-100 text-yellow-800'
+                                                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${task.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                        task.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                            task.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                                                'bg-yellow-100 text-yellow-800'
                                                         }`}>
-                                                        {task.status === 'completed' ? 'Selesai' :
-                                                            task.status === 'cancelled' ? 'Dibatalkan' : 'Pending'}
+                                                        {task.status === 'completed' ? 'Selesai (Menunggu Approval)' :
+                                                            task.status === 'approved' ? 'Selesai & Disetujui' :
+                                                                task.status === 'cancelled' ? 'Dibatalkan' : 'Pending'}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
+                                                <td className="px-4 py-3 text-center space-x-2">
+                                                    {task.status === 'completed' && (
+                                                        <button
+                                                            onClick={() => handleApproveTask(task.id)}
+                                                            className="text-green-600 hover:text-green-900 mx-1"
+                                                            title="Setujui"
+                                                        >
+                                                            Setujui
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => handleDeleteTask(task.id)}
                                                         className="text-red-600 hover:text-red-900 mx-1"
                                                         title="Hapus"
-                                                        disabled={task.status === 'completed'}
+                                                        disabled={task.status === 'approved'}
                                                     >
-                                                        {task.status === 'completed' ? '' : 'Hapus'}
+                                                        {task.status === 'approved' ? '' : 'Hapus'}
                                                     </button>
                                                 </td>
                                             </tr>

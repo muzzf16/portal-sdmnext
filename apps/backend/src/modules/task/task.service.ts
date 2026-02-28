@@ -21,8 +21,8 @@ export const TaskService = {
 
     async updateTaskStatus(id: string, status: string) {
         if (!id || !status) throw new AppError('id and status are required', 400);
-        if (!['pending', 'completed', 'cancelled'].includes(status)) {
-            throw new AppError('Invalid status. Must be pending, completed, or cancelled', 400);
+        if (!['pending', 'completed', 'cancelled', 'approved'].includes(status)) {
+            throw new AppError('Invalid status. Must be pending, completed, cancelled, or approved', 400);
         }
 
         const task = await TaskRepository.findById(id);

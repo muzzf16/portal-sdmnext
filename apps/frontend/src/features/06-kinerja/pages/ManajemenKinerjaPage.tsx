@@ -1,7 +1,7 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { BookOpen, BarChart2, Target, Award } from 'lucide-react';
+import { BookOpen, BarChart2, Target, Award, Briefcase } from 'lucide-react';
 
 // Lazy load tab content — reuse existing pages
 const HalamanKinerjaContent = lazy(() => import('./HalamanKinerja'));
@@ -10,6 +10,7 @@ const WorkLoadContent = lazy(() => import('./WorkLoadPage'));
 const KpiTargetContent = lazy(() => import('./KpiTargetPage'));
 const AdminWlaSummaryContent = lazy(() => import('./AdminWlaSummaryPage'));
 const LogWlaContent = lazy(() => import('./LogAktivitasWlaPage'));
+const ManajemenTugasAtasanContent = lazy(() => import('./ManajemenTugasAtasanPage'));
 
 interface TabDef {
     id: string;
@@ -94,6 +95,17 @@ const ManajemenKinerjaPage: React.FC = () => {
             component: (
                 <Suspense fallback={<TabSpinner />}>
                     <LogWlaContent />
+                </Suspense>
+            ),
+        },
+        {
+            id: 'penugasan',
+            label: 'Penugasan Bawahan',
+            icon: <Briefcase size={18} />,
+            roles: ['admin', 'supervisor'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <ManajemenTugasAtasanContent />
                 </Suspense>
             ),
         },

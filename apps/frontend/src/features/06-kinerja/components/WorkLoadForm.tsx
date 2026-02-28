@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { WorkLoadAnalysis, WorkLoadItem, ActivityLibraryItem } from '../types';
 import { saveWorkloadAnalysis, getWorkloadAnalysis } from '../api/workloadApi';
-import { getActivityByPosition } from '../api/activityLibraryApi';
+import { getActivityByPosition, createActivity } from '../api/activityLibraryApi';
 import { getPegawaiById } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 
@@ -42,6 +42,13 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [libraryActivities, setLibraryActivities] = useState<ActivityLibraryItem[]>([]);
+
+    // Custom Activity State
+    const [showAddActivity, setShowAddActivity] = useState(false);
+    const [isCreatingActivity, setIsCreatingActivity] = useState(false);
+    const [newActivityForm, setNewActivityForm] = useState({
+        activityName: '', durationMinutes: 0, outputUnit: '', category: ''
+    });
 
     // Watch position to fetch library activities
     const position = watch('position');
@@ -149,6 +156,53 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
         }
     };
 
+    const handleCreateActivity = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!position || !watch('department')) {
+            addToast('Posisi dan Departemen harus terisi', 'error');
+            return;
+        }
+
+        setIsCreatingActivity(true);
+        try {
+            const payload = {
+                ...newActivityForm,
+                position: position,
+                department: watch('department')
+            };
+
+            const res = await createActivity(payload as any);
+            const createdActivity = res.data?.data;
+
+            addToast('Aktivitas berhasil ditambahkan ke library', 'success');
+
+            // Add to local library state
+            if (createdActivity) {
+                setLibraryActivities(prev => [...prev, createdActivity]);
+
+                // Automatically append to ABK list
+                append({
+                    activityId: createdActivity.id,
+                    activityName: createdActivity.activityName,
+                    outputUnit: createdActivity.outputUnit,
+                    durationMinutes: createdActivity.durationMinutes,
+                    freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0
+                });
+            }
+
+            // Reset form and close
+            setNewActivityForm({ activityName: '', durationMinutes: 0, outputUnit: '', category: '' });
+            setShowAddActivity(false);
+
+        } catch (error) {
+            console.error(error);
+            addToast('Gagal membuat aktivitas baru', 'error');
+        } finally {
+            setIsCreatingActivity(false);
+        }
+    };
+
     const grandTotalHours = (totalMinutes / 60).toFixed(2);
     const BebanKerjaHarian = (totalMinutes / DAYS_IN_YEAR / 60).toFixed(2); // Jam per hari
 
@@ -249,8 +303,8 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
                 <div className="mt-4 flex justify-between items-start gap-4 flex-wrap">
                     <div className="flex gap-2 items-center">
-                        <button type="button" onClick={() => append({ activityName: '', durationMinutes: 0, freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 })} className="px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50">
-                            + Tambah Baris
+                        <button type="button" onClick={() => setShowAddActivity(!showAddActivity)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow-sm transition-colors">
+                            {showAddActivity ? '- Batal Tambah Baris' : '+ Tambah Baris'}
                         </button>
                         {libraryActivities.length > 0 && (
                             <select
@@ -277,6 +331,81 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                             </select>
                         )}
                     </div>
+                </div>
+
+                {/* Inline Add Activity Form */}
+                {showAddActivity && (
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg shadow-inner p-6">
+                        <h4 className="text-md font-bold text-blue-900 mb-3">Tambah Aktivitas Baru ke Library</h4>
+                        <p className="text-xs text-blue-700 mb-4">Aktivitas ini akan disimpan ke dalam Perpustakaan Aktivitas untuk posisi <strong>{position}</strong> dan otomatis ditambahkan ke form ABK Anda.</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="lg:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Aktivitas *</label>
+                                <input
+                                    value={newActivityForm.activityName}
+                                    onChange={e => setNewActivityForm({ ...newActivityForm, activityName: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                    required
+                                    placeholder="Contoh: Menyusun laporan bulanan"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Durasi (menit) *</label>
+                                <input
+                                    type="number"
+                                    value={newActivityForm.durationMinutes === 0 ? '' : newActivityForm.durationMinutes}
+                                    onChange={e => setNewActivityForm({ ...newActivityForm, durationMinutes: parseInt(e.target.value) || 0 })}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                    required
+                                    min={1}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Satuan Output</label>
+                                <input
+                                    value={newActivityForm.outputUnit}
+                                    onChange={e => setNewActivityForm({ ...newActivityForm, outputUnit: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                    placeholder="Contoh: Dokumen"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                                <select
+                                    value={newActivityForm.category}
+                                    onChange={e => setNewActivityForm({ ...newActivityForm, category: e.target.value })}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                >
+                                    <option value="">Pilih Kategori...</option>
+                                    <option value="operasional">Operasional</option>
+                                    <option value="administrasi">Administrasi</option>
+                                    <option value="lapangan">Lapangan</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowAddActivity(false)}
+                                className="px-4 py-2 border border-gray-300 bg-white rounded-md text-sm hover:bg-gray-50 text-gray-700 font-medium"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCreateActivity}
+                                disabled={isCreatingActivity || !newActivityForm.activityName || newActivityForm.durationMinutes <= 0}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 font-medium disabled:bg-blue-300 transition-colors"
+                            >
+                                {isCreatingActivity ? 'Menyimpan...' : 'Simpan & Tambahkan'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="mt-6 flex justify-end items-start gap-4">
                     <div className="space-x-2">
                         <button type="button" className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">Draft</button>
                         <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300">

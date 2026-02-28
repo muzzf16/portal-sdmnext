@@ -91,7 +91,7 @@ export interface AssignedTask {
   employee_id: string;
   task_name: string;
   description?: string;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'cancelled' | 'approved';
   created_at: string;
   updated_at: string;
   employee_name?: string;

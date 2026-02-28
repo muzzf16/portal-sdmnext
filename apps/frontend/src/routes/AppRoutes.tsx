@@ -48,7 +48,6 @@ const HalamanDetailKontrak = lazy(() => import('../features/05-kontrak/pages/Hal
 
 // Performance
 const ManajemenKinerjaPage = lazy(() => import('../features/06-kinerja/pages/ManajemenKinerjaPage'));
-const ManajemenTugasAtasanPage = lazy(() => import('../features/06-kinerja/pages/ManajemenTugasAtasanPage'));
 const HalamanKinerjaSaya = lazy(() => import('../features/06-kinerja/pages/HalamanKinerjaSaya'));
 const HalamanDetailKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanDetailKinerja'));
 const LogAktivitasWlaPage = lazy(() => import('../features/06-kinerja/pages/LogAktivitasWlaPage'));
@@ -233,13 +232,6 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['admin', 'supervisor', 'employee']}>
             <Suspense fallback={<LoadingSpinner />}>
               <ManajemenKinerjaPage />
-            </Suspense>
-          </PrivateRoute>
-        } />
-        <Route path="penugasan" element={
-          <PrivateRoute allowedRoles={['admin', 'supervisor']}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <ManajemenTugasAtasanPage />
             </Suspense>
           </PrivateRoute>
         } />
