@@ -27,8 +27,8 @@ exports.WorkloadRepository = {
         const db = await (0, db_1.openDb)();
         const now = new Date().toISOString();
         await db.run(`UPDATE analisis_beban_kerja 
-       SET totalYearlyMinutes = ?, status = ?, updated_at = ?
-       WHERE id = ?`, data.totalYearlyMinutes, data.status, now, id);
+       SET position = COALESCE(NULLIF(?, ''), position), department = COALESCE(NULLIF(?, ''), department), totalYearlyMinutes = ?, status = ?, updated_at = ?
+       WHERE id = ?`, data.position || '', data.department || '', data.totalYearlyMinutes, data.status, now, id);
         return this.findAnalysisById(id);
     },
     async clearItems(analysisId) {
@@ -39,9 +39,9 @@ exports.WorkloadRepository = {
         const db = await (0, db_1.openDb)();
         const id = item.id || `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         await db.run(`INSERT INTO detail_beban_kerja (
-        id, analysisId, activityName, outputUnit, durationMinutes, 
+        id, analysisId, activityId, activityName, outputUnit, durationMinutes, 
         freqDaily, freqWeekly, freqMonthly, freqQuarterly, freqSemester, freqYearly, totalMinutes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, item.analysisId, item.activityName, item.outputUnit || '', item.durationMinutes, item.freqDaily || 0, item.freqWeekly || 0, item.freqMonthly || 0, item.freqQuarterly || 0, item.freqSemester || 0, item.freqYearly || 0, item.totalMinutes);
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, item.analysisId, item.activityId || null, item.activityName, item.outputUnit || '', item.durationMinutes, item.freqDaily || 0, item.freqWeekly || 0, item.freqMonthly || 0, item.freqQuarterly || 0, item.freqSemester || 0, item.freqYearly || 0, item.totalMinutes);
     }
 };
 //# sourceMappingURL=workload.repository.js.map

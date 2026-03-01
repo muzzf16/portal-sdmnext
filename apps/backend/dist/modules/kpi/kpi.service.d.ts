@@ -10,10 +10,20 @@ export default class KpiService {
     static getById(id: string): Promise<any>;
     static create(data: any): Promise<any>;
     static update(id: string, data: any): Promise<any>;
-    static updateActualValue(id: string, actualValue: number): Promise<any>;
+    static updateActualValue(id: string, actualValue: number, evidenceUrl?: string): Promise<any>;
+    static updateEvidence(id: string, evidenceUrl: string): Promise<any>;
     static delete(id: string): Promise<{
         message: string;
     }>;
     static generateFromAbk(employeeId: string, year: number, period: string): Promise<any[]>;
+    static syncRealisasiFromWla(employeeId: string, period: string): Promise<{
+        synced: number;
+        skipped: number;
+        period: string;
+        startDate: string;
+        endDate: string;
+        details: any[];
+    }>;
+    private static parsePeriodToDateRange;
 }
 //# sourceMappingURL=kpi.service.d.ts.map

@@ -9,7 +9,7 @@ exports.ActivityLibraryRepository = {
         const params = [];
         const conditions = [];
         if (filters?.position) {
-            conditions.push('position = ?');
+            conditions.push('(LOWER(position) = LOWER(?) OR LOWER(position) = \'semua jabatan\')');
             params.push(filters.position);
         }
         if (filters?.department) {
@@ -28,7 +28,7 @@ exports.ActivityLibraryRepository = {
     },
     async findByPosition(position) {
         const db = await (0, db_1.openDb)();
-        return db.all('SELECT * FROM activity_library WHERE position = ? ORDER BY activityName ASC', position);
+        return db.all('SELECT * FROM activity_library WHERE LOWER(position) = LOWER(?) OR LOWER(position) = \'semua jabatan\' ORDER BY activityName ASC', position);
     },
     async findById(id) {
         const db = await (0, db_1.openDb)();

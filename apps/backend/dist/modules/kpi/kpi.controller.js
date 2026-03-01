@@ -77,7 +77,10 @@ class KpiController {
             if (actualValue === undefined) {
                 return res.status(400).json({ success: false, message: 'actualValue is required' });
             }
-            const data = await kpi_service_1.default.updateActualValue(id, actualValue);
+            const evidenceUrl = req.file
+                ? `/documents/${req.file.filename}`
+                : (req.body.evidenceUrl || undefined);
+            const data = await kpi_service_1.default.updateActualValue(id, parseFloat(actualValue), evidenceUrl);
             return res.status(200).json({ success: true, data });
         }
         catch (error) {
@@ -94,6 +97,20 @@ class KpiController {
             return next(error);
         }
     }
+    static async uploadEvidence(req, res, next) {
+        try {
+            const { id } = req.params;
+            if (!req.file) {
+                return res.status(400).json({ success: false, message: 'Evidence file is required' });
+            }
+            const evidenceUrl = `/documents/${req.file.filename}`;
+            const data = await kpi_service_1.default.updateEvidence(id, evidenceUrl);
+            return res.status(200).json({ success: true, data });
+        }
+        catch (error) {
+            return next(error);
+        }
+    }
     static async generateFromAbk(req, res, next) {
         try {
             const { employeeId, year, period } = req.body;
@@ -102,6 +119,19 @@ class KpiController {
             }
             const data = await kpi_service_1.default.generateFromAbk(employeeId, parseInt(year), period);
             return res.status(201).json({ success: true, data });
+        }
+        catch (error) {
+            return next(error);
+        }
+    }
+    static async syncRealisasiFromWla(req, res, next) {
+        try {
+            const { employeeId, period } = req.body;
+            if (!employeeId || !period) {
+                return res.status(400).json({ success: false, message: 'employeeId and period are required' });
+            }
+            const data = await kpi_service_1.default.syncRealisasiFromWla(employeeId, period);
+            return res.status(200).json({ success: true, data });
         }
         catch (error) {
             return next(error);

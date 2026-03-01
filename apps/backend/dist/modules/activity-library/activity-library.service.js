@@ -68,6 +68,9 @@ class ActivityLibraryService {
         catch (error) {
             if (error instanceof errors_1.AppError)
                 throw error;
+            if (error.message && error.message.includes('SQLITE_CONSTRAINT')) {
+                throw new errors_1.AppError('Tidak dapat menghapus aktivitas karena sudah digunakan oleh log pegawai / beban kerja.', 400);
+            }
             throw new errors_1.AppError(`Error deleting activity: ${error.message}`, 500);
         }
     }

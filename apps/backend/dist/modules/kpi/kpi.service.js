@@ -4,6 +4,7 @@ const kpi_repository_1 = require("./kpi.repository");
 const workload_repository_1 = require("../workload/workload.repository");
 const activity_library_repository_1 = require("../activity-library/activity-library.repository");
 const errors_1 = require("../../utils/errors");
+const db_1 = require("../../config/db");
 class KpiService {
     static calculateScore(targetValue, actualValue, targetUnit) {
         if (targetValue === 0)
@@ -91,16 +92,27 @@ class KpiService {
             throw new errors_1.AppError(`Error updating KPI target: ${error.message}`, 500);
         }
     }
-    static async updateActualValue(id, actualValue) {
+    static async updateActualValue(id, actualValue, evidenceUrl) {
         const existing = await kpi_repository_1.KpiRepository.findById(id);
         if (!existing)
             throw new errors_1.AppError('KPI target not found', 404);
         const score = this.calculateScore(existing.targetValue, actualValue, existing.targetUnit || '');
         try {
-            return await kpi_repository_1.KpiRepository.updateActualValue(id, actualValue, score);
+            return await kpi_repository_1.KpiRepository.updateActualValue(id, actualValue, score, evidenceUrl);
         }
         catch (error) {
             throw new errors_1.AppError(`Error updating actual value: ${error.message}`, 500);
+        }
+    }
+    static async updateEvidence(id, evidenceUrl) {
+        const existing = await kpi_repository_1.KpiRepository.findById(id);
+        if (!existing)
+            throw new errors_1.AppError('KPI target not found', 404);
+        try {
+            return await kpi_repository_1.KpiRepository.updateEvidence(id, evidenceUrl);
+        }
+        catch (error) {
+            throw new errors_1.AppError(`Error updating evidence: ${error.message}`, 500);
         }
     }
     static async delete(id) {
@@ -126,31 +138,72 @@ class KpiService {
             if (!fullAnalysis || !fullAnalysis.items || fullAnalysis.items.length === 0) {
                 throw new errors_1.AppError('No workload items found in ABK analysis', 404);
             }
+            const existingKpis = await kpi_repository_1.KpiRepository.findByEmployeePeriod(employeeId, period);
+            const existingNames = new Set(existingKpis.map((k) => k.kpiName.toLowerCase()));
+            const existingTotalWeight = existingKpis.reduce((sum, k) => sum + (k.weight || 0), 0);
             const libraryActivities = await activity_library_repository_1.ActivityLibraryRepository.findByPosition(fullAnalysis.position || '');
-            const kpiTargets = [];
-            const totalWeight = Math.floor(100 / Math.min(fullAnalysis.items.length, 5));
-            const topItems = [...fullAnalysis.items]
+            const uniqueItemsMap = new Map();
+            for (const item of fullAnalysis.items) {
+                const key = item.activityName.toLowerCase();
+                if (!uniqueItemsMap.has(key) || (item.totalMinutes || 0) > (uniqueItemsMap.get(key).totalMinutes || 0)) {
+                    uniqueItemsMap.set(key, item);
+                }
+            }
+            const uniqueItems = Array.from(uniqueItemsMap.values());
+            const topItems = uniqueItems
                 .sort((a, b) => (b.totalMinutes || 0) - (a.totalMinutes || 0))
+                .filter((item) => !existingNames.has(`penyelesaian ${item.activityName}`.toLowerCase()))
                 .slice(0, 5);
+            if (topItems.length === 0) {
+                throw new errors_1.AppError('Semua aktivitas ABK sudah ada di KPI untuk periode ini.', 400);
+            }
+            const availableWeight = Math.max(0, 100 - existingTotalWeight);
+            if (availableWeight <= 0) {
+                throw new errors_1.AppError('Total bobot KPI sudah mencapai 100%. Hapus atau kurangi bobot KPI yang ada terlebih dahulu.', 400);
+            }
+            const weightPerItem = Math.floor(availableWeight / topItems.length);
+            const kpiTargets = [];
             for (let i = 0; i < topItems.length; i++) {
                 const item = topItems[i];
-                const libraryMatch = libraryActivities.find((la) => la.activityName.toLowerCase().includes(item.activityName.toLowerCase().substring(0, 10)));
-                const targetFrequency = (item.freqDaily || 0) * 264 +
+                let abkActivityId = item.activityId || null;
+                if (!abkActivityId) {
+                    const exactMatch = libraryActivities.find((la) => la.activityName.toLowerCase() === item.activityName.toLowerCase());
+                    if (exactMatch) {
+                        abkActivityId = exactMatch.id;
+                    }
+                    else {
+                        const fuzzyMatch = libraryActivities.find((la) => la.activityName.toLowerCase().includes(item.activityName.toLowerCase())
+                            || item.activityName.toLowerCase().includes(la.activityName.toLowerCase()));
+                        abkActivityId = fuzzyMatch?.id || null;
+                    }
+                }
+                let periodFactor = 1;
+                if (period.match(/-S[12]$/i))
+                    periodFactor = 0.5;
+                else if (period.match(/-Q[1-4]$/i))
+                    periodFactor = 0.25;
+                else if (period.match(/-\d{2}$/))
+                    periodFactor = 1 / 12;
+                const annualFrequency = (item.freqDaily || 0) * 264 +
                     (item.freqWeekly || 0) * 52 +
                     (item.freqMonthly || 0) * 12 +
                     (item.freqQuarterly || 0) * 4 +
                     (item.freqSemester || 0) * 2 +
                     (item.freqYearly || 0);
+                const targetFrequency = Math.ceil(annualFrequency * periodFactor);
+                const weight = i === topItems.length - 1
+                    ? (availableWeight - weightPerItem * (topItems.length - 1))
+                    : weightPerItem;
                 const kpi = await kpi_repository_1.KpiRepository.create({
                     employeeId,
                     period,
                     kpiName: `Penyelesaian ${item.activityName}`,
                     targetValue: targetFrequency,
                     targetUnit: 'jumlah',
-                    weight: i === topItems.length - 1 ? (100 - totalWeight * (topItems.length - 1)) : totalWeight,
+                    weight,
                     status: 'active',
                     source: 'abk',
-                    abkActivityId: libraryMatch?.id || null,
+                    abkActivityId: abkActivityId,
                     notes: `Auto-generated dari ABK. Durasi standar: ${item.durationMinutes} menit.`
                 });
                 kpiTargets.push(kpi);
@@ -162,6 +215,114 @@ class KpiService {
                 throw error;
             throw new errors_1.AppError(`Error generating KPI from ABK: ${error.message}`, 500);
         }
+    }
+    static async syncRealisasiFromWla(employeeId, period) {
+        try {
+            const { startDate, endDate } = this.parsePeriodToDateRange(period);
+            const kpis = await kpi_repository_1.KpiRepository.findByEmployeePeriod(employeeId, period);
+            if (kpis.length === 0) {
+                throw new errors_1.AppError('Tidak ada KPI target untuk pegawai dan periode ini.', 400);
+            }
+            const db = await (0, db_1.openDb)();
+            const allActivities = await db.all('SELECT id, activityName FROM activity_library');
+            const results = [];
+            for (const kpi of kpis) {
+                let activityId = kpi.abkActivityId;
+                if (!activityId) {
+                    const cleanName = kpi.kpiName
+                        .replace(/^Penyelesaian\s+/i, '')
+                        .trim();
+                    let match = allActivities.find((a) => a.activityName.toLowerCase() === cleanName.toLowerCase());
+                    if (!match) {
+                        match = allActivities.find((a) => a.activityName.toLowerCase().includes(cleanName.toLowerCase())
+                            || cleanName.toLowerCase().includes(a.activityName.toLowerCase()));
+                    }
+                    if (match) {
+                        activityId = match.id;
+                        await db.run('UPDATE kpi_targets SET abkActivityId = ?, updated_at = ? WHERE id = ?', activityId, new Date().toISOString(), kpi.id);
+                    }
+                }
+                if (!activityId) {
+                    results.push({
+                        kpiId: kpi.id,
+                        kpiName: kpi.kpiName,
+                        targetValue: kpi.targetValue,
+                        actualValue: kpi.actualValue || 0,
+                        score: kpi.score || 0,
+                        skipped: true,
+                        reason: 'Tidak ditemukan aktivitas yang cocok di Activity Library'
+                    });
+                    continue;
+                }
+                const row = await db.get(`SELECT 
+                        COALESCE(SUM(l.frekuensi), 0) as total_frekuensi,
+                        COALESCE(SUM(l.total_durasi_terhitung), 0) as total_durasi,
+                        COUNT(*) as jumlah_hari
+                     FROM log_aktivitas_harian l
+                     WHERE l.id_pegawai = ?
+                       AND l.id_activity_library = ?
+                       AND l.tanggal >= ? AND l.tanggal <= ?
+                       AND (l.status_approval IS NULL OR l.status_approval != 'rejected')`, employeeId, activityId, startDate, endDate);
+                const actualValue = row?.total_frekuensi || 0;
+                const score = this.calculateScore(kpi.targetValue, actualValue, kpi.targetUnit || '');
+                await kpi_repository_1.KpiRepository.updateActualValue(kpi.id, actualValue, score);
+                results.push({
+                    kpiId: kpi.id,
+                    kpiName: kpi.kpiName,
+                    targetValue: kpi.targetValue,
+                    actualValue,
+                    score,
+                    totalDurasi: row?.total_durasi || 0,
+                    jumlahHari: row?.jumlah_hari || 0
+                });
+            }
+            const synced = results.filter((r) => !r.skipped).length;
+            const skipped = results.filter((r) => r.skipped).length;
+            return {
+                synced,
+                skipped,
+                period,
+                startDate,
+                endDate,
+                details: results
+            };
+        }
+        catch (error) {
+            if (error instanceof errors_1.AppError)
+                throw error;
+            throw new errors_1.AppError(`Error syncing realisasi from WLA: ${error.message}`, 500);
+        }
+    }
+    static parsePeriodToDateRange(period) {
+        const semesterMatch = period.match(/^(\d{4})-S([12])$/i);
+        if (semesterMatch) {
+            const year = semesterMatch[1];
+            if (semesterMatch[2] === '1') {
+                return { startDate: `${year}-01-01`, endDate: `${year}-06-30` };
+            }
+            else {
+                return { startDate: `${year}-07-01`, endDate: `${year}-12-31` };
+            }
+        }
+        const quarterMatch = period.match(/^(\d{4})-Q([1-4])$/i);
+        if (quarterMatch) {
+            const year = quarterMatch[1];
+            const q = parseInt(quarterMatch[2]);
+            const startMonth = String((q - 1) * 3 + 1).padStart(2, '0');
+            const endMonth = String(q * 3).padStart(2, '0');
+            const lastDay = new Date(parseInt(year), q * 3, 0).getDate();
+            return { startDate: `${year}-${startMonth}-01`, endDate: `${year}-${endMonth}-${lastDay}` };
+        }
+        const monthMatch = period.match(/^(\d{4})-(\d{2})$/);
+        if (monthMatch) {
+            const year = monthMatch[1];
+            const month = monthMatch[2];
+            const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+            return { startDate: `${year}-${month}-01`, endDate: `${year}-${month}-${lastDay}` };
+        }
+        const yearMatch = period.match(/^(\d{4})/);
+        const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+        return { startDate: `${year}-01-01`, endDate: `${year}-12-31` };
     }
 }
 exports.default = KpiService;

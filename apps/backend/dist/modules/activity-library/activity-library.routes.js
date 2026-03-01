@@ -12,7 +12,7 @@ router.get('/', activity_library_controller_1.default.getAll);
 router.get('/positions', activity_library_controller_1.default.getPositions);
 router.get('/position/:position', activity_library_controller_1.default.getByPosition);
 router.get('/:id', activity_library_controller_1.default.getById);
-router.post('/', (0, authMiddleware_1.restrictTo)('admin', 'pimpinan'), activity_library_controller_1.default.create);
+router.post('/', activity_library_controller_1.default.create);
 router.put('/:id', (0, authMiddleware_1.restrictTo)('admin', 'pimpinan'), activity_library_controller_1.default.update);
 router.delete('/:id', (0, authMiddleware_1.restrictTo)('admin', 'pimpinan'), activity_library_controller_1.default.delete);
 exports.default = router;

@@ -1,5 +1,5 @@
 declare class PegawaiAuthService {
-    static createEmployeeWithUser(pegawaiData: any, photo?: Express.Multer.File): Promise<{
+    static createEmployeeWithUser(pegawaiData: any): Promise<{
         employee: any;
         user: any;
     }>;

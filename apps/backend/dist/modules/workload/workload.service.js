@@ -69,6 +69,8 @@ class WorkloadService {
         }
         else {
             await workload_repository_1.WorkloadRepository.updateAnalysisHeader(analysis.id, {
+                position: data.position,
+                department: data.department,
                 totalYearlyMinutes,
                 status: data.status || analysis.status
             });

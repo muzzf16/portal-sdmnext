@@ -8,6 +8,8 @@ export default class KpiController {
     static update(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
     static updateActualValue(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
     static delete(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
+    static uploadEvidence(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
     static generateFromAbk(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
+    static syncRealisasiFromWla(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
 }
 //# sourceMappingURL=kpi.controller.d.ts.map
