@@ -1,16 +1,21 @@
 import { Router } from 'express';
-import { getEmployeesForIntegration, getAttendancesForIntegration, getLeavesForIntegration } from './integration.controller';
+import {
+    getEmployeesForIntegration,
+    getAttendancesForIntegration,
+    getLeavesForIntegration,
+    createAttendanceFromIntegration,
+    createActivityLogFromIntegration
+} from './integration.controller';
 import { apiKeyMiddleware } from '../../middleware/apiKeyMiddleware';
 
 const router = Router();
 
-// Endpoint integrasi untuk mendapatkan daftar pegawai
+// Endpoint integrasi (Inbound/Outbound) 
 router.get('/employees', apiKeyMiddleware, getEmployeesForIntegration);
-
-// Endpoint integrasi untuk mendapatkan daftar absensi
 router.get('/attendance', apiKeyMiddleware, getAttendancesForIntegration);
-
-// Endpoint integrasi untuk mendapatkan daftar pengajuan cuti
 router.get('/leaves', apiKeyMiddleware, getLeavesForIntegration);
+
+router.post('/attendance', apiKeyMiddleware, createAttendanceFromIntegration);
+router.post('/daily-activities', apiKeyMiddleware, createActivityLogFromIntegration);
 
 export default router;

@@ -90,3 +90,97 @@ export const getLeavesForIntegration = async (req: Request, res: Response) => {
         });
     }
 };
+
+/**
+ * Controller untuk menerima dan menyimpan data absensi dari aplikasi eksternal (Inbound)
+ */
+export const createAttendanceFromIntegration = async (req: Request, res: Response) => {
+    try {
+        const { nip, date, clock_in, clock_out, status, notes } = req.body;
+
+        if (!nip || !date || !clock_in) {
+            return res.status(400).json({
+                success: false,
+                message: 'Bad Request: nip, date, and clock_in are required fields'
+            });
+        }
+
+        const result = await IntegrationService.insertInboundAttendance({
+            nip,
+            date,
+            clockIn: clock_in,
+            clockOut: clock_out,
+            status,
+            notes
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Attendance record successfully processed (${result.action})`,
+            data: result
+        });
+
+    } catch (error: any) {
+        console.error('Error creating inbound attendance:', error);
+
+        // Cek jika error karena NIP tidak ditemukan
+        if (error.message && error.message.includes('tidak ditemukan')) {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error while processing inbound attendance',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Controller untuk menerima dan menyimpan log aktivitas harian dari aplikasi eksternal (Inbound)
+ */
+export const createActivityLogFromIntegration = async (req: Request, res: Response) => {
+    try {
+        const { nip, date, activity_name, duration_minutes, notes } = req.body;
+
+        if (!nip || !date || !activity_name || duration_minutes === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'Bad Request: nip, date, activity_name, and duration_minutes are required fields'
+            });
+        }
+
+        const result = await IntegrationService.insertInboundDailyActivity({
+            nip,
+            date,
+            activityName: activity_name,
+            durationMinutes: Number(duration_minutes),
+            notes
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Daily activity log successfully processed',
+            data: result
+        });
+
+    } catch (error: any) {
+        console.error('Error creating inbound activity log:', error);
+
+        if (error.message && error.message.includes('tidak ditemukan')) {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error while processing inbound activity log',
+            error: error.message
+        });
+    }
+};

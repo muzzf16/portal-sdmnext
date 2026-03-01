@@ -121,5 +121,101 @@ export const IntegrationService = {
 
         const leaves = await db.all(query, ...params);
         return leaves;
+    },
+
+    /**
+     * Memasukkan data absensi (Inbound) ke dalam database Portal SDM.
+     * Jika data absensi pada tanggal tersebut untuk pegawai terkait sudah ada, maka akan dilakukan UPDATE.
+     * @param payload NIP, tanggal, clockIn, clockOut
+     */
+    async insertInboundAttendance(payload: { nip: string; date: string; clockIn: string; clockOut?: string; status?: string; notes?: string }) {
+        const db = await openDb();
+
+        // 1. Cari Pegawai berdasarkan NIP
+        const pegawai = await db.get('SELECT id, name FROM pegawai WHERE nip = ? AND statusKaryawan = "aktif"', payload.nip);
+        if (!pegawai) {
+            throw new Error(`Pegawai aktif dengan NIP ${payload.nip} tidak ditemukan.`);
+        }
+
+        // 2. Cek apakah absensi sudah ada
+        const existingAbsensi = await db.get('SELECT id FROM absensi WHERE employeeId = ? AND date = ?', [pegawai.id, payload.date]);
+
+        const status = payload.status || 'hadir';
+        const notes = payload.notes || 'via API Integration';
+
+        let result;
+        if (existingAbsensi) {
+            // Update
+            result = await db.run(`
+                UPDATE absensi 
+                SET clockIn = ?, clockOut = ?, status = ?, notes = ?
+                WHERE id = ?
+            `, [payload.clockIn, payload.clockOut || null, status, notes, existingAbsensi.id]);
+        } else {
+            // Insert
+            const newId = 'att-' + Date.now() + Math.floor(Math.random() * 1000);
+            result = await db.run(`
+                INSERT INTO absensi (id, employeeId, employeeName, date, clockIn, clockOut, status, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [newId, pegawai.id, pegawai.name, payload.date, payload.clockIn, payload.clockOut || null, status, notes]);
+        }
+
+        return {
+            action: existingAbsensi ? 'UPDATE' : 'INSERT',
+            employeeName: pegawai.name,
+            date: payload.date
+        };
+    },
+
+    /**
+     * Memasukkan data log aktivitas harian (Inbound) misal untuk Kunjungan Nasabah.
+     * Otomatis membuat master 'activity_library' jika belum ada.
+     */
+    async insertInboundDailyActivity(payload: { nip: string; date: string; activityName: string; durationMinutes: number; notes?: string }) {
+        const db = await openDb();
+
+        // 1. Cari Pegawai
+        const pegawai = await db.get('SELECT id as id_pegawai, id as employeeId FROM pegawai WHERE nip = ? AND statusKaryawan = "aktif"', payload.nip);
+        if (!pegawai) {
+            throw new Error(`Pegawai aktif dengan NIP ${payload.nip} tidak ditemukan.`);
+        }
+
+        // 2. Cari atau Buat Master Activity
+        let activity = await db.get('SELECT id FROM activity_library WHERE activityName = ? COLLATE NOCASE', payload.activityName);
+        let id_activity = null;
+
+        if (activity) {
+            id_activity = activity.id;
+        } else {
+            // Buat baru jika tidak ada (Auto-creation)
+            // Menggunakan position dan department default karena tidak diketahui dari API Eksternal
+            const insertActivity = await db.run(`
+                INSERT INTO activity_library (position, department, activityName, durationMinutes, category)
+                VALUES (?, ?, ?, ?, ?)
+            `, ['All', 'Umum', payload.activityName, payload.durationMinutes, 'operasional']);
+
+            id_activity = insertActivity.lastID;
+        }
+
+        // 3. Masukkan ke log_aktivitas_harian
+        const result = await db.run(`
+            INSERT INTO log_aktivitas_harian (
+                id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, status_approval, catatan
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [
+            pegawai.id_pegawai,
+            payload.date,
+            id_activity,
+            1, // frekuensi default 1 per trigger
+            payload.durationMinutes,
+            'pending', // harus di-approve atasan
+            payload.notes || 'via API Integration'
+        ]);
+
+        return {
+            log_id: result.lastID,
+            activityName: payload.activityName,
+            status: 'pending'
+        };
     }
 };

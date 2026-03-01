@@ -154,9 +154,78 @@ Digunakan untuk melihat permohonan status cuti pegawai (seperti Cuti Tahunan, Sa
 
 ---
 
+### 3.4 Menyimpan Data Absensi Inbound (`POST /attendance`)
+
+Digunakan oleh aplikasi mesin absensi eksternal untuk menyetorkan data kehadiran pegawai secara *real-time* atau *batch*.
+**Fitur cerdas:** Endpoint ini menerapkan hukum *idempotency*. Jika Anda mengirim data *clock-in* untuk satu NIP di tanggal yang sama berulang kali, sistem akan melakukan *UPDATE* (memperbarui data seperti *clock-out*) bukan menduplikasi datanya.
+
+*   **Endpoint:** `POST /integrations/attendance`
+*   **Payload (JSON Body):**
+    *   `nip` (string, Wajib): NIP pegawai
+    *   `date` (string, Wajib): Format YYYY-MM-DD
+    *   `clock_in` (string, Wajib): Format HH:mm
+    *   `clock_out` (string, Opsional): Format HH:mm
+    *   `status` (string, Opsional): `hadir` / `izin` / `sakit` dll. (Default: `hadir`)
+    *   `notes` (string, Opsional): Catatan
+*   **Contoh Request (cURL):**
+    ```bash
+    curl -X POST -H "x-api-key: YOUR_KEY" -H "Content-Type: application/json" \
+         -d '{"nip":"01000000010","date":"2026-03-01","clock_in":"08:00","clock_out":"17:30","status":"hadir"}' \
+         http://localhost:3333/api/integrations/attendance
+    ```
+
+**Contoh Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Attendance record successfully processed (INSERT / UPDATE)",
+  "data": {
+    "action": "INSERT",
+    "employeeName": "NAMA PEGAWAI",
+    "date": "2026-03-01"
+  }
+}
+```
+
+---
+
+### 3.5 Menyimpan Log Aktivitas Harian Inbound (`POST /daily-activities`)
+
+Digunakan oleh aplikasi eksternal (misal: CRM Penjualan) untuk melaporkan kinerja aktivitas harian, contohnya "Kunjungan Nasabah" yang akan otomatis memotong target kuota bulanan.
+**Fitur cerdas:** Jika nama aktivitas yang dikirim belum ada di Master Aktivitas Portal SDM, sistem akan otomatis membuatnya secara mandiri (*Auto-Creation*).
+
+*   **Endpoint:** `POST /integrations/daily-activities`
+*   **Payload (JSON Body):**
+    *   `nip` (string, Wajib): NIP pegawai
+    *   `date` (string, Wajib): Format YYYY-MM-DD
+    *   `activity_name` (string, Wajib): Judul/Nama Kegiatan (mis. "Kunjungan Nasabah Priority")
+    *   `duration_minutes` (number, Wajib): Lama waktu kegiatan dalam hitungan menit
+    *   `notes` (string, Opsional): Catatan deskripsi detail
+*   **Contoh Request (cURL):**
+    ```bash
+    curl -X POST -H "x-api-key: YOUR_KEY" -H "Content-Type: application/json" \
+         -d '{"nip":"01000000010","date":"2026-03-01","activity_name":"Kunjungan Nasabah PT BCD","duration_minutes":60}' \
+         http://localhost:3333/api/integrations/daily-activities
+    ```
+
+**Contoh Response `200 OK`:**
+```json
+{
+  "success": true,
+  "message": "Daily activity log successfully processed",
+  "data": {
+    "log_id": 818,
+    "activityName": "Kunjungan Nasabah PT BCD",
+    "status": "pending"
+  }
+}
+```
+
+---
+
 ## 4. Handling Error (Format Standard)
 
-Setiap request yang memiliki error dari server (baik berupa *Missing Key*, *Invalid Key*, *Internal Server Error* dsb) akan merespon dengan format HTTP code standard (mis. `401`, `403`, `500`) dan format body yang seragam, yaitu seperti berikut:
+Setiap request yang memiliki error dari server (baik berupa *Missing Key*, *Invalid Key*, *Internal Server Error* dsb) akan merespon dengan format HTTP code standard (mis. `401`, `403`, `404`, `500`):
 
 ```json
 {
@@ -164,6 +233,8 @@ Setiap request yang memiliki error dari server (baik berupa *Missing Key*, *Inva
     "message": "Unauthorized: Missing x-api-key header"
 }
 ```
+*   `400 Bad Request`: Jika gagal melepas atribut *mandatory payload*.
+*   `404 Not Found`: Jika NIP aktif tidak terditeksi.
 
 ## 5. Kontak Dukungan dan Observability
 - API memiliki fitur audit terintegrasi (Tabel `integration_logs`).
