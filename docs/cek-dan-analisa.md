@@ -1,53 +1,81 @@
-# Hasil Cek, Analisa, dan Susunan Integrasi Antar Aplikasi `portal-sdmnext`
+# Hasil Cek Ulang, Analisa, dan Susunan Integrasi Antar Aplikasi `portal-sdmnext`
 
-Tanggal cek: 2026-03-01  
+Tanggal cek ulang: 2026-03-01  
 Branch: `work`
 
-## Ringkasan Kondisi Saat Ini
+## Ringkasan Kondisi Terbaru
 
-- Struktur repo menunjukkan arsitektur monorepo sederhana dengan dua aplikasi utama: `apps/backend` dan `apps/frontend`.
-- Proses build backend dan frontend saat ini **belum lolos**.
-- Akar masalah utama terlihat pada **ketidaksiapan environment/dependency installation per-subproject** dan beberapa isu TypeScript tambahan.
+- Cek ulang dilakukan setelah ada perubahan kode terbaru.
+- **Build backend sekarang sudah lolos**.
+- **Build frontend masih gagal** namun pola error sudah lebih spesifik (kompatibilitas versi, dependency frontend yang belum sinkron, serta isu typing TypeScript strict).
 
-## Cek yang Dijalankan
+## Cek yang Dijalankan (Ulang)
 
 1. `npm --prefix apps/backend run build`
 2. `npm --prefix apps/frontend run build`
 
-## Temuan Utama Build
+## Temuan Utama Build Terbaru
 
-### 1) Backend gagal build
+### 1) Backend (status: ✅ lulus)
 
-Perintah build backend gagal dengan error TypeScript:
-
-- `Cannot find module 'pdfkit' or its corresponding type declarations.`
-- Lokasi error: `src/modules/penggajian/penggajian.service.ts`.
+Perintah `npm --prefix apps/backend run build` berhasil menjalankan `tsc` tanpa error.
 
 Analisa:
-- `pdfkit` dan `@types/pdfkit` sudah terdaftar di `apps/backend/package.json`, jadi indikasinya dependency backend belum terpasang lengkap di environment saat ini.
+- Indikasi masalah dependency utama backend sebelumnya sudah tertangani di environment saat ini.
 
-### 2) Frontend gagal build dengan error masif
+### 2) Frontend (status: ❌ gagal)
 
-Build frontend menghasilkan banyak error TypeScript, terutama:
+Perintah `npm --prefix apps/frontend run build` masih gagal. Temuan penting dikelompokkan sebagai berikut:
 
-- Deklarasi tipe modul tidak ditemukan (`react`, `react-dom`, `react-router-dom`, `axios`, `clsx`, `lucide-react`, dll).
-- Banyak error turunan seperti `JSX element implicitly has type 'any'`, `Cannot find namespace 'React'`, dan `Property 'env' does not exist on type 'ImportMeta'`.
+#### A. Potensi mismatch versi library (perlu prioritas)
 
-Analisa:
-- Pola error sangat kuat mengarah ke dependency frontend yang belum terinstal di `apps/frontend` (meski didefinisikan di `apps/frontend/package.json`).
-- Setelah dependency terpenuhi, kemungkinan masih ada sisa error strict TypeScript (contoh `implicit any`) yang perlu dibersihkan bertahap.
+- `BrowserRouter` tidak mengenal properti `future`.
+  - Ini mengarah ke ketidaksesuaian API router yang dipakai pada kode vs versi `react-router-dom` terpasang.
+- Error tipe `i18n` antara `i18next` dan `react-i18next` menunjukkan konflik tipe lintas versi (termasuk nested dependency).
 
-## Rekomendasi Prioritas Pemulihan Build
+#### B. Dependency frontend belum konsisten/terbaca oleh TypeScript
 
-1. **Pasang dependency per aplikasi (bukan hanya root):**
-   - `cd apps/backend && npm install`
-   - `cd apps/frontend && npm install`
-2. Ulangi build:
-   - `npm --prefix apps/backend run build`
+Masih muncul `Cannot find module ...` untuk paket penting, misalnya:
+- `react-hook-form`
+- `axios`
+- `xlsx`
+- `pdfmake/*`
+- `tailwind-variants`
+
+Ini biasanya terjadi jika:
+- install dependency frontend belum sinkron dengan lockfile,
+- atau node_modules frontend belum dalam kondisi bersih/valid,
+- atau workspace/hoisting membuat resolver TypeScript membaca paket yang tidak sesuai.
+
+#### C. Error TypeScript strict lanjutan
+
+Setelah isu versi/dependency dibereskan, masih ada pekerjaan cleanup tipe:
+- `implicit any` pada banyak callback parameter.
+- `ImportMeta.env` tidak dikenali (perlu deklarasi tipe Vite/env yang benar).
+- Tipe komponen generik pada `Table.tsx` (`child.props` bertipe `unknown`).
+
+## Rekomendasi Prioritas Perbaikan Frontend
+
+### Tahap 1 — Stabilkan dependency & versi
+
+1. Sinkronkan dependency frontend dari direktori `apps/frontend`:
+   - `npm install`
+2. Pastikan versi `react-router-dom` sesuai penggunaan kode:
+   - Jika tetap v6, hapus properti `future` yang tidak didukung versi aktif.
+   - Atau sesuaikan versi package bila memang butuh API tersebut.
+3. Pastikan pasangan `i18next` dan `react-i18next` kompatibel pada versi yang sama/selaras.
+
+### Tahap 2 — Benahi typing dan konfigurasi TS/Vite
+
+1. Tambahkan/validasi deklarasi environment Vite (`ImportMeta.env`) pada file tipe global frontend.
+2. Perbaiki semua `implicit any` pada callback penting.
+3. Perketat tipe komponen tabel generik agar tidak mengakses `unknown` secara langsung.
+
+### Tahap 3 — Verifikasi berulang
+
+1. Jalankan ulang build frontend:
    - `npm --prefix apps/frontend run build`
-3. Jika frontend masih gagal, fokuskan perbaikan pada:
-   - konfigurasi TypeScript/Vite terkait `ImportMeta.env`;
-   - anotasi tipe untuk parameter yang masih `implicit any`.
+2. Setelah build hijau, lanjutkan smoke test fitur utama (auth, pegawai, absensi, kinerja).
 
 ---
 
@@ -156,4 +184,4 @@ Saat produksi:
 
 ## Kesimpulan
 
-Sebelum memulai integrasi, stabilkan dulu build per subproject agar baseline sistem sehat. Setelah itu, ikuti urutan integrasi di atas agar pertukaran data antar aplikasi konsisten, aman, dan mudah dioperasikan jangka panjang.
+Kondisi terbaru menunjukkan peningkatan pada backend (sudah build sukses), sementara frontend masih perlu stabilisasi versi/dependency dan perbaikan typing TypeScript. Setelah frontend hijau, langkah integrasi antar aplikasi dapat dijalankan lebih aman dengan urutan implementasi di atas.
