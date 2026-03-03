@@ -8,6 +8,7 @@ declare class AbsensiController {
     static createAttendanceRecord(req: Request, res: Response, next: NextFunction): Promise<void>;
     static updateAttendanceRecord(req: Request, res: Response, next: NextFunction): Promise<void>;
     static deleteAttendanceRecord(req: Request, res: Response, next: NextFunction): Promise<void>;
+    static uploadLog(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
 }
 export default AbsensiController;
 //# sourceMappingURL=absensi.controller.d.ts.map

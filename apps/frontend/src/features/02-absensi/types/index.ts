@@ -4,7 +4,8 @@ export interface Absensi {
   employeeName: string;
   date: string;
   clockIn: string;
-  clockOut: string;
+  clockOut: string | null;
   status: string;
-  workDuration: string;
+  workDuration: string | null;
+  notes?: string;
 }

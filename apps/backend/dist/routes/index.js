@@ -28,6 +28,7 @@ const kpi_routes_1 = __importDefault(require("../modules/kpi/kpi.routes"));
 const jabatan_routes_1 = __importDefault(require("../modules/jabatan/jabatan.routes"));
 const log_aktivitas_harian_routes_1 = __importDefault(require("../modules/log-aktivitas-harian/log-aktivitas-harian.routes"));
 const task_routes_1 = __importDefault(require("../modules/task/task.routes"));
+const integration_routes_1 = __importDefault(require("../modules/integration/integration.routes"));
 const router = (0, express_1.Router)();
 router.use('/auth', auth_routes_1.default);
 router.use('/users', pengguna_routes_1.default);
@@ -52,6 +53,7 @@ router.use('/kpi-targets', kpi_routes_1.default);
 router.use('/jabatan', jabatan_routes_1.default);
 router.use('/log-aktivitas-harian', log_aktivitas_harian_routes_1.default);
 router.use('/tasks', task_routes_1.default);
+router.use('/integrations', integration_routes_1.default);
 router.use('/', upload_1.default);
 exports.default = router;
 //# sourceMappingURL=index.js.map

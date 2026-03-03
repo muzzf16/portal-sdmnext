@@ -83,6 +83,19 @@ class AbsensiController {
       next(error);
     }
   }
+
+  static async uploadLog(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const result = await AbsensiService.parseAndSaveLog(req.file.buffer);
+      return res.status(200).json({ success: true, ...result });
+    } catch (error) {
+      return next(error);
+    }
+  }
 }
 
 export default AbsensiController;

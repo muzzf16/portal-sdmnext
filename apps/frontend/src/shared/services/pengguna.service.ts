@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 
-const BASE_URL = `${import.meta.env.VITE_API_BASE || 'http://localhost:3333'}/api/users`;
+const BASE_URL = `${import.meta.env.VITE_API_BASE || ''}/api/users`;
 
 const getAllPengguna = () => {
   return axios.get(BASE_URL);

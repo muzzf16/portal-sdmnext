@@ -5,7 +5,7 @@ import { openDb } from '../config/db';
 /**
  * Middleware untuk memvalidasi API Key pada endpoint integrasi (M2M)
  */
-export const apiKeyMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const apiKeyMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     const startTime = Date.now();
     const apiKey = req.header('x-api-key');
 

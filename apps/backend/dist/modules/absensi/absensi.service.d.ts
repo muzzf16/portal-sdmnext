@@ -20,6 +20,11 @@ declare class AbsensiService {
     static deleteAttendanceRecord(id: string): Promise<{
         message: string;
     }>;
+    static parseAndSaveLog(buffer: Buffer): Promise<{
+        message: string;
+        created: number;
+        updated: number;
+    }>;
 }
 export default AbsensiService;
 //# sourceMappingURL=absensi.service.d.ts.map

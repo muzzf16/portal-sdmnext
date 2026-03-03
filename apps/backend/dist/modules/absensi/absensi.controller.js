@@ -86,6 +86,18 @@ class AbsensiController {
             next(error);
         }
     }
+    static async uploadLog(req, res, next) {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ success: false, message: 'No file uploaded' });
+            }
+            const result = await absensi_service_1.default.parseAndSaveLog(req.file.buffer);
+            return res.status(200).json({ success: true, ...result });
+        }
+        catch (error) {
+            return next(error);
+        }
+    }
 }
 exports.default = AbsensiController;
 //# sourceMappingURL=absensi.controller.js.map
