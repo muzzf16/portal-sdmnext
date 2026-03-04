@@ -3,9 +3,9 @@ import { PenilaianKinerjaRepository } from './penilaianKinerja.repository';
 import { AppError } from '../../utils/errors';
 
 class KinerjaService {
-  static async getAllPenilaianKinerja() {
+  static async getAllPenilaianKinerja(supervisorId?: string) {
     try {
-      return await PenilaianKinerjaRepository.findAll();
+      return await PenilaianKinerjaRepository.findAll(supervisorId);
     } catch (error: any) {
       throw new AppError(`Error retrieving performance reviews: ${error.message}`, 500);
     }

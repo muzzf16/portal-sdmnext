@@ -152,7 +152,7 @@ const SupervisorDashboard: React.FC = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                                    {sub.position}
+                                                    {(sub as any).jabatanNama || sub.position}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                                     {sub.department}

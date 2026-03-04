@@ -5,7 +5,14 @@ import { Request, Response, NextFunction } from 'express';
 class KinerjaController {
   static async getAllPenilaianKinerja(req: Request, res: Response, next: NextFunction) {
     try {
-      const performanceReviews = await KinerjaService.getAllPenilaianKinerja();
+      const user = (req as any).user;
+      let supervisorId: string | undefined = undefined;
+
+      if (user?.role === 'supervisor') {
+        supervisorId = String(user?.employeeId || user?.id);
+      }
+
+      const performanceReviews = await KinerjaService.getAllPenilaianKinerja(supervisorId);
       res.status(200).json({ success: true, data: performanceReviews });
     } catch (error) {
       next(error);

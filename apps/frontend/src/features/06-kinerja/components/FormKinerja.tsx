@@ -41,20 +41,23 @@ const FormKinerja: React.FC = () => {
   React.useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await getPegawai();
-        // Handle the response based on the actual API response format
-        if (response.data && Array.isArray(response.data)) {
-          setEmployees(response.data);
+        let responseData: any = [];
+        if (user?.role === 'supervisor' && user?.employeeId) {
+          const res = await import('../../01-pegawai/api/jabatanApi').then(m => m.getSubordinates(String(user.employeeId), true));
+          if (Array.isArray(res)) responseData = res;
         } else {
-          // Fallback if the response is not in the expected format
-          console.warn('Unexpected response format for employees:', response);
+          const response = await getPegawai();
+          if (response.data && Array.isArray(response.data)) {
+            responseData = response.data;
+          }
         }
+        setEmployees(responseData);
       } catch (error) {
         console.error('Failed to fetch employees:', error);
       }
     };
     fetchEmployees();
-  }, []);
+  }, [user]);
 
   const handleEmployeeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedEmployeeId = e.target.value;

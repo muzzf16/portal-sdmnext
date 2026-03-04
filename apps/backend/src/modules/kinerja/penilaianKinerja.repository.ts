@@ -11,8 +11,23 @@ const parseJsonFields = (rows: any[]) => {
 };
 
 export const PenilaianKinerjaRepository = {
-  async findAll() {
+  async findAll(supervisorId?: string) {
     const db = await openDb();
+
+    if (supervisorId) {
+      const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', supervisorId);
+      if (!supervisor || !supervisor.jabatan_id) return [];
+
+      const rows = await db.all(`
+        SELECT pk.* 
+        FROM penilaian_kinerja pk
+        JOIN pegawai p ON pk.employeeId = p.id
+        JOIN jabatan j ON p.jabatan_id = j.id
+        WHERE j.parent_id = ?
+      `, supervisor.jabatan_id);
+      return parseJsonFields(rows);
+    }
+
     const rows = await db.all('SELECT * FROM penilaian_kinerja');
     return parseJsonFields(rows);
   },
@@ -35,16 +50,16 @@ export const PenilaianKinerjaRepository = {
     // Calculate overall score based on KPIs
     const kpis = data.kpis || [];
     let overallScore = 0; // Default to 0 if no KPIs
-    
+
     if (kpis.length > 0) {
       const totalWeight = kpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 0), 0);
       // Avoid division by zero - if totalWeight is 0, use the count of KPIs as the denominator
       const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
       const weightedScore = kpis.reduce((sum: number, kpi: any) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
-      
+
       overallScore = parseFloat((weightedScore / effectiveWeight).toFixed(2));
     }
-    
+
     // Get employee name if not provided
     let employeeName = data.employeeName || '';
     if (!employeeName && data.employeeId) {
@@ -52,7 +67,7 @@ export const PenilaianKinerjaRepository = {
       const employee = await employeeDb.get('SELECT name FROM pegawai WHERE id = ?', data.employeeId);
       employeeName = employee ? employee.name : '';
     }
-    
+
     const newId = data.id || `pr-${Date.now()}`;
     const reviewData = {
       id: newId,
@@ -85,16 +100,16 @@ export const PenilaianKinerjaRepository = {
     // Calculate overall score based on KPIs
     const kpis = data.kpis || [];
     let overallScore = 0; // Default to 0 if no KPIs
-    
+
     if (kpis.length > 0) {
       const totalWeight = kpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 0), 0);
       // Avoid division by zero - if totalWeight is 0, use the count of KPIs as the denominator
       const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
       const weightedScore = kpis.reduce((sum: number, kpi: any) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
-      
+
       overallScore = parseFloat((weightedScore / effectiveWeight).toFixed(2));
     }
-    
+
     const reviewData = {
       ...data,
       overallScore,
@@ -117,7 +132,7 @@ export const PenilaianKinerjaRepository = {
   async updateFeedback(id: string, feedback: string) {
     const db = await openDb();
     const result = await db.run(
-      `UPDATE penilaian_kinerja SET employeeFeedback = ? WHERE id = ?`, 
+      `UPDATE penilaian_kinerja SET employeeFeedback = ? WHERE id = ?`,
       feedback, id
     );
     if (result.changes === 0) throw new Error('Review not found');
