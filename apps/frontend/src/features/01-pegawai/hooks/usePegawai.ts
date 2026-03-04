@@ -5,10 +5,11 @@ import { Pegawai } from '../types';
 const processPegawaiData = (pegawaiData: any): Pegawai => {
   const processedData = { ...pegawaiData };
 
-  // Fix avatar URL: strip any absolute localhost prefix to make it relative
-  // DB may contain "http://localhost:3333/uploads/avatars/..." from local dev
+  // Fix avatar URL: strip any absolute HTTP/HTTPS prefix to make it relative
+  // DB may contain "http://localhost:3333/uploads/avatars/..." or "http://sdm.bprbaperabatang.com/..." 
+  // from when the image was originally uploaded. We want relative paths so Nginx proxies it safely.
   if (processedData.avatarUrl) {
-    processedData.avatarUrl = processedData.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '');
+    processedData.avatarUrl = processedData.avatarUrl.replace(/^https?:\/\/[^\/]+/, '');
   }
 
   // Safely parse JSON string fields

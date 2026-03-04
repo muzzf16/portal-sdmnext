@@ -20,8 +20,9 @@ Lokal (Windows)                    Docker Desktop
 └─────────────────┘               └──────────────────────┘
 ```
 
-> **PENTING**: Database lokal (`apps/backend/database.sqlite`) dan database Docker (`/data/database.sqlite`) adalah file terpisah. Schema dan data bisa berbeda!
-
+> [!CAUTION]  
+> **FATAL DATA LOSS WARNING**: Database lokal (`apps/backend/database.sqlite`) dan database Docker (`/data/database.sqlite`) adalah file **TERPISAH** dan independen.  
+> Jangan pernah, dalam kondisi apa pun, menyalin paksa (`docker cp`) `database.sqlite` dari komputer lokal Anda ke dalam container Docker server produksi, karena ini akan secara **TOTAL MENGHAPUS (OVERWRITE)** semua data absensi, data pegawai, tugas, dan setelan yang baru saja dimasukkan di server!
 ## Daily Development Flow
 
 ### 1. Develop Locally
@@ -83,9 +84,17 @@ docker exec portal_sdm_backend node /app/run_migrations.js
 docker exec portal_sdm_backend node /app/check_db.js --fix
 ```
 
-### Sync Local DB to Docker (DESTRUCTIVE)
+### Sync Local DB to Docker (SEVERE FATAL WARNING)
+
+> [!CAUTION]
+> **BAHAYA FATAL:** Menggunakan cara ini akan mendelete/replace SELURUH data pengguna, absensi, KPI, dan konfigurasi yang sudah hidup di dalam Docker Container Anda. 
+> 
+> JIKA ANDA INGIN MENG-APPLY PERUBAHAN STRUKTUR TABEL, **JANGAN GUNAKAN CARA INI**! Sebaliknya, buat file struktur migrasi baru di `apps/backend/db/migrations` lalu jalankan dengan `.\deploy.ps1 -RunMigration`.
+
+Hanya gunakan skrip ini bila Anda **100% YAKIN** wajar jika seluruh database production Docker terhapus kembali kosong seperti di komputer lokal Anda:
+
 ```powershell
-# ⚠️ This REPLACES Docker DB with local DB!
+# ❌ SANGAT BERBAHAYA! AKAN MENGHAPUS SEMUA DATA DOCKER!
 docker cp apps/backend/database.sqlite portal_sdm_backend:/data/database.sqlite
 docker restart portal_sdm_backend
 ```

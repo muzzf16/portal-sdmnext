@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import LogAktivitasHarianController from './log-aktivitas-harian.controller';
 import { authenticateToken, restrictTo } from '../../middleware/authMiddleware';
+import { uploadDocument } from '../../middleware/uploadMiddleware';
 
 const router = Router();
 
 router.use(authenticateToken);
 
 // Employee endpoints
-router.post('/bulk', LogAktivitasHarianController.uploadAny, LogAktivitasHarianController.createBulkLog);
-router.post('/', LogAktivitasHarianController.uploadAny, LogAktivitasHarianController.createLog);
+router.post('/bulk', uploadDocument.any(), LogAktivitasHarianController.createBulkLog);
+router.post('/', uploadDocument.any(), LogAktivitasHarianController.createLog);
 router.get('/my-logs', LogAktivitasHarianController.getMyLogs);
 router.get('/summary', LogAktivitasHarianController.getSummary);
 

@@ -29,11 +29,7 @@ export const createBulkLogAktivitasWla = (data: { id_pegawai?: string | number, 
         }
     });
 
-    return api.post('/log-aktivitas-harian/bulk', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+    return api.post('/log-aktivitas-harian/bulk', formData);
 };
 
 export const getMyLogAktivitasWla = (tanggal: string, id_pegawai?: number) =>

@@ -27,9 +27,16 @@ export const CompanySettingsProvider: React.FC<{ children: ReactNode }> = ({ chi
         const data = response.data;
         const API_URL = import.meta.env.VITE_API_BASE || '/api';
         const BASE_URL = API_URL.replace(/\/api$/, ''); // Removes '/api' from the end
-        if (data.logo && !data.logo.startsWith('http')) {
-          // Prepend the base URL (without /api) if it's a relative path
-          data.logo = `${BASE_URL}${data.logo}`;
+        if (data.logo) {
+          // Strip any http(s) domain prefix from the stored logo path (e.g. http://localhost:3333/logos/... -> /logos/...)
+          // This prevents Mixed Content warnings when the site is accessed via HTTPS.
+          const relativeLogo = data.logo.replace(/^https?:\/\/[^\/]+/, '');
+
+          if (!relativeLogo.startsWith('http')) {
+            data.logo = `${BASE_URL}${relativeLogo}`;
+          } else {
+            data.logo = relativeLogo;
+          }
         }
         setSettings(data);
       })

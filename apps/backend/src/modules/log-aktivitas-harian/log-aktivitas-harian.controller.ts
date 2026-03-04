@@ -1,37 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import LogAktivitasHarianService from './log-aktivitas-harian.service';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = 'public/uploads/documents';
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'doc-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({
-    storage,
-    limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit
-    }
-});
 
 interface AuthRequest extends Request {
     user?: any;
 }
 
 export default class LogAktivitasHarianController {
-    static uploadAny = upload.any();
 
     static async createLog(req: AuthRequest, res: Response, next: NextFunction) {
         try {
@@ -47,7 +21,10 @@ export default class LogAktivitasHarianController {
                 catatan: req.body.catatan
             });
             return res.status(201).json({ success: true, data });
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message && error.message.includes('required')) {
+                return res.status(400).json({ success: false, message: error.message });
+            }
             return next(error);
         }
     }
@@ -75,7 +52,7 @@ export default class LogAktivitasHarianController {
                 logs.forEach((log: any) => {
                     const file = (req.files as Express.Multer.File[]).find(f => f.fieldname === `file_${log.id_activity_library}`);
                     if (file) {
-                        log.lampiran = `/uploads/documents/${file.filename}`;
+                        log.lampiran = `/documents/${file.filename}`;
                     }
                 });
             }
@@ -86,7 +63,10 @@ export default class LogAktivitasHarianController {
                 logs
             );
             return res.status(201).json({ success: true, data });
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message && error.message.includes('required')) {
+                return res.status(400).json({ success: false, message: error.message });
+            }
             return next(error);
         }
     }

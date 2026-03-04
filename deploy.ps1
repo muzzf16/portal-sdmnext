@@ -24,38 +24,40 @@ function Write-Step($msg) {
 }
 
 function Write-Ok($msg) {
-    Write-Host "  ✓ $msg" -ForegroundColor Green
+    Write-Host "  [OK] $msg" -ForegroundColor Green
 }
 
 function Write-Err($msg) {
-    Write-Host "  ✗ $msg" -ForegroundColor Red
+    Write-Host "  [ERROR] $msg" -ForegroundColor Red
 }
 
 # Show help
 if ($Help) {
-    Write-Host @"
-
-Portal SDM Deploy Script
-========================
-Usage: .\deploy.ps1 [OPTIONS]
-
-Options:
-  -SkipFrontend    Skip rebuilding frontend container
-  -SkipBackend     Skip rebuilding backend container
-  -RunMigration    Run database migrations after deploy
-  -CheckDb         Run database health check after deploy
-  -Logs            Show container logs after deploy
-  -Help            Show this help message
-
-Examples:
-  .\deploy.ps1                          # Full deploy (backend + frontend)
-  .\deploy.ps1 -SkipFrontend            # Deploy backend only
-  .\deploy.ps1 -RunMigration -CheckDb   # Full deploy + migration + DB check
-  .\deploy.ps1 -Logs                    # Full deploy + show logs
-
-"@
+    Write-Host "`nPortal SDM Deploy Script"
+    Write-Host "========================"
+    Write-Host "Usage: .\deploy.ps1 [OPTIONS]`n"
+    Write-Host "Options:"
+    Write-Host "  -SkipFrontend    Skip rebuilding frontend container"
+    Write-Host "  -SkipBackend     Skip rebuilding backend container"
+    Write-Host "  -RunMigration    Run database migrations after deploy"
+    Write-Host "  -CheckDb         Run database health check after deploy"
+    Write-Host "  -Logs            Show container logs after deploy"
+    Write-Host "  -Help            Show this help message`n"
+    Write-Host "Examples:"
+    Write-Host "  .\deploy.ps1                          # Full deploy (backend + frontend)"
+    Write-Host "  .\deploy.ps1 -SkipFrontend            # Deploy backend only"
+    Write-Host "  .\deploy.ps1 -RunMigration -CheckDb   # Full deploy + migration + DB check"
+    Write-Host "  .\deploy.ps1 -Logs                    # Full deploy + show logs`n"
     exit 0
 }
+
+# ---- STEP 0: Show Safety Warnings ----
+Write-Host "`n[!CAUTION]" -ForegroundColor Red
+Write-Host "PERINGATAN: Database SQLite Lokal Anda terpisah 100% dari Database Docker." -ForegroundColor Yellow
+Write-Host "JANGAN PERNAH menyalin (docker cp) file database.sqlite lokal Anda sendiri" -ForegroundColor Yellow
+Write-Host "ke docker apabila hanya ingin merubah struktur. Itu akan MENGHAPUS SEMUA DATA PRODUKSI" -ForegroundColor Yellow
+Write-Host "Gunakan file migration di dalam folder /db/migrations/ untuk amannya." -ForegroundColor Yellow
+Write-Host "========================================`n" -ForegroundColor DarkGray
 
 # ---- STEP 1: Git Pull ----
 Write-Header "Step 1: Git Pull"
@@ -81,7 +83,7 @@ if ($services.Count -eq 0) {
 } else {
     $serviceList = $services -join " "
     Write-Step "Building: $serviceList"
-    docker-compose up -d --build @services
+    docker-compose up -d --build $services
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Docker build failed!"
         exit 1

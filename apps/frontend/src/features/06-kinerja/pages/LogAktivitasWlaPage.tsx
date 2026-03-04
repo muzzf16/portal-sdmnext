@@ -46,6 +46,7 @@ const LogAktivitasWlaPage: React.FC = () => {
             setMyLogs(Array.isArray(fetchedData) ? fetchedData : []);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Gagal memuat data log harian WLA.');
+            setMyLogs([]);
         } finally {
             setLoadingLogs(false);
         }

@@ -175,6 +175,9 @@ Aplikasi ini menggunakan desain modern dengan:
 
 ## Struktur Basis Data
 
+> [!CAUTION]
+> **BAHAYA KEHILANGAN DATA (DOCKER)**: Harap diingat bahwa file `database.sqlite` di lokal Anda sepenuhnya terpisah dari file database di dalam container Docker! Jika Anda menjalankan aplikasi menggunakan Docker, JANGAN PERNAH menyalin (overwrite) `database.sqlite` lokal Anda melampaui volume Docker. Hal ini akan menghapus semua pengguna, absensi, dan data aplikasi yang ada secara permanen. Untuk mengubah struktur tabel di Production/Docker, selalu gunakan Migration Scripts (`node run_migrations.js`), jangan pernah menimpa file utamanya.
+
 Sistem menggunakan SQLite dengan tabel-tabel berikut:
 - `users`: Informasi pengguna untuk autentikasi
 - `pegawai`: Data karyawan lengkap
