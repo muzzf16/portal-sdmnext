@@ -76,11 +76,11 @@ export default class LogAktivitasHarianController {
             const id_pegawai = req.user?.employeeId || req.user?.id || req.query.id_pegawai;
             const tanggal = req.query.tanggal as string;
 
-            if (!id_pegawai || !tanggal) {
+            if (!id_pegawai || id_pegawai === 'undefined' || !tanggal) {
                 return res.status(400).json({ success: false, message: 'id_pegawai and tanggal are required' });
             }
 
-            const data = await LogAktivitasHarianService.getMyLogs(id_pegawai, tanggal);
+            const data = await LogAktivitasHarianService.getMyLogs(String(id_pegawai), tanggal);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);
@@ -93,11 +93,11 @@ export default class LogAktivitasHarianController {
             const startDate = req.query.startDate as string;
             const endDate = req.query.endDate as string;
 
-            if (!id_pegawai || !startDate || !endDate) {
+            if (!id_pegawai || id_pegawai === 'undefined' || !startDate || !endDate) {
                 return res.status(400).json({ success: false, message: 'id_pegawai, startDate, and endDate are required' });
             }
 
-            const data = await LogAktivitasHarianService.getSummary(id_pegawai, startDate, endDate);
+            const data = await LogAktivitasHarianService.getSummary(String(id_pegawai), startDate, endDate);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);

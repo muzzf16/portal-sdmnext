@@ -41,7 +41,8 @@ const LogAktivitasWlaPage: React.FC = () => {
         setLoadingLogs(true);
         setError(null);
         try {
-            const res = await getMyLogAktivitasWla(selectedDate);
+            const employeeId = user?.employeeId || user?.id;
+            const res = await getMyLogAktivitasWla(selectedDate, employeeId ? Number(employeeId) : undefined);
             const fetchedData = res?.data?.data || [];
             setMyLogs(Array.isArray(fetchedData) ? fetchedData : []);
         } catch (err: any) {
