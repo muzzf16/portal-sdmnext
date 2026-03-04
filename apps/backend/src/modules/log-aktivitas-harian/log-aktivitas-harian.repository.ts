@@ -73,21 +73,37 @@ export default class LogAktivitasHarianRepository {
         );
     }
 
-    static async getAllByDate(tanggal: string) {
+    static async getAllByDate(tanggal: string, supervisorId?: string) {
         const db = await openDb();
+
+        let supervisorJoin = '';
+        let supervisorWhere = `WHERE p.isActive = 1 OR p.statusKaryawan = 'aktif'`;
+        const params: any[] = [tanggal];
+
+        if (supervisorId) {
+            const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', supervisorId);
+            if (!supervisor || !supervisor.jabatan_id) return [];
+
+            supervisorJoin = 'JOIN jabatan j ON p.jabatan_id = j.id';
+            supervisorWhere += ' AND j.parent_id = ?';
+            params.push(supervisor.jabatan_id);
+        }
+
         // Aggregating per employee for the admin dashboard
         // Only count logs that are NOT rejected (pending or approved)
         return db.all(
             `SELECT 
                 p.id as id_pegawai, p.name as nama_lengkap, p.nip, p.position as jabatan, p.department as departemen,
-                SUM(CASE WHEN l.status_approval IS NULL OR l.status_approval != 'rejected' THEN l.frekuensi ELSE 0 END) as total_aktivitas,
-                SUM(CASE WHEN l.status_approval IS NULL OR l.status_approval != 'rejected' THEN l.total_durasi_terhitung ELSE 0 END) as total_durasi_menit,
-                COUNT(CASE WHEN l.status_approval IS NULL OR l.status_approval != 'rejected' THEN 1 END) as jumlah_log
+                SUM(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.frekuensi ELSE 0 END) as total_aktivitas,
+                SUM(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.total_durasi_terhitung ELSE 0 END) as total_durasi_menit,
+                COUNT(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.id_log END) as jumlah_log
              FROM pegawai p
+             ${supervisorJoin}
              LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal = ?
+             ${supervisorWhere}
              GROUP BY p.id
              ORDER BY p.department, p.name ASC`,
-            tanggal
+            ...params
         );
     }
 

@@ -75,10 +75,16 @@ export const JabatanRepository = {
     // Get subordinates of a pegawai (all levels below)
     async getSubordinates(pegawaiId: string) {
         const db = await openDb();
+        const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', pegawaiId);
+        if (!supervisor || !supervisor.jabatan_id) return [];
+
         // Direct subordinates
         const direct = await db.all(
-            'SELECT id, name, nip, position, department, avatarUrl, jabatan_id, atasan_id FROM pegawai WHERE atasan_id = ? AND isActive = 1',
-            pegawaiId
+            `SELECT p.id, p.name, p.nip, p.position, p.department, p.avatarUrl, p.jabatan_id, p.atasan_id 
+             FROM pegawai p
+             JOIN jabatan j ON p.jabatan_id = j.id
+             WHERE j.parent_id = ? AND p.isActive = 1`,
+            supervisor.jabatan_id
         );
         return direct;
     },
@@ -86,21 +92,43 @@ export const JabatanRepository = {
     // Get all subordinates recursively
     async getAllSubordinates(pegawaiId: string) {
         const db = await openDb();
+        const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', pegawaiId);
+        if (!supervisor || !supervisor.jabatan_id) return [];
+
         const result: any[] = [];
 
-        const fetchSubs = async (id: string) => {
+        const fetchSubs = async (jabatanId: number) => {
             const subs = await db.all(
-                'SELECT id, name, nip, position, department, avatarUrl, jabatan_id, atasan_id FROM pegawai WHERE atasan_id = ? AND isActive = 1',
-                id
+                `SELECT p.id, p.name, p.nip, p.position, p.department, p.avatarUrl, p.jabatan_id, p.atasan_id, j.id as child_jabatan_id 
+                 FROM pegawai p
+                 JOIN jabatan j ON p.jabatan_id = j.id
+                 WHERE j.parent_id = ? AND p.isActive = 1`,
+                jabatanId
             );
-            for (const sub of subs) {
-                result.push(sub);
-                await fetchSubs(sub.id);
+
+            // To prevent duplicate queries for the same jabatan if multiple pegawais share the same jabatan
+            const uniqueChildJabatanIds = [...new Set(subs.map(s => s.child_jabatan_id))];
+
+            result.push(...subs);
+
+            for (const childJabId of uniqueChildJabatanIds) {
+                await fetchSubs(childJabId);
             }
         };
 
-        await fetchSubs(pegawaiId);
-        return result;
+        await fetchSubs(supervisor.jabatan_id);
+
+        // Ensure result array is distinct by employee id
+        const uniquePegawaiIds = new Set();
+        const distinctResult = [];
+        for (const emp of result) {
+            if (!uniquePegawaiIds.has(emp.id)) {
+                uniquePegawaiIds.add(emp.id);
+                distinctResult.push(emp);
+            }
+        }
+
+        return distinctResult;
     },
 
     async create(data: any) {

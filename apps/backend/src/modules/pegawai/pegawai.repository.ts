@@ -258,24 +258,37 @@ export const PegawaiRepository = {
 
   async findByAtasanId(atasanId: string) {
     const db = await openDb();
+
+    const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', atasanId);
+    if (!supervisor || !supervisor.jabatan_id) return [];
+
     const rows = await db.all(`
       SELECT p.*, 
         j.nama as jabatanNama, j.level as jabatanLevel, j.department as jabatanDepartment
       FROM pegawai p
       LEFT JOIN jabatan j ON p.jabatan_id = j.id
-      WHERE p.atasan_id = ? AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')
+      WHERE j.parent_id = ? AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')
       ORDER BY p.name ASC
-    `, atasanId);
+    `, supervisor.jabatan_id);
     return parseJsonFields(rows);
   },
 
   async getSupervisorStats(atasanId: string) {
     const db = await openDb();
 
+    const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', atasanId);
+    if (!supervisor || !supervisor.jabatan_id) {
+      return { totalTeam: 0, presentToday: 0, onLeaveToday: 0, pendingLeaves: 0 };
+    }
+    const supervisorJabatanId = supervisor.jabatan_id;
+
     // Total subordinates
     const total = await db.get(
-      `SELECT COUNT(*) as count FROM pegawai WHERE atasan_id = ? AND (isActive = 1 OR statusKaryawan = 'aktif')`,
-      atasanId
+      `SELECT COUNT(*) as count 
+       FROM pegawai p
+       JOIN jabatan j ON p.jabatan_id = j.id 
+       WHERE j.parent_id = ? AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')`,
+      supervisorJabatanId
     );
 
     // Attendance today (present)
@@ -284,8 +297,9 @@ export const PegawaiRepository = {
       `SELECT COUNT(a.id) as count 
        FROM absensi a
        JOIN pegawai p ON a.employeeId = p.id
-       WHERE p.atasan_id = ? AND a.date = ? AND a.status = 'hadir'`,
-      atasanId, today
+       JOIN jabatan j ON p.jabatan_id = j.id
+       WHERE j.parent_id = ? AND a.date = ? AND a.status = 'hadir'`,
+      supervisorJabatanId, today
     );
 
     // On leave/sick/permission today
@@ -293,8 +307,9 @@ export const PegawaiRepository = {
       `SELECT COUNT(a.id) as count 
        FROM absensi a
        JOIN pegawai p ON a.employeeId = p.id
-       WHERE p.atasan_id = ? AND a.date = ? AND a.status IN ('izin', 'sakit', 'cuti')`,
-      atasanId, today
+       JOIN jabatan j ON p.jabatan_id = j.id
+       WHERE j.parent_id = ? AND a.date = ? AND a.status IN ('izin', 'sakit', 'cuti')`,
+      supervisorJabatanId, today
     );
 
     // Pending leave requests
@@ -302,8 +317,9 @@ export const PegawaiRepository = {
       `SELECT COUNT(c.id) as count
        FROM permintaan_cuti c
        JOIN pegawai p ON c.employeeId = p.id
-       WHERE p.atasan_id = ? AND c.status = 'menunggu'`,
-      atasanId
+       JOIN jabatan j ON p.jabatan_id = j.id
+       WHERE j.parent_id = ? AND c.status = 'menunggu'`,
+      supervisorJabatanId
     );
 
     return {

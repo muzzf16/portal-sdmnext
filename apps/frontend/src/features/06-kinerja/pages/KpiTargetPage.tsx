@@ -87,8 +87,13 @@ const KpiTargetPage: React.FC = () => {
                 return;
             }
             try {
-                const res = await getPegawai();
-                if (res.data && Array.isArray(res.data)) setEmployees(res.data);
+                if (role === 'supervisor' && user?.employeeId) {
+                    const res = await import('../../01-pegawai/api/jabatanApi').then(m => m.getSubordinates(String(user.employeeId), true));
+                    if (Array.isArray(res)) setEmployees(res);
+                } else {
+                    const res = await getPegawai();
+                    if (res.data && Array.isArray(res.data)) setEmployees(res.data);
+                }
             } catch (err) { console.error(err); }
         };
         fetchEmployees();

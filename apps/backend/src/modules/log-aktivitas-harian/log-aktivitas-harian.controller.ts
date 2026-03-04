@@ -124,7 +124,13 @@ export default class LogAktivitasHarianController {
             if (!tanggal) {
                 return res.status(400).json({ success: false, message: 'tanggal is required' });
             }
-            const data = await LogAktivitasHarianService.getAdminSummaryByDate(tanggal);
+
+            let supervisorId: string | undefined = undefined;
+            if (req.user?.role === 'supervisor') {
+                supervisorId = String(req.user?.employeeId || req.user?.id);
+            }
+
+            const data = await LogAktivitasHarianService.getAdminSummaryByDate(tanggal, supervisorId);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);

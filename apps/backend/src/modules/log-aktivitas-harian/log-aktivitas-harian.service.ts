@@ -75,8 +75,8 @@ export default class LogAktivitasHarianService {
         return LogAktivitasHarianRepository.getSummaryByPegawai(id_pegawai, startDate, endDate);
     }
 
-    static async getAdminSummaryByDate(tanggal: string) {
-        return LogAktivitasHarianRepository.getAllByDate(tanggal);
+    static async getAdminSummaryByDate(tanggal: string, supervisorId?: string) {
+        return LogAktivitasHarianRepository.getAllByDate(tanggal, supervisorId);
     }
 
     static async updateStatus(id_log: number, status: 'approved' | 'rejected') {
