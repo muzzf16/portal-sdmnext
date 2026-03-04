@@ -10,7 +10,7 @@ export default class LogAktivitasHarianService {
         }
 
         // Get standard duration from Activity Library
-        const activity = await ActivityLibraryRepository.findById(payload.id_activity_library.toString());
+        const activity = await ActivityLibraryRepository.findById(String(payload.id_activity_library));
         if (!activity) {
             throw new Error('Activity Library not found');
         }
@@ -43,7 +43,7 @@ export default class LogAktivitasHarianService {
 
         for (const log of logsData) {
             if (log.frekuensi > 0) {
-                const activity = allActivities.find(a => a.id.toString() === log.id_activity_library.toString());
+                const activity = allActivities.find(a => String(a.id) === String(log.id_activity_library));
                 if (activity) {
                     const total_durasi_terhitung = log.frekuensi * activity.durationMinutes;
                     validLogs.push({
