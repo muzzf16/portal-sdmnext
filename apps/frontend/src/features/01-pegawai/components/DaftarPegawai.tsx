@@ -69,7 +69,7 @@ const DaftarPegawai: React.FC = () => {
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['Foto', 'Nama', 'NIP', 'Jabatan', 'Departemen', 'Atasan', 'Status', 'Riwayat Jabatan', 'Aksi'];
+  const tableHeaders = ['No', 'Foto', 'Nama', 'NIP', 'Jabatan', 'Departemen', 'Atasan', 'Status', 'Riwayat Jabatan', 'Aksi'];
 
   return (
     <div className="mt-6">
@@ -168,8 +168,11 @@ const DaftarPegawai: React.FC = () => {
       {/* Employee Table */}
       {filteredPegawai.length > 0 ? (
         <Table headers={tableHeaders}>
-          {filteredPegawai.map((p) => (
+          {filteredPegawai.map((p, index) => (
             <tr key={p.id}>
+              <td className="py-4 px-6 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                {index + 1}
+              </td>
               <td className="py-4 px-6">
                 {p.avatarUrl ? (
                   <img
