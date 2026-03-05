@@ -226,22 +226,38 @@ const ActivityLibraryPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {activities.map(act => (
-                                <tr key={act.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{act.position}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-700">{act.activityName}</td>
-                                    <td className="px-4 py-3 text-sm text-center font-mono">{act.durationMinutes}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{act.outputUnit}</td>
-                                    <td className="px-4 py-3">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCategoryBadge(act.category)}`}>
-                                            {act.category || '-'}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <button onClick={() => handleEdit(act)} className="text-blue-600 hover:text-blue-800 text-sm mr-3">Edit</button>
-                                        <button onClick={() => handleDelete(act.id)} className="text-red-600 hover:text-red-800 text-sm">Hapus</button>
-                                    </td>
-                                </tr>
+                            {Object.entries(
+                                activities.reduce((acc, obj) => {
+                                    const key = obj.position || 'Lainnya';
+                                    if (!acc[key]) acc[key] = [];
+                                    acc[key].push(obj);
+                                    return acc;
+                                }, {} as Record<string, typeof activities>)
+                            ).map(([position, acts]) => (
+                                <React.Fragment key={position}>
+                                    <tr className="bg-indigo-50/50">
+                                        <td colSpan={6} className="px-4 py-2 text-sm font-bold text-indigo-900 border-t border-b border-indigo-100">
+                                            {position} <span className="text-xs text-indigo-500 font-normal ml-2">({acts.length} aktivitas)</span>
+                                        </td>
+                                    </tr>
+                                    {acts.map(act => (
+                                        <tr key={act.id} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 pl-8 opacity-0 w-0 md:opacity-100 md:w-auto">{/* Hidden visual alignment */}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700">{act.activityName}</td>
+                                            <td className="px-4 py-3 text-sm text-center font-mono">{act.durationMinutes}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{act.outputUnit}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCategoryBadge(act.category)}`}>
+                                                    {act.category || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                <button onClick={() => handleEdit(act)} className="text-blue-600 hover:text-blue-800 text-sm mr-3 font-medium">Edit</button>
+                                                <button onClick={() => handleDelete(act.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">Hapus</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </React.Fragment>
                             ))}
                             {activities.length === 0 && (
                                 <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Belum ada data aktivitas</td></tr>

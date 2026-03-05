@@ -26,7 +26,7 @@ const KpiTargetPage: React.FC = () => {
 
     // Form state
     const [form, setForm] = useState({
-        employeeId: '', period: '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: ''
+        employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: ''
     });
 
     // Generate predefined period options
@@ -113,7 +113,7 @@ const KpiTargetPage: React.FC = () => {
             }
             setShowForm(false);
             setEditingId(null);
-            setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: '' });
+            setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '' });
             fetchKpis();
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal menyimpan KPI target', 'error');
@@ -330,7 +330,7 @@ const KpiTargetPage: React.FC = () => {
                             </button>
                             <button onClick={() => {
                                 setEditingId(null);
-                                setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0, targetUnit: '%', weight: 0, notes: '' });
+                                setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '' });
                                 setShowForm(!showForm);
                             }}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
@@ -420,7 +420,7 @@ const KpiTargetPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Target *</label>
-                            <input type="number" step="0.01" value={form.targetValue} onChange={e => setForm({ ...form, targetValue: parseFloat(e.target.value) || 0 })}
+                            <input type="number" step="0.01" value={form.targetValue} onChange={e => setForm({ ...form, targetValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required />
                         </div>
                         <div>
@@ -435,7 +435,7 @@ const KpiTargetPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Bobot (%)</label>
-                            <input type="number" min={0} max={100} value={form.weight} onChange={e => setForm({ ...form, weight: parseInt(e.target.value) || 0 })}
+                            <input type="number" min={0} max={100} value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
                         </div>
                         <div className="md:col-span-3">
