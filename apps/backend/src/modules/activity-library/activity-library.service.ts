@@ -1,4 +1,5 @@
 import { ActivityLibraryRepository } from './activity-library.repository';
+import { JabatanRepository } from '../jabatan/jabatan.repository';
 import { AppError } from '../../utils/errors';
 
 export default class ActivityLibraryService {
@@ -39,7 +40,18 @@ export default class ActivityLibraryService {
             throw new AppError('activityName and position are required', 400);
         }
         try {
-            return await ActivityLibraryRepository.create(data);
+            if (data.position === 'Semua Jabatan') {
+                const allJabatan = await JabatanRepository.findAll();
+                const createdActivities = [];
+                for (const jab of allJabatan) {
+                    const newData = { ...data, position: jab.nama, department: jab.department };
+                    const created = await ActivityLibraryRepository.create(newData);
+                    createdActivities.push(created);
+                }
+                return createdActivities[0]; // Return arbitrary for response
+            } else {
+                return await ActivityLibraryRepository.create(data);
+            }
         } catch (error: any) {
             throw new AppError(`Error creating activity: ${error.message}`, 500);
         }
