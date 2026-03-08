@@ -256,6 +256,7 @@ export default class KpiService {
                     weight,
                     status: 'active',
                     source: 'abk',
+                    category: 'process',  // ABK-generated KPIs are always process KPIs
                     abkActivityId: abkActivityId,
                     notes: `Auto-generated dari ABK. Durasi standar: ${item.durationMinutes} menit.`
                 });

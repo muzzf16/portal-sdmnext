@@ -56,12 +56,13 @@ export const KpiRepository = {
         const now = new Date().toISOString();
 
         await db.run(
-            `INSERT INTO kpi_targets (id, employeeId, period, kpiName, targetValue, targetUnit, weight, actualValue, score, status, source, abkActivityId, notes, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO kpi_targets (id, employeeId, period, kpiName, targetValue, targetUnit, weight, actualValue, score, status, source, category, abkActivityId, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             id, data.employeeId, data.period, data.kpiName,
             data.targetValue || 0, data.targetUnit || '', data.weight || 0,
             data.actualValue || 0, data.score || 0,
             data.status || 'active', data.source || 'manual',
+            data.category || 'process',
             data.abkActivityId || null, data.notes || '', now, now
         );
         return this.findById(id);
@@ -75,7 +76,7 @@ export const KpiRepository = {
         const fields: string[] = [];
         const values: any[] = [];
 
-        const allowedFields = ['kpiName', 'targetValue', 'targetUnit', 'weight', 'actualValue', 'score', 'status', 'source', 'abkActivityId', 'notes'];
+        const allowedFields = ['kpiName', 'targetValue', 'targetUnit', 'weight', 'actualValue', 'score', 'status', 'source', 'category', 'abkActivityId', 'notes'];
 
         for (const field of allowedFields) {
             if (data[field] !== undefined) {

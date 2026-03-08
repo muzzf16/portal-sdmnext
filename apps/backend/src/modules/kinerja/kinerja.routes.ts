@@ -10,6 +10,8 @@ router.get('/:id', KinerjaController.getPenilaianKinerjaById);
 router.post('/', KinerjaController.createPenilaianKinerja);
 router.put('/:id', KinerjaController.updatePenilaianKinerja);
 router.put('/:id/feedback', KinerjaController.addFeedbackKinerja);
+router.put('/:id/self-assessment', KinerjaController.submitSelfAssessment);
+router.put('/:id/transition', KinerjaController.transitionStatus);
 router.delete('/:id', KinerjaController.deletePenilaianKinerja);
 
 export default router;

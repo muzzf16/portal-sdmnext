@@ -11,7 +11,7 @@ export interface LogAktivitasWlaPayload {
 export const createLogAktivitasWla = (data: LogAktivitasWlaPayload) =>
     api.post('/log-aktivitas-harian', data);
 
-export const createBulkLogAktivitasWla = (data: { id_pegawai?: string | number, tanggal: string, logs: (Omit<LogAktivitasWlaPayload, 'tanggal' | 'id_pegawai'> & { file?: File | null })[] }) => {
+export const createBulkLogAktivitasWla = (data: { id_pegawai?: string | number, tanggal: string, logs: (Omit<LogAktivitasWlaPayload, 'tanggal' | 'id_pegawai'> & { files?: File[] })[] }) => {
     const formData = new FormData();
     if (data.id_pegawai) {
         formData.append('id_pegawai', String(data.id_pegawai));
@@ -19,13 +19,15 @@ export const createBulkLogAktivitasWla = (data: { id_pegawai?: string | number, 
     formData.append('tanggal', data.tanggal);
 
     // We send logs as a JSON string, but without the file objects
-    const logsData = data.logs.map(({ file, ...rest }) => rest);
+    const logsData = data.logs.map(({ files, ...rest }) => rest);
     formData.append('logs', JSON.stringify(logsData));
 
-    // Append files individually with matching fieldnames
+    // Append files individually with indexed fieldnames for multiple files per activity
     data.logs.forEach(log => {
-        if (log.file) {
-            formData.append(`file_${log.id_activity_library}`, log.file);
+        if (log.files && log.files.length > 0) {
+            log.files.forEach((file, idx) => {
+                formData.append(`files_${log.id_activity_library}_${idx}`, file);
+            });
         }
     });
 

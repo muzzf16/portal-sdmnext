@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { getPenilaianKinerjaByEmployeeId, updateEmployeeFeedback } from '../api/kinerjaApi';
+import { getPenilaianKinerjaByEmployeeId, submitSelfAssessment } from '../api/kinerjaApi';
 import { getKpiTargets } from '../api/kpiApi';
 import { Kinerja, KpiTarget } from '../types';
 import DetailKinerja from '../components/DetailKinerja';
-import { Target, Award, ChevronDown, ChevronUp, MessageSquare, Send } from 'lucide-react';
+import { Target, Award, ChevronDown, ChevronUp, ClipboardCheck, Save, Send, BarChart3 } from 'lucide-react';
 import { useToast } from '@/app/providers/ToastContext';
+
+interface SelfAssessmentKpiItem {
+  kpiId: string;
+  metric: string;
+  selfScore: number;
+  reason: string;
+}
 
 const HalamanKinerjaSaya: React.FC = () => {
   const { user } = useAuth();
@@ -19,9 +26,12 @@ const HalamanKinerjaSaya: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
   const [showPerformanceDetail, setShowPerformanceDetail] = useState(false);
 
-  // Self-assessment state (Gap 3)
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  // Self-Assessment state
+  const [saKpis, setSaKpis] = useState<SelfAssessmentKpiItem[]>([]);
+  const [saStrengths, setSaStrengths] = useState('');
+  const [saAreas, setSaAreas] = useState('');
+  const [saSubmitting, setSaSubmitting] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Period options
   const periodOptions = useMemo(() => {
@@ -49,7 +59,14 @@ const HalamanKinerjaSaya: React.FC = () => {
         const kinerjaList = response.data.data || [];
         setAllPerformances(kinerjaList);
         if (kinerjaList.length > 0) {
-          setLatestPerformance(kinerjaList[0]);
+          const latest = kinerjaList[0];
+          setLatestPerformance(latest);
+          // Initialize self-assessment from existing data
+          if ((latest as any).selfAssessmentKpis && Array.isArray((latest as any).selfAssessmentKpis)) {
+            setSaKpis((latest as any).selfAssessmentKpis);
+          }
+          if ((latest as any).selfAssessmentStrengths) setSaStrengths((latest as any).selfAssessmentStrengths);
+          if ((latest as any).selfAssessmentAreas) setSaAreas((latest as any).selfAssessmentAreas);
         }
         setLoading(false);
       } catch (err) {
@@ -69,7 +86,17 @@ const HalamanKinerjaSaya: React.FC = () => {
         const filters: any = { employeeId: user.employeeId };
         if (selectedPeriod) filters.period = selectedPeriod;
         const res = await getKpiTargets(filters);
-        setKpis(res.data?.data || []);
+        const kpiList = res.data?.data || [];
+        setKpis(kpiList);
+        // Auto-initialize self-assessment KPIs if empty and not yet submitted
+        if (saKpis.length === 0 && kpiList.length > 0 && (latestPerformance as any)?.selfAssessmentStatus !== 'submitted') {
+          setSaKpis(kpiList.map((k: KpiTarget) => ({
+            kpiId: k.id || '',
+            metric: k.kpiName,
+            selfScore: 0,
+            reason: '',
+          })));
+        }
       } catch (err) {
         console.error('Gagal memuat KPI:', err);
       }
@@ -108,30 +135,48 @@ const HalamanKinerjaSaya: React.FC = () => {
     return 'bg-red-500';
   };
 
-  // Self-assessment submit (Gap 3)
-  const handleFeedbackSubmit = async () => {
-    if (!latestPerformance || !feedbackText.trim()) return;
-    try {
-      setFeedbackSubmitting(true);
-      await updateEmployeeFeedback(latestPerformance.id, feedbackText.trim());
-      addToast('Umpan balik berhasil dikirim', 'success');
-      // Update local state
-      setLatestPerformance({ ...latestPerformance, employeeFeedback: feedbackText.trim() });
-      setFeedbackText('');
-    } catch (err: any) {
-      addToast(err?.response?.data?.message || 'Gagal mengirim umpan balik', 'error');
-    }
-    setFeedbackSubmitting(false);
+  // Self-assessment handlers
+  const handleSaKpiChange = (index: number, field: 'selfScore' | 'reason', value: any) => {
+    const updated = [...saKpis];
+    updated[index] = { ...updated[index], [field]: field === 'selfScore' ? Number(value) : value };
+    setSaKpis(updated);
   };
+
+  const handleSelfAssessmentSubmit = async (status: 'draft' | 'submitted') => {
+    if (!latestPerformance) return;
+    try {
+      setSaSubmitting(true);
+      const response = await submitSelfAssessment(latestPerformance.id, {
+        selfAssessmentKpis: saKpis,
+        selfAssessmentStrengths: saStrengths,
+        selfAssessmentAreas: saAreas,
+        selfAssessmentStatus: status,
+      });
+      const updatedData = response.data?.data || response.data;
+      setLatestPerformance({ ...latestPerformance, ...updatedData });
+      addToast(
+        status === 'submitted' ? 'Self-Assessment berhasil dikirim!' : 'Draft tersimpan',
+        'success'
+      );
+    } catch (err: any) {
+      addToast(err?.response?.data?.message || 'Gagal menyimpan self-assessment', 'error');
+    }
+    setSaSubmitting(false);
+  };
+
+  const isSubmitted = (latestPerformance as any)?.selfAssessmentStatus === 'submitted';
+  const selfAvgScore = saKpis.length > 0
+    ? saKpis.reduce((sum, k) => sum + (k.selfScore || 0), 0) / saKpis.length
+    : 0;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">🏆 Kinerja Saya</h1>
-        <p className="text-sm text-gray-500 mt-1">Lihat target KPI, progres pencapaian, dan hasil penilaian kinerja Anda.</p>
+        <p className="text-sm text-gray-500 mt-1">Lihat target KPI, progres pencapaian, dan isi self-assessment Anda.</p>
       </div>
 
-      {/* ===== SECTION 1: KPI TARGETS (Gap 1) ===== */}
+      {/* ===== SECTION 1: KPI TARGETS ===== */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -205,7 +250,6 @@ const HalamanKinerjaSaya: React.FC = () => {
                         <span className="text-xs text-gray-400">Bobot {kpi.weight}%</span>
                       </div>
                     </div>
-                    {/* Progress bar */}
                     <div className="flex items-center gap-3">
                       <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
                         <div
@@ -261,41 +305,205 @@ const HalamanKinerjaSaya: React.FC = () => {
         )}
       </div>
 
-      {/* ===== SECTION 3: SELF-ASSESSMENT (Gap 3) ===== */}
+      {/* ===== SECTION 3: SELF-ASSESSMENT ===== */}
       {latestPerformance && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Umpan Balik Saya</h2>
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Self-Assessment</h2>
+              {isSubmitted && (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                  ✅ Sudah Dikirim
+                </span>
+              )}
+              {(latestPerformance as any).selfAssessmentStatus === 'draft' && (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 font-medium">
+                  📝 Draft
+                </span>
+              )}
+            </div>
+            {isSubmitted && latestPerformance.overallScore > 0 && (
+              <button
+                onClick={() => setShowComparison(!showComparison)}
+                className="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1"
+              >
+                <BarChart3 className="w-4 h-4" />
+                {showComparison ? 'Sembunyikan' : 'Lihat Perbandingan'}
+              </button>
+            )}
           </div>
-          <div className="p-6">
-            {latestPerformance.employeeFeedback ? (
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Umpan balik Anda sudah terkirim:</p>
-                <div className="bg-purple-50 rounded-lg p-4 text-sm text-gray-800">
-                  {latestPerformance.employeeFeedback}
+
+          {/* Comparison View (self vs supervisor) */}
+          {showComparison && isSubmitted && (
+            <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">📊 Perbandingan Skor: Self-Assessment vs Atasan</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center bg-white rounded-lg p-3 shadow-sm">
+                  <p className="text-xs text-gray-500">Skor Self-Assessment</p>
+                  <p className={`text-2xl font-bold ${getScoreColor(selfAvgScore)}`}>{selfAvgScore.toFixed(2)}</p>
+                  <p className={`text-xs ${getScoreColor(selfAvgScore)}`}>{getScoreLabel(selfAvgScore)}</p>
+                </div>
+                <div className="text-center bg-white rounded-lg p-3 shadow-sm">
+                  <p className="text-xs text-gray-500">Skor Atasan</p>
+                  <p className={`text-2xl font-bold ${getScoreColor(latestPerformance.overallScore)}`}>{latestPerformance.overallScore.toFixed(2)}</p>
+                  <p className={`text-xs ${getScoreColor(latestPerformance.overallScore)}`}>{getScoreLabel(latestPerformance.overallScore)}</p>
                 </div>
               </div>
+              {saKpis.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b border-purple-100">
+                        <th className="py-2 pr-4">KPI</th>
+                        <th className="py-2 px-4 text-center">Self</th>
+                        <th className="py-2 px-4 text-center">Atasan</th>
+                        <th className="py-2 px-4 text-center">Selisih</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {saKpis.map((saKpi, idx) => {
+                        const matchKpi = kpis.find(k => k.kpiName === saKpi.metric || k.id === saKpi.kpiId);
+                        const supervisorScore = matchKpi?.score || 0;
+                        const gap = saKpi.selfScore - supervisorScore;
+                        return (
+                          <tr key={idx} className="border-b border-gray-50">
+                            <td className="py-2 pr-4 text-gray-700">{saKpi.metric}</td>
+                            <td className={`py-2 px-4 text-center font-bold ${getScoreColor(saKpi.selfScore)}`}>{saKpi.selfScore}</td>
+                            <td className={`py-2 px-4 text-center font-bold ${getScoreColor(supervisorScore)}`}>{supervisorScore || '-'}</td>
+                            <td className={`py-2 px-4 text-center font-semibold ${gap > 0 ? 'text-blue-600' : gap < 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                              {supervisorScore > 0 ? (gap > 0 ? `+${gap}` : gap) : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="p-6">
+            {isSubmitted ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">Self-Assessment Anda telah dikirim pada {(latestPerformance as any).selfAssessmentDate ? new Date((latestPerformance as any).selfAssessmentDate).toLocaleDateString('id-ID', { dateStyle: 'long' }) : '-'}.</p>
+
+                {saKpis.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Penilaian KPI Anda:</h4>
+                    <div className="space-y-2">
+                      {saKpis.map((kpi, idx) => (
+                        <div key={idx} className="flex items-center gap-3 bg-purple-50 rounded-lg px-4 py-2">
+                          <span className="flex-1 text-sm text-gray-700">{kpi.metric}</span>
+                          <span className={`font-bold text-sm ${getScoreColor(kpi.selfScore)}`}>Skor {kpi.selfScore}</span>
+                          {kpi.reason && <span className="text-xs text-gray-400 max-w-[200px] truncate">— {kpi.reason}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {saStrengths && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-1">Kekuatan Saya:</h4>
+                    <div className="bg-emerald-50 rounded-lg p-3 text-sm text-gray-700">{saStrengths}</div>
+                  </div>
+                )}
+                {saAreas && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-1">Area yang Perlu Ditingkatkan:</h4>
+                    <div className="bg-amber-50 rounded-lg p-3 text-sm text-gray-700">{saAreas}</div>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div>
-                <p className="text-sm text-gray-500 mb-3">
-                  Berikan tanggapan atau umpan balik Anda terhadap penilaian kinerja dari atasan.
+              <div className="space-y-5">
+                <p className="text-sm text-gray-500">
+                  Berikan penilaian diri Anda terhadap pencapaian KPI dan kinerja selama periode ini. Atasan akan melihat self-assessment ini saat melakukan review.
                 </p>
-                <textarea
-                  value={feedbackText}
-                  onChange={e => setFeedbackText(e.target.value)}
-                  rows={4}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-400 resize-none"
-                  placeholder="Tulis umpan balik, tanggapan, atau refleksi Anda di sini..."
-                />
-                <div className="flex justify-end mt-3">
+
+                {saKpis.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Penilaian KPI Diri Sendiri:</h4>
+                    <div className="space-y-3">
+                      {saKpis.map((kpi, idx) => (
+                        <div key={idx} className="border border-gray-100 rounded-lg p-3">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="flex-1 text-sm font-medium text-gray-800">{kpi.metric}</span>
+                            <select
+                              value={kpi.selfScore}
+                              onChange={e => handleSaKpiChange(idx, 'selfScore', e.target.value)}
+                              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-40"
+                            >
+                              <option value={0}>Pilih Skor</option>
+                              <option value={1}>1 — Sangat Kurang</option>
+                              <option value={2}>2 — Kurang</option>
+                              <option value={3}>3 — Cukup</option>
+                              <option value={4}>4 — Baik</option>
+                              <option value={5}>5 — Sangat Baik</option>
+                            </select>
+                          </div>
+                          <input
+                            type="text"
+                            value={kpi.reason}
+                            onChange={e => handleSaKpiChange(idx, 'reason', e.target.value)}
+                            placeholder="Alasan penilaian (opsional)..."
+                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {selfAvgScore > 0 && (
+                      <div className="mt-3 text-sm text-gray-500 text-right">
+                        Rata-rata skor: <span className={`font-bold ${getScoreColor(selfAvgScore)}`}>{selfAvgScore.toFixed(2)}</span> — {getScoreLabel(selfAvgScore)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Kekuatan Saya:</label>
+                  <textarea
+                    value={saStrengths}
+                    onChange={e => setSaStrengths(e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-400 resize-none"
+                    placeholder="Jelaskan kekuatan dan hal positif yang Anda capai selama periode ini..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Area yang Perlu Saya Tingkatkan:</label>
+                  <textarea
+                    value={saAreas}
+                    onChange={e => setSaAreas(e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-400 resize-none"
+                    placeholder="Jelaskan area yang ingin Anda tingkatkan dan rencana perbaikannya..."
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button
-                    onClick={handleFeedbackSubmit}
-                    disabled={feedbackSubmitting || !feedbackText.trim()}
+                    onClick={() => handleSelfAssessmentSubmit('draft')}
+                    disabled={saSubmitting}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    {saSubmitting ? 'Menyimpan...' : 'Simpan Draft'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Setelah dikirim, self-assessment tidak dapat diubah. Lanjutkan?')) {
+                        handleSelfAssessmentSubmit('submitted');
+                      }
+                    }}
+                    disabled={saSubmitting || saKpis.every(k => k.selfScore === 0)}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <Send className="w-4 h-4" />
-                    {feedbackSubmitting ? 'Mengirim...' : 'Kirim Umpan Balik'}
+                    {saSubmitting ? 'Mengirim...' : 'Kirim Self-Assessment'}
                   </button>
                 </div>
               </div>

@@ -1,5 +1,6 @@
 
 import { PermintaanCutiRepository } from './permintaanCuti.repository';
+import { getCompanySettings } from '../company-settings/company-settings.repository';
 import { AppError } from '../../utils/errors';
 
 class CutiService {
@@ -76,7 +77,7 @@ class CutiService {
         const type = (cutiItem.leaveType || '').toLowerCase();
         return type === 'tahunan' || type === 'annual' || type === 'cuti tahunan';
       });
-      
+
       let totalCutiDiambil = 0;
       annualApprovedLeaves.forEach(cutiItem => {
         const startDate = new Date(cutiItem.startDate);
@@ -86,14 +87,24 @@ class CutiService {
         totalCutiDiambil += dayDiff;
       });
 
-      const jumlahJatahCuti = 18; // Hardcoded for now
+      // Ambil jatah cuti dari company_settings (bukan hardcoded)
+      // Fallback ke 12 hari sesuai UU 13/2003 Pasal 79 jika belum diatur
+      const companySettings = await getCompanySettings();
+      const jumlahJatahCuti = companySettings?.annualLeaveQuota || 12;
+
+      // Cuti bersama — idealnya dari tabel terpisah, untuk saat ini dari konfigurasi
+      // Referensi: SKB Menteri tentang Hari Libur Nasional dan Cuti Bersama
       const cutiBersama = [
-        { id: '1', tanggal: '2025-01-01', deskripsi: 'Tahun Baru' },
-        { id: '2', tanggal: '2025-05-01', deskripsi: 'Hari Buruh Internasional' },
-        { id: '3', tanggal: '2025-08-17', deskripsi: 'Hari Kemerdekaan RI' },
+        { id: '1', tanggal: '2026-01-01', deskripsi: 'Tahun Baru 2026' },
+        { id: '2', tanggal: '2026-03-31', deskripsi: 'Hari Raya Idul Fitri' },
+        { id: '3', tanggal: '2026-04-01', deskripsi: 'Cuti Bersama Idul Fitri' },
+        { id: '4', tanggal: '2026-05-01', deskripsi: 'Hari Buruh Internasional' },
+        { id: '5', tanggal: '2026-08-17', deskripsi: 'Hari Kemerdekaan RI' },
+        { id: '6', tanggal: '2026-12-25', deskripsi: 'Hari Natal' },
+        { id: '7', tanggal: '2026-12-26', deskripsi: 'Cuti Bersama Natal' },
       ];
       const currentYear = new Date().getFullYear();
-      const cutiBersamaTahunIni = cutiBersama.filter(c => 
+      const cutiBersamaTahunIni = cutiBersama.filter(c =>
         new Date(c.tanggal).getFullYear() === currentYear
       ).length;
 
@@ -104,6 +115,7 @@ class CutiService {
         cutiDiambil: totalCutiDiambil,
         cutiBersama: cutiBersamaTahunIni,
         sisaCuti: sisaCuti,
+        sumberJatah: companySettings ? 'company_settings' : 'default_uu13_2003',
       };
     } catch (error: any) {
       throw new AppError(`Error calculating remaining leave: ${error.message}`, 500);

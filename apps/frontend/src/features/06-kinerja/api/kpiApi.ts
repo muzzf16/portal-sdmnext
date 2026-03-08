@@ -49,3 +49,10 @@ export const generateKpiFromAbk = (employeeId: string, year: number, period: str
 
 export const syncKpiFromWla = (employeeId: string, period: string) =>
     api.post('/kpi-targets/sync-wla', { employeeId, period });
+
+// KPI Templates
+export const getKpiTemplates = (department?: string) =>
+    api.get(`/kpi-templates${department ? `?department=${encodeURIComponent(department)}` : ''}`);
+
+export const applyKpiTemplates = (data: { employeeId: string; period: string; department?: string; templateIds?: string[] }) =>
+    api.post('/kpi-templates/apply', data);

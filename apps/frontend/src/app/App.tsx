@@ -40,7 +40,7 @@ const App: React.FC = () => {
   }, [toggleDarkMode]);
 
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router>
       <ReactQueryProvider>
         <I18nProvider>
           <ToastProvider>

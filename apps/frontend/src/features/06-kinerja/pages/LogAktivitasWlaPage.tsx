@@ -23,8 +23,8 @@ const LogAktivitasWlaPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    // Map of activity ID to { frekuensi, catatan, file }
-    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, file?: File | null }>>({});
+    // Map of activity ID to { frekuensi, catatan, files }
+    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, files?: File[] }>>({});
 
     // Task Modal state
     const [openTaskModal, setOpenTaskModal] = useState(false);
@@ -33,7 +33,7 @@ const LogAktivitasWlaPage: React.FC = () => {
         id_activity_library: '',
         frekuensi: 1,
         catatan: '',
-        file: null as File | null
+        files: [] as File[]
     });
 
     const fetchMyLogs = async () => {
@@ -108,14 +108,14 @@ const LogAktivitasWlaPage: React.FC = () => {
         }
     }, [myLogs]);
 
-    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'file', value: any) => {
+    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'files', value: any) => {
         setFormInputs(prev => ({
             ...prev,
             [id]: {
                 ...prev[id],
                 frekuensi: prev[id]?.frekuensi || 0,
                 catatan: prev[id]?.catatan || '',
-                file: prev[id]?.file || null,
+                files: prev[id]?.files || [],
                 [field]: value
             }
         }));
@@ -128,7 +128,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                 id_activity_library: id,
                 frekuensi: Number(data.frekuensi),
                 catatan: data.catatan,
-                file: data.file
+                files: data.files || []
             }));
 
         if (payloadLogs.length === 0) {
@@ -176,7 +176,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                     id_activity_library: taskModalForm.id_activity_library,
                     frekuensi: Number(taskModalForm.frekuensi),
                     catatan: taskModalForm.catatan,
-                    file: taskModalForm.file
+                    files: taskModalForm.files || []
                 }]
             });
 
@@ -283,7 +283,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                 <div className="space-y-4">
                                     {library.map((act, index) => {
                                         const actId = String(act.id || '');
-                                        const val = formInputs[actId] || { frekuensi: '', catatan: '', file: null };
+                                        const val = formInputs[actId] || { frekuensi: '', catatan: '', files: [] };
                                         return (
                                             <div key={act.id || `act-${index}`} className="border border-gray-200 p-4 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
                                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3">
@@ -317,13 +317,21 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                             placeholder="Catatan opsional..."
                                                             className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 mb-2"
                                                         />
-                                                        <div className="flex items-center text-xs">
-                                                            <label className="text-gray-500 font-medium mr-2">Upload Berkas:</label>
-                                                            <input
-                                                                type="file"
-                                                                className="text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                                                                onChange={(e) => handleInputChange(actId, 'file', e.target.files ? e.target.files[0] : null)}
-                                                            />
+                                                        <div className="flex flex-col text-xs gap-1">
+                                                            <div className="flex items-center">
+                                                                <label className="text-gray-500 font-medium mr-2">Upload Berkas:</label>
+                                                                <input
+                                                                    type="file"
+                                                                    multiple
+                                                                    className="text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                                                    onChange={(e) => handleInputChange(actId, 'files', e.target.files ? Array.from(e.target.files) : [])}
+                                                                />
+                                                            </div>
+                                                            {val.files && val.files.length > 0 && (
+                                                                <div className="text-[10px] text-indigo-600 font-medium pl-1">
+                                                                    {val.files.length} file dipilih: {val.files.map(f => f.name).join(', ')}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -389,14 +397,25 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                         "{log.catatan}"
                                                     </p>
                                                 )}
-                                                {log.lampiran && (
-                                                    <div className="mt-2">
-                                                        <a href={log.lampiran} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center">
-                                                            <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                                            Lihat Lampiran Berkas
-                                                        </a>
-                                                    </div>
-                                                )}
+                                                {log.lampiran && (() => {
+                                                    let lampiranList: string[] = [];
+                                                    try {
+                                                        const parsed = JSON.parse(log.lampiran);
+                                                        lampiranList = Array.isArray(parsed) ? parsed : [log.lampiran];
+                                                    } catch {
+                                                        lampiranList = [log.lampiran];
+                                                    }
+                                                    return (
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {lampiranList.map((url: string, idx: number) => (
+                                                                <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center bg-indigo-50 px-2 py-1 rounded">
+                                                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                                                    Berkas {lampiranList.length > 1 ? idx + 1 : ''}
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                             <div className="ml-4">
                                                 <span className={clsx(
@@ -469,9 +488,13 @@ const LogAktivitasWlaPage: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Bukti Bekerja (Opsional)</label>
                                         <input
                                             type="file"
+                                            multiple
                                             className="w-full text-xs"
-                                            onChange={e => setTaskModalForm(prev => ({ ...prev, file: e.target.files ? e.target.files[0] : null }))}
+                                            onChange={e => setTaskModalForm(prev => ({ ...prev, files: e.target.files ? Array.from(e.target.files) : [] }))}
                                         />
+                                        {taskModalForm.files.length > 0 && (
+                                            <p className="text-[10px] text-indigo-600 mt-1">{taskModalForm.files.length} file dipilih</p>
+                                        )}
                                     </div>
                                 </div>
 

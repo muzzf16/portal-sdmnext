@@ -7,6 +7,7 @@ const parseJsonFields = (rows: any[]) => {
   return rows.map(row => ({
     ...row,
     kpis: row.kpis ? JSON.parse(row.kpis) : [],
+    selfAssessmentKpis: row.selfAssessmentKpis ? JSON.parse(row.selfAssessmentKpis) : null,
   }));
 };
 
@@ -155,5 +156,55 @@ export const PenilaianKinerjaRepository = {
       ORDER BY reviewDate ASC
     `);
     return parseJsonFields(rows);
+  },
+
+  // Self-Assessment: submit or save draft
+  async submitSelfAssessment(id: string, data: {
+    selfAssessmentKpis: any[];
+    selfAssessmentStrengths: string;
+    selfAssessmentAreas: string;
+    selfAssessmentStatus: 'draft' | 'submitted';
+  }) {
+    const db = await openDb();
+
+    // G8: Calculate self-assessment WEIGHTED score (using KPI weights)
+    const saKpis = data.selfAssessmentKpis || [];
+    let selfScore = 0;
+    if (saKpis.length > 0) {
+      const totalWeight = saKpis.reduce((sum: number, k: any) => sum + (k.weight || 1), 0);
+      const weightedScore = saKpis.reduce((sum: number, k: any) => {
+        const w = k.weight || 1;
+        return sum + ((k.selfScore || 0) * w);
+      }, 0);
+      selfScore = totalWeight > 0
+        ? parseFloat((weightedScore / totalWeight).toFixed(2))
+        : 0;
+    }
+
+    const selfAssessmentDate = data.selfAssessmentStatus === 'submitted' ? new Date().toISOString() : null;
+
+    const result = await db.run(
+      `UPDATE penilaian_kinerja SET 
+        selfAssessmentScore = ?,
+        selfAssessmentKpis = ?,
+        selfAssessmentStrengths = ?,
+        selfAssessmentAreas = ?,
+        selfAssessmentDate = COALESCE(?, selfAssessmentDate),
+        selfAssessmentStatus = ?
+      WHERE id = ?`,
+      [
+        selfScore,
+        JSON.stringify(saKpis),
+        data.selfAssessmentStrengths || null,
+        data.selfAssessmentAreas || null,
+        selfAssessmentDate,
+        data.selfAssessmentStatus,
+        id
+      ]
+    );
+    if (result.changes === 0) throw new Error('Performance review not found');
+
+    const updatedRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id);
+    return parseJsonFields([updatedRow])[0];
   }
 };

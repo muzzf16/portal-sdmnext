@@ -31,12 +31,13 @@ export const Table: React.FC<TableProps> = ({
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700/50">
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              return React.cloneElement(child, {
+              const childElement = child as React.ReactElement<any>;
+              return React.cloneElement(childElement, {
                 className: clsx(
                   'text-neutral-700 dark:text-neutral-300 hover:bg-primary-50/50 dark:hover:bg-neutral-700/30 transition-colors duration-150',
-                  child.props.className
+                  childElement.props.className
                 ),
-                children: React.Children.map(child.props.children, (cell) => {
+                children: React.Children.map(childElement.props.children, (cell) => {
                   if (React.isValidElement(cell) && cell.type === 'td') {
                     const cellProps = cell.props as { className?: string };
                     return React.cloneElement(cell as React.ReactElement, {

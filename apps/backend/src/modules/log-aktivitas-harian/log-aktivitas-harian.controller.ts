@@ -47,12 +47,25 @@ export default class LogAktivitasHarianController {
                 return res.status(400).json({ success: false, message: 'tanggal and logs array are required' });
             }
 
-            // Attach file URLs if any
+            // Attach file URLs if any (supports multiple files per activity)
             if (req.files && Array.isArray(req.files)) {
                 logs.forEach((log: any) => {
-                    const file = (req.files as Express.Multer.File[]).find(f => f.fieldname === `file_${log.id_activity_library}`);
-                    if (file) {
-                        log.lampiran = `/documents/${file.filename}`;
+                    // Collect all files matching this activity (new pattern: files_${id}_0, files_${id}_1, ...)
+                    const matchingFiles = (req.files as Express.Multer.File[]).filter(
+                        f => f.fieldname.startsWith(`files_${log.id_activity_library}_`)
+                    );
+                    // Also support old single-file pattern (file_${id}) for backward compat
+                    const legacyFile = (req.files as Express.Multer.File[]).find(
+                        f => f.fieldname === `file_${log.id_activity_library}`
+                    );
+
+                    const allFiles = [...matchingFiles];
+                    if (legacyFile) allFiles.push(legacyFile);
+
+                    if (allFiles.length > 0) {
+                        const paths = allFiles.map(f => `/documents/${f.filename}`);
+                        // Store as JSON array for multiple files, or single string for one file
+                        log.lampiran = paths.length === 1 ? paths[0] : JSON.stringify(paths);
                     }
                 });
             }

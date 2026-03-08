@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { KpiTarget } from '../types';
-import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget, syncKpiFromWla } from '../api/kpiApi';
+import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget, syncKpiFromWla, getKpiTemplates, applyKpiTemplates } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { Download, RefreshCw, Paperclip, X } from 'lucide-react';
+import { Download, RefreshCw, Paperclip, X, FileText } from 'lucide-react';
 
 const KpiTargetPage: React.FC = () => {
     const { user } = useAuth();
@@ -24,9 +24,16 @@ const KpiTargetPage: React.FC = () => {
     const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
     const [actualSubmitting, setActualSubmitting] = useState(false);
 
+    // Template modal state
+    const [templateModal, setTemplateModal] = useState(false);
+    const [templateDept, setTemplateDept] = useState('');
+    const [templateDepts, setTemplateDepts] = useState<string[]>([]);
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [templateLoading, setTemplateLoading] = useState(false);
+
     // Form state
     const [form, setForm] = useState({
-        employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: ''
+        employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '', category: 'outcome' as string
     });
 
     // Generate predefined period options
@@ -113,7 +120,7 @@ const KpiTargetPage: React.FC = () => {
             }
             setShowForm(false);
             setEditingId(null);
-            setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '' });
+            setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '', category: 'outcome' });
             fetchKpis();
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal menyimpan KPI target', 'error');
@@ -128,7 +135,8 @@ const KpiTargetPage: React.FC = () => {
             targetValue: kpi.targetValue,
             targetUnit: kpi.targetUnit || '%',
             weight: kpi.weight || 0,
-            notes: kpi.notes || ''
+            notes: kpi.notes || '',
+            category: kpi.category || 'outcome'
         });
         setEditingId(kpi.id);
         setShowForm(true);
@@ -203,6 +211,54 @@ const KpiTargetPage: React.FC = () => {
             addToast(err?.response?.data?.message || 'Gagal sync realisasi dari WLA', 'error');
         }
     };
+
+    // Template handlers
+    const handleOpenTemplateModal = async () => {
+        if (!selectedEmployee) {
+            addToast('Pilih pegawai terlebih dahulu', 'error');
+            return;
+        }
+        if (!selectedPeriod) {
+            addToast('Pilih periode terlebih dahulu', 'error');
+            return;
+        }
+        setTemplateModal(true);
+        setTemplateLoading(true);
+        try {
+            const res = await getKpiTemplates();
+            setTemplates(res.data?.data || []);
+            setTemplateDepts(res.data?.departments || []);
+            if (!templateDept && res.data?.departments?.length > 0) {
+                setTemplateDept(res.data.departments[0]);
+            }
+        } catch (err) {
+            addToast('Gagal memuat template KPI', 'error');
+        }
+        setTemplateLoading(false);
+    };
+
+    const handleApplyTemplate = async () => {
+        if (!templateDept) {
+            addToast('Pilih departemen template', 'error');
+            return;
+        }
+        if (!confirm(`Apply template "${templateDept}" ke pegawai terpilih untuk periode ${selectedPeriod}?`)) return;
+        try {
+            const res = await applyKpiTemplates({
+                employeeId: selectedEmployee,
+                period: selectedPeriod,
+                department: templateDept,
+            });
+            const data = res.data?.data || res.data;
+            addToast(`Berhasil: ${data.created} KPI dibuat, ${data.skipped} dilewati (sudah ada)`, 'success');
+            setTemplateModal(false);
+            fetchKpis();
+        } catch (err: any) {
+            addToast(err?.response?.data?.message || 'Gagal apply template', 'error');
+        }
+    };
+
+    const filteredTemplates = templates.filter(t => t.department === templateDept);
 
     const getScoreColor = (score: number) => {
         if (score >= 4) return 'text-green-600 bg-green-50';
@@ -290,7 +346,7 @@ const KpiTargetPage: React.FC = () => {
                 const target = `${kpi.targetValue} ${kpi.targetUnit}`;
                 const realisasi = `${kpi.actualValue || 0} ${kpi.targetUnit}`;
 
-                return `"${kpi.kpiName}","${empName}","${kpi.period}","${target}","${realisasi}","${kpi.score || 0}","${kpi.weight || 0}%","${kpi.status}","${kpi.source}","${kpi.notes || ''}"`;
+                return `"${kpi.kpiName}","${empName}","${kpi.period}","${target}","${realisasi}","${kpi.score || 0}","${kpi.weight || 0}%","${kpi.status}","${kpi.category || 'process'}","${kpi.source}","${kpi.notes || ''}"`;
             })
         ].join('\n');
 
@@ -323,6 +379,11 @@ const KpiTargetPage: React.FC = () => {
                                 className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm">
                                 ⚡ Generate dari ABK
                             </button>
+                            <button onClick={handleOpenTemplateModal}
+                                className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 text-sm flex items-center">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Dari Template
+                            </button>
                             <button onClick={handleSyncFromWla}
                                 className="px-4 py-2 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 text-sm flex items-center">
                                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -330,7 +391,7 @@ const KpiTargetPage: React.FC = () => {
                             </button>
                             <button onClick={() => {
                                 setEditingId(null);
-                                setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '' });
+                                setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '', category: 'outcome' });
                                 setShowForm(!showForm);
                             }}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
@@ -438,7 +499,21 @@ const KpiTargetPage: React.FC = () => {
                             <input type="number" min={0} max={100} value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
                         </div>
-                        <div className="md:col-span-3">
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Kategori KPI</label>
+                            <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <option value="process">📊 Proses (otomatis dari WLA)</option>
+                                <option value="outcome">🎯 Hasil / Outcome (manual)</option>
+                                <option value="strategic">🏢 Strategis (cascading)</option>
+                            </select>
+                            <p className="text-xs text-gray-400 mt-1">
+                                {form.category === 'process' && 'Realisasi otomatis dari log aktivitas harian (WLA).'}
+                                {form.category === 'outcome' && 'Realisasi diinput manual oleh atasan. Contoh: kepuasan pelanggan, NPL ratio.'}
+                                {form.category === 'strategic' && 'Target cascading dari tujuan perusahaan. Contoh: revenue growth.'}
+                            </p>
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
                             <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" placeholder="Opsional" />
@@ -465,7 +540,7 @@ const KpiTargetPage: React.FC = () => {
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Skor</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bobot</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sumber</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
                             </tr>
                         </thead>
@@ -510,7 +585,14 @@ const KpiTargetPage: React.FC = () => {
                                             );
                                         })()}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{kpi.source === 'abk' ? '📊 ABK' : '✏️ Manual'}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${kpi.category === 'process' ? 'bg-blue-100 text-blue-800' :
+                                            kpi.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
+                                                'bg-amber-100 text-amber-800'
+                                            }`}>
+                                            {kpi.category === 'process' ? '📊 Proses' : kpi.category === 'strategic' ? '🏢 Strategis' : '🎯 Outcome'}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-3 text-center">
                                         {role !== 'employee' && (
                                             <div className="flex items-center justify-center gap-1 flex-wrap">
@@ -581,6 +663,89 @@ const KpiTargetPage: React.FC = () => {
                             <button onClick={handleActualSubmit} disabled={actualSubmitting}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
                                 {actualSubmitting ? 'Menyimpan...' : 'Simpan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Template Modal */}
+            {templateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">📋 Template KPI per Departemen</h3>
+                                <p className="text-sm text-gray-500 mt-0.5">Pilih departemen untuk apply template KPI ke pegawai & periode terpilih</p>
+                            </div>
+                            <button onClick={() => setTemplateModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                        </div>
+
+                        {templateLoading ? (
+                            <div className="p-8 text-center text-gray-500">Memuat template...</div>
+                        ) : (
+                            <>
+                                {/* Department tabs */}
+                                <div className="px-6 pt-4 flex gap-2 flex-wrap">
+                                    {templateDepts.map(dept => (
+                                        <button key={dept} onClick={() => setTemplateDept(dept)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${templateDept === dept
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}>
+                                            {dept}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Template preview table */}
+                                <div className="px-6 py-4 flex-1 overflow-auto">
+                                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama KPI</th>
+                                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Target</th>
+                                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Bobot</th>
+                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pengukuran</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {filteredTemplates.map((tpl: any) => (
+                                                <tr key={tpl.id} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-2">
+                                                        <div className="font-medium text-gray-900">{tpl.kpiName}</div>
+                                                        {tpl.description && <div className="text-xs text-gray-400 mt-0.5">{tpl.description}</div>}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-center">
+                                                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${tpl.category === 'process' ? 'bg-blue-100 text-blue-800' :
+                                                                tpl.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
+                                                                    'bg-amber-100 text-amber-800'
+                                                            }`}>
+                                                            {tpl.category === 'process' ? '📊 Proses' : tpl.category === 'strategic' ? '🏢 Strategis' : '🎯 Outcome'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-3 py-2 text-center font-mono">{tpl.targetValue} {tpl.targetUnit === 'jumlah' ? '' : tpl.targetUnit}</td>
+                                                    <td className="px-3 py-2 text-center font-semibold">{tpl.weight}%</td>
+                                                    <td className="px-3 py-2 text-xs text-gray-500">{tpl.measureSource}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {filteredTemplates.length > 0 && (
+                                        <div className="mt-3 p-3 bg-purple-50 rounded-lg text-sm text-purple-800">
+                                            <strong>{filteredTemplates.length} KPI</strong> akan dibuat — Total bobot: <strong>{filteredTemplates.reduce((s: number, t: any) => s + t.weight, 0)}%</strong>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+                            <button onClick={() => setTemplateModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100">Batal</button>
+                            <button onClick={handleApplyTemplate} disabled={filteredTemplates.length === 0}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+                                Apply {filteredTemplates.length} KPI ke Pegawai
                             </button>
                         </div>
                     </div>

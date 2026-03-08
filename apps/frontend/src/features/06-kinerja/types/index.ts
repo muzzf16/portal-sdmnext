@@ -68,6 +68,7 @@ export interface KpiTarget {
   score: number;
   status: 'draft' | 'waiting_approval' | 'active' | 'completed' | 'cancelled';
   source: 'abk' | 'manual';
+  category: 'process' | 'outcome' | 'strategic';
   abkActivityId?: string;
   notes?: string;
   evidenceUrl?: string;
