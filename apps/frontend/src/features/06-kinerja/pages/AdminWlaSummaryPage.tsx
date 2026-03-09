@@ -5,6 +5,7 @@ import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle }
 import { getAdminLogAktivitasSummaryWla, getAdminDetailLogsWla, updateLogAktivitasStatusWla } from '../api/logAktivitasHarianApi';
 import { getEmployees } from '../../../shared/services/employeeAPI';
 import { AdminWlaSummary } from '../types';
+import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
 
 const AdminWlaSummaryPage: React.FC = () => {
@@ -22,6 +23,7 @@ const AdminWlaSummaryPage: React.FC = () => {
         direkturUtama: 'Nama Lengkap & Tandatangan',
         direkturYmfk: 'Nama Lengkap & Tandatangan'
     });
+    const { settings: companySettings } = useCompanySettings();
 
     const fetchSummary = async () => {
         setLoading(true);
@@ -100,16 +102,24 @@ const AdminWlaSummaryPage: React.FC = () => {
             return;
         }
 
-        const headers = ['Karyawan', 'NIP', 'Departemen', 'Jabatan', 'Aktivitas Dilog', 'Durasi Total (Menit)', 'Beban (FTE %)', 'Status'];
-        const csvContent = [
-            headers.join(','),
-            ...filteredSummaries.map(s => {
-                const durasi = s.total_durasi_menit || 0;
-                const percent = Math.round((durasi / targetMinutes) * 100);
-                const status = getFteStatus(durasi).label;
-                return `"${s.nama_lengkap}","${s.nip}","${s.departemen}","${s.jabatan}","${s.jumlah_log}","${durasi}","${percent}%","${status}"`;
-            })
-        ].join('\n');
+        const currentYear = new Date().getFullYear();
+        const headerRows = [
+            `"Rekap Harian Beban kerja Pegawai"`,
+            `"PT BPR BAPERA BATANG"`,
+            `"Periode ${startDate} s/d ${endDate} tahun ${currentYear}"`,
+            ``
+        ];
+
+        const columns = ['Karyawan', 'NIP', 'Departemen', 'Jabatan', 'Aktivitas Dilog', 'Durasi Total (Menit)', 'Beban (FTE %)', 'Status'];
+
+        const dataRows = filteredSummaries.map(s => {
+            const durasi = s.total_durasi_menit || 0;
+            const percent = Math.round((durasi / targetMinutes) * 100);
+            const status = getFteStatus(durasi).label;
+            return `"${s.nama_lengkap}","${s.nip}","${s.departemen}","${s.jabatan}","${s.jumlah_log}","${durasi}","${percent}%","${status}"`;
+        });
+
+        const csvContent = [...headerRows, columns.join(','), ...dataRows].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -166,7 +176,17 @@ const AdminWlaSummaryPage: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            {/* Print Only Header */}
+            <div className="hidden print:flex flex-col items-center justify-center text-center mb-8 relative">
+                {companySettings?.logo && (
+                    <img src={companySettings.logo} alt="Logo" className="absolute left-0 top-0 h-16 w-auto object-contain" />
+                )}
+                <h2 className="text-xl font-bold uppercase underline">Rekap Harian Beban kerja Pegawai</h2>
+                <h3 className="text-lg font-bold">PT BPR BAPERA BATANG</h3>
+                <p className="text-md font-bold">Periode {startDate} s/d {endDate} tahun {new Date().getFullYear()}</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center print:hidden">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center">
                         <Users className="mr-2 h-6 w-6 text-indigo-600" />
@@ -178,9 +198,9 @@ const AdminWlaSummaryPage: React.FC = () => {
                 </div>
             </div>
 
-            <Card className="shadow-lg border-t-4 border-t-indigo-600">
-                <div className="p-6">
-                    <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
+            <Card className="shadow-lg border-t-4 border-t-indigo-600 print:shadow-none print:border-none print:bg-transparent">
+                <div className="p-6 print:p-0">
+                    <div className="flex flex-col md:flex-row gap-4 justify-between mb-6 print:hidden">
                         <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3">
                             <div className="flex items-center space-x-2 w-full sm:w-auto">
                                 <div className="relative flex-1 sm:flex-none">
@@ -244,7 +264,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                                     <th className="px-6 py-4 border-b text-center">Durasi Total</th>
                                     <th className="px-6 py-4 border-b text-center">Beban (FTE)</th>
                                     <th className="px-6 py-4 border-b text-center">Status</th>
-                                    <th className="px-6 py-4 border-b text-center">Detail</th>
+                                    <th className="px-6 py-4 border-b text-center print:hidden"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
@@ -316,7 +336,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                             <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Belum Log</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
+                                                    <td className="px-6 py-4 text-center print:hidden">
                                                         {s.jumlah_log > 0 && (
                                                             <button
                                                                 onClick={() => handleToggleExpand(s)}
@@ -418,24 +438,25 @@ const AdminWlaSummaryPage: React.FC = () => {
             </Card>
 
             {/* Signature Footer */}
-            <div className="mt-12 mb-8 pt-8 border-t border-gray-200 print:mt-16 print:border-t-0 hidden lg:block print:block">
+            <div className="mt-20 pt-8 border-t border-gray-200 print:mt-16 print:border-t-0 hidden lg:block print:block">
+                <div className="text-center text-sm font-semibold text-gray-800 mb-12">
+                    Mengetahui
+                </div>
                 <div className="flex justify-between items-center text-center px-8 sm:px-16 lg:px-32">
                     <div className="w-1/3 flex flex-col items-center">
-                        <p className="text-sm text-gray-800 mb-20 whitespace-normal">
-                            Mengetahui,<br />
-                            <strong>Direktur Utama</strong>
+                        <p className="text-sm font-bold text-gray-800 mb-20">
+                            Direktur Utama
                         </p>
-                        <div className="w-48 border-b-2 border-gray-800"></div>
-                        <p className="text-sm font-bold text-gray-800 mt-2">{directorNames.direkturUtama}</p>
+                        <div className="w-64 border-b-2 border-gray-800"></div>
+                        <p className="text-sm font-bold text-gray-800 mt-2 uppercase">{directorNames.direkturUtama}</p>
                     </div>
 
                     <div className="w-1/3 flex flex-col items-center">
-                        <p className="text-sm text-gray-800 mb-20 whitespace-normal">
-                            Mengetahui,<br />
-                            <strong>Direktur YMFK</strong>
+                        <p className="text-sm font-bold text-gray-800 mb-20">
+                            Direktur YMFK
                         </p>
-                        <div className="w-48 border-b-2 border-gray-800"></div>
-                        <p className="text-sm font-bold text-gray-800 mt-2">{directorNames.direkturYmfk}</p>
+                        <div className="w-64 border-b-2 border-gray-800"></div>
+                        <p className="text-sm font-bold text-gray-800 mt-2 uppercase">{directorNames.direkturYmfk}</p>
                     </div>
                 </div>
             </div>
