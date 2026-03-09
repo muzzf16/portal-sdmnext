@@ -57,7 +57,6 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
     // Watch items to calculate total
     const items = watch('items') || [];
-    const savedId = watch('id');
 
     // Fetch library activities when position changes
     useEffect(() => {
@@ -205,7 +204,8 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     const grandTotalHours = (totalMinutes / 60).toFixed(2);
     const BebanKerjaHarian = (totalMinutes / DAYS_IN_YEAR / 60).toFixed(2); // Jam per hari
 
-    const isReadOnly = !!savedId && user?.role !== 'admin';
+    const formStatus = watch('status');
+    const isReadOnly = formStatus === 'submitted' && user?.role !== 'admin';
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -412,8 +412,20 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                 {!isReadOnly && (
                     <div className="mt-6 flex justify-end items-start gap-4">
                         <div className="space-x-2">
-                            <button type="button" className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">Draft</button>
-                            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300">
+                            <button
+                                type="button"
+                                onClick={() => { setValue('status', 'draft', { shouldValidate: true }); handleSubmit(onSubmit)(); }}
+                                disabled={isSubmitting}
+                                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+                            >
+                                Simpan Draft
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setValue('status', 'submitted', { shouldValidate: true }); handleSubmit(onSubmit)(); }}
+                                disabled={isSubmitting}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300"
+                            >
                                 {isSubmitting ? 'Menyimpan...' : 'Simpan Laporan'}
                             </button>
                         </div>
