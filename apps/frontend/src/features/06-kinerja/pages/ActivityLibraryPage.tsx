@@ -3,6 +3,7 @@ import { ActivityLibraryItem } from '../types';
 import { getJabatanList, Jabatan } from '../../01-pegawai/api/jabatanApi';
 import { getActivityLibrary, getActivityPositions, createActivity, updateActivity, deleteActivity } from '../api/activityLibraryApi';
 import { useToast } from '@/app/providers/ToastContext';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const ActivityLibraryPage: React.FC = () => {
     const [activities, setActivities] = useState<ActivityLibraryItem[]>([]);
@@ -12,6 +13,7 @@ const ActivityLibraryPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingItem, setEditingItem] = useState<ActivityLibraryItem | null>(null);
+    const [expandedPositions, setExpandedPositions] = useState<Record<string, boolean>>({});
     const { addToast } = useToast();
 
     // Form state
@@ -108,6 +110,13 @@ const ActivityLibraryPage: React.FC = () => {
             lapangan: 'bg-green-100 text-green-800',
         };
         return colors[category] || 'bg-gray-100 text-gray-800';
+    };
+
+    const togglePosition = (position: string) => {
+        setExpandedPositions(prev => ({
+            ...prev,
+            [position]: !prev[position]
+        }));
     };
 
     return (
@@ -233,32 +242,39 @@ const ActivityLibraryPage: React.FC = () => {
                                     acc[key].push(obj);
                                     return acc;
                                 }, {} as Record<string, typeof activities>)
-                            ).map(([position, acts]) => (
-                                <React.Fragment key={position}>
-                                    <tr className="bg-indigo-50/50">
-                                        <td colSpan={6} className="px-4 py-2 text-sm font-bold text-indigo-900 border-t border-b border-indigo-100">
-                                            {position} <span className="text-xs text-indigo-500 font-normal ml-2">({acts.length} aktivitas)</span>
-                                        </td>
-                                    </tr>
-                                    {acts.map(act => (
-                                        <tr key={act.id} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 pl-8 opacity-0 w-0 md:opacity-100 md:w-auto">{/* Hidden visual alignment */}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700">{act.activityName}</td>
-                                            <td className="px-4 py-3 text-sm text-center font-mono">{act.durationMinutes}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">{act.outputUnit}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCategoryBadge(act.category)}`}>
-                                                    {act.category || '-'}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-center whitespace-nowrap">
-                                                <button onClick={() => handleEdit(act)} className="text-blue-600 hover:text-blue-800 text-sm mr-3 font-medium">Edit</button>
-                                                <button onClick={() => handleDelete(act.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">Hapus</button>
+                            ).map(([position, acts]) => {
+                                const isExpanded = expandedPositions[position] !== false; // Default to true if fully undefined
+
+                                return (
+                                    <React.Fragment key={position}>
+                                        <tr className="bg-indigo-50/50 cursor-pointer hover:bg-indigo-50" onClick={() => togglePosition(position)}>
+                                            <td colSpan={6} className="px-4 py-2 text-sm font-bold text-indigo-900 border-t border-b border-indigo-100">
+                                                <div className="flex items-center">
+                                                    {isExpanded ? <ChevronDown size={18} className="mr-2 text-indigo-500" /> : <ChevronRight size={18} className="mr-2 text-indigo-500" />}
+                                                    {position} <span className="text-xs text-indigo-500 font-normal ml-2">({acts.length} aktivitas)</span>
+                                                </div>
                                             </td>
                                         </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))}
+                                        {isExpanded && acts.map(act => (
+                                            <tr key={act.id} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900 pl-8 opacity-0 w-0 md:opacity-100 md:w-auto">{/* Hidden visual alignment */}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">{act.activityName}</td>
+                                                <td className="px-4 py-3 text-sm text-center font-mono">{act.durationMinutes}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">{act.outputUnit}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCategoryBadge(act.category)}`}>
+                                                        {act.category || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                    <button onClick={() => handleEdit(act)} className="text-blue-600 hover:text-blue-800 text-sm mr-3 font-medium">Edit</button>
+                                                    <button onClick={() => handleDelete(act.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">Hapus</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                )
+                            })}
                             {activities.length === 0 && (
                                 <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Belum ada data aktivitas</td></tr>
                             )}

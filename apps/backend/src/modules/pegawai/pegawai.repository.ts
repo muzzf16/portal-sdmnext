@@ -9,6 +9,8 @@ const parseJsonFields = (rows: any[]) => {
     workHistory: row.workHistory ? JSON.parse(row.workHistory) : [],
     trainingCertificates: row.trainingCertificates ? JSON.parse(row.trainingCertificates) : [],
     payrollInfo: row.payrollInfo ? JSON.parse(row.payrollInfo) : { baseSalary: 0, incomes: [], deductions: [] },
+    position: row.jabatanNama || row.position, // Override the out-of-sync string column with the actual foreign key value
+    department: row.jabatanDepartment || row.department,
   }));
 };
 

@@ -117,13 +117,9 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                 }
 
                 if (wlaData) {
-                    // If WLA record exists but has empty position/department, fill from employee profile
-                    if (!wlaData.position || wlaData.position.trim() === '') {
-                        wlaData.position = empPosition;
-                    }
-                    if (!wlaData.department || wlaData.department.trim() === '') {
-                        wlaData.department = empDepartment;
-                    }
+                    // Always sync with current profile to prevent discrepancies like "Staf KREDIT" vs "Staf Adm Kredit"
+                    if (empPosition) wlaData.position = empPosition;
+                    if (empDepartment) wlaData.department = empDepartment;
                     reset(wlaData);
                 } else {
                     // No WLA record, just set position/department from employee profile

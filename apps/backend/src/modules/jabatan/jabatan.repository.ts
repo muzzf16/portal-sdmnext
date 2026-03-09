@@ -52,12 +52,16 @@ export const JabatanRepository = {
     async getTreeWithEmployees() {
         const db = await openDb();
         const allJabatan = await db.all('SELECT * FROM jabatan ORDER BY level ASC, nama ASC');
-        const allPegawai = await db.all(`
+        const allPegawaiRaw = await db.all(`
       SELECT id, name, nip, position, department, avatarUrl, jabatan_id, atasan_id
       FROM pegawai
       WHERE isActive = 1
       ORDER BY name ASC
     `);
+        const allPegawai = allPegawaiRaw.map(p => ({
+            ...p,
+            avatarUrl: p.avatarUrl ? p.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '') : p.avatarUrl
+        }));
 
         const buildTree = (parentId: number | null): any[] => {
             return allJabatan
@@ -86,7 +90,10 @@ export const JabatanRepository = {
              WHERE j.parent_id = ? AND p.isActive = 1`,
             supervisor.jabatan_id
         );
-        return direct;
+        return direct.map(p => ({
+            ...p,
+            avatarUrl: p.avatarUrl ? p.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '') : p.avatarUrl
+        }));
     },
 
     // Get all subordinates recursively
@@ -109,7 +116,10 @@ export const JabatanRepository = {
             // To prevent duplicate queries for the same jabatan if multiple pegawais share the same jabatan
             const uniqueChildJabatanIds = [...new Set(subs.map(s => s.child_jabatan_id))];
 
-            result.push(...subs);
+            result.push(...subs.map(p => ({
+                ...p,
+                avatarUrl: p.avatarUrl ? p.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '') : p.avatarUrl
+            })));
 
             for (const childJabId of uniqueChildJabatanIds) {
                 await fetchSubs(childJabId);
