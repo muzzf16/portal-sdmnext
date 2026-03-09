@@ -138,9 +138,9 @@ const ManajemenKinerjaPage: React.FC = () => {
     const currentTab = visibleTabs.find(t => t.id === activeTab) || visibleTabs[0];
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen print:min-h-0 print:h-auto">
             {/* Header */}
-            <div className="mb-6">
+            <div className="mb-6 print:hidden">
                 <h1 className="text-2xl font-bold text-gray-900">📊 Manajemen Kinerja</h1>
                 <p className="text-sm text-gray-500 mt-1">
                     Kelola penilaian kinerja, beban kerja, dan target KPI dalam satu halaman.
@@ -148,7 +148,7 @@ const ManajemenKinerjaPage: React.FC = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div className="border-b border-gray-200 mb-6">
+            <div className="border-b border-gray-200 mb-6 print:hidden">
                 <nav className="-mb-px flex space-x-1 overflow-x-auto" aria-label="Tabs">
                     {visibleTabs.map(tab => {
                         const isActive = currentTab?.id === tab.id;
