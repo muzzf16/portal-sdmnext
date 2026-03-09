@@ -167,7 +167,7 @@ const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100">
+    <div className="flex h-screen print:h-auto bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100">
       {/* ═══ Sidebar ═══ */}
       <aside
         className={clsx(
@@ -257,8 +257,9 @@ const DashboardLayout: React.FC = () => {
       {/* ═══ Main Content Area ═══ */}
       <div
         className={clsx(
-          'flex-1 flex flex-col transition-all duration-300 ease-smooth min-h-screen',
-          isSidebarOpen ? 'ml-64' : 'ml-[68px]'
+          'flex-1 flex flex-col transition-all duration-300 ease-smooth min-h-screen print:min-h-0 print:h-auto',
+          isSidebarOpen ? 'ml-64' : 'ml-[68px]',
+          'print:ml-0 print:w-full'
         )}
       >
         {/* ─── Header ─── */}
@@ -358,7 +359,7 @@ const DashboardLayout: React.FC = () => {
         </header>
 
         {/* ─── Main Content ─── */}
-        <main className="flex-1 p-6 overflow-y-auto animate-fadeIn">
+        <main className="flex-1 p-6 print:p-0 overflow-y-auto print:overflow-visible animate-fadeIn">
           <Outlet />
         </main>
       </div>
