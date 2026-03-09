@@ -3,6 +3,7 @@ import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
 import { getAdminLogAktivitasSummaryWla, getAdminDetailLogsWla, updateLogAktivitasStatusWla } from '../api/logAktivitasHarianApi';
+import { getEmployees } from '../../../shared/services/employeeAPI';
 import { AdminWlaSummary } from '../types';
 import clsx from 'clsx';
 
@@ -17,6 +18,10 @@ const AdminWlaSummaryPage: React.FC = () => {
     const [detailLogs, setDetailLogs] = useState<Record<string, any[]>>({});
     const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
     const [updatingId, setUpdatingId] = useState<number | null>(null);
+    const [directorNames, setDirectorNames] = useState({
+        direkturUtama: 'Nama Lengkap & Tandatangan',
+        direkturYmfk: 'Nama Lengkap & Tandatangan'
+    });
 
     const fetchSummary = async () => {
         setLoading(true);
@@ -37,6 +42,25 @@ const AdminWlaSummaryPage: React.FC = () => {
         setExpandedEmployee(null);
         setDetailLogs({});
     }, [startDate, endDate]);
+
+    useEffect(() => {
+        const fetchDirectors = async () => {
+            try {
+                const res = await getEmployees();
+                const employees = (res.data || res || []) as any[];
+                const dirUtama = employees.find((e) => e.position?.toLowerCase() === 'direktur utama' || e.jabatan?.toLowerCase() === 'direktur utama');
+                const dirYmfk = employees.find((e) => e.position?.toLowerCase() === 'direktur ymfk' || e.jabatan?.toLowerCase() === 'direktur ymfk');
+
+                setDirectorNames({
+                    direkturUtama: dirUtama ? (dirUtama.name || dirUtama.nama_lengkap) : 'Nama Lengkap & Tandatangan',
+                    direkturYmfk: dirYmfk ? (dirYmfk.name || dirYmfk.nama_lengkap) : 'Nama Lengkap & Tandatangan'
+                });
+            } catch (err) {
+                console.error("Gagal mengambil data direktur:", err);
+            }
+        };
+        fetchDirectors();
+    }, []);
 
     const EFFECTIVE_WORKING_MINUTES = 480;
 
@@ -190,10 +214,18 @@ const AdminWlaSummaryPage: React.FC = () => {
                                 />
                             </div>
                         </div>
-                        <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-white shadow-sm" onClick={handleExport}>
-                            <Download className="w-4 h-4 mr-2" />
-                            Export CSV
-                        </Button>
+                        <div className="flex space-x-2">
+                            <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-white shadow-sm" onClick={handleExport}>
+                                <Download className="w-4 h-4 mr-2" />
+                                Export CSV
+                            </Button>
+                            <Button variant="outline" className="border-gray-300 text-indigo-700 hover:bg-indigo-50 bg-white shadow-sm" onClick={() => window.print()}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                Save to PDF / Print
+                            </Button>
+                        </div>
                     </div>
 
                     {error && (
@@ -394,7 +426,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                             <strong>Direktur Utama</strong>
                         </p>
                         <div className="w-48 border-b-2 border-gray-800"></div>
-                        <p className="text-xs text-gray-500 mt-2">Nama Lengkap & Tandatangan</p>
+                        <p className="text-sm font-bold text-gray-800 mt-2">{directorNames.direkturUtama}</p>
                     </div>
 
                     <div className="w-1/3 flex flex-col items-center">
@@ -403,7 +435,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                             <strong>Direktur YMFK</strong>
                         </p>
                         <div className="w-48 border-b-2 border-gray-800"></div>
-                        <p className="text-xs text-gray-500 mt-2">Nama Lengkap & Tandatangan</p>
+                        <p className="text-sm font-bold text-gray-800 mt-2">{directorNames.direkturYmfk}</p>
                     </div>
                 </div>
             </div>
