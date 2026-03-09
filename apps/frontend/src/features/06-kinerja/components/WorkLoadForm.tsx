@@ -6,6 +6,7 @@ import { saveWorkloadAnalysis, getWorkloadAnalysis } from '../api/workloadApi';
 import { getActivityByPosition, createActivity } from '../api/activityLibraryApi';
 import { getPegawaiById } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 // Constants for calculation
 const DAYS_IN_YEAR = 264;
@@ -40,6 +41,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     });
 
     const { addToast } = useToast();
+    const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [libraryActivities, setLibraryActivities] = useState<ActivityLibraryItem[]>([]);
 
@@ -55,6 +57,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
     // Watch items to calculate total
     const items = watch('items') || [];
+    const savedId = watch('id');
 
     // Fetch library activities when position changes
     useEffect(() => {
@@ -202,6 +205,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     const grandTotalHours = (totalMinutes / 60).toFixed(2);
     const BebanKerjaHarian = (totalMinutes / DAYS_IN_YEAR / 60).toFixed(2); // Jam per hari
 
+    const isReadOnly = !!savedId && user?.role !== 'admin';
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -252,24 +256,26 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                                 <tr key={item.id}>
                                     <td className="px-3 py-2">{index + 1}</td>
                                     <td className="px-3 py-2">
-                                        <input {...register(`items.${index}.activityName` as const, { required: true })} className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-1" placeholder="Nama aktivitas" />
+                                        <input {...register(`items.${index}.activityName` as const, { required: true })} disabled={isReadOnly} className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-1 disabled:bg-gray-100 disabled:text-gray-600" placeholder="Nama aktivitas" />
                                     </td>
                                     <td className="px-3 py-2">
-                                        <input type="number" min="0" {...register(`items.${index}.durationMinutes` as const, { valueAsNumber: true })} className="w-16 text-center border-gray-300 rounded-md shadow-sm sm:text-sm border p-1" />
+                                        <input type="number" min="0" {...register(`items.${index}.durationMinutes` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-16 text-center border-gray-300 rounded-md shadow-sm sm:text-sm border p-1 disabled:bg-gray-100 disabled:text-gray-600" />
                                     </td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqDaily` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqWeekly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqMonthly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqQuarterly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqSemester` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqYearly` as const, { valueAsNumber: true })} className="w-12 text-center border-gray-300 rounded-md border p-1" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqDaily` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqWeekly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqMonthly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqQuarterly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqSemester` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqYearly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
                                     <td className="px-3 py-2 text-right font-mono text-gray-900 font-medium bg-gray-50">
                                         {rowTotal.toLocaleString()}
                                     </td>
                                     <td className="px-3 py-2 text-center">
-                                        <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
-                                            &times;
-                                        </button>
+                                        {!isReadOnly && (
+                                            <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
+                                                &times;
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -298,39 +304,41 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                 </table>
 
                 <div className="mt-4 flex justify-between items-start gap-4 flex-wrap">
-                    <div className="flex gap-2 items-center">
-                        <button type="button" onClick={() => setShowAddActivity(!showAddActivity)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow-sm transition-colors">
-                            {showAddActivity ? '- Batal Tambah Baris' : '+ Tambah Baris'}
-                        </button>
-                        {libraryActivities.length > 0 && (
-                            <select
-                                onChange={(e) => {
-                                    const act = libraryActivities.find(a => a.id === e.target.value);
-                                    if (act) {
-                                        append({
-                                            activityId: act.id,
-                                            activityName: act.activityName,
-                                            outputUnit: act.outputUnit,
-                                            durationMinutes: act.durationMinutes,
-                                            freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0
-                                        });
-                                        e.target.value = '';
-                                    }
-                                }}
-                                className="border border-green-500 text-green-700 rounded px-3 py-2 text-sm bg-green-50 hover:bg-green-100"
-                                defaultValue=""
-                            >
-                                <option value="" disabled>📚 Pilih dari Library ({position})</option>
-                                {libraryActivities.map((act, idx) => (
-                                    <option key={act.id || `act-${idx}`} value={act.id || idx}>{act.activityName} ({act.durationMinutes} mnt)</option>
-                                ))}
-                            </select>
-                        )}
-                    </div>
+                    {!isReadOnly && (
+                        <div className="flex gap-2 items-center">
+                            <button type="button" onClick={() => setShowAddActivity(!showAddActivity)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow-sm transition-colors">
+                                {showAddActivity ? '- Batal Tambah Baris' : '+ Tambah Baris'}
+                            </button>
+                            {libraryActivities.length > 0 && (
+                                <select
+                                    onChange={(e) => {
+                                        const act = libraryActivities.find(a => a.id === e.target.value);
+                                        if (act) {
+                                            append({
+                                                activityId: act.id,
+                                                activityName: act.activityName,
+                                                outputUnit: act.outputUnit,
+                                                durationMinutes: act.durationMinutes,
+                                                freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0
+                                            });
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                    className="border border-green-500 text-green-700 rounded px-3 py-2 text-sm bg-green-50 hover:bg-green-100"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled>📚 Pilih dari Library ({position})</option>
+                                    {libraryActivities.map((act, idx) => (
+                                        <option key={act.id || `act-${idx}`} value={act.id || idx}>{act.activityName} ({act.durationMinutes} mnt)</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Inline Add Activity Form */}
-                {showAddActivity && (
+                {showAddActivity && !isReadOnly && (
                     <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg shadow-inner p-6">
                         <h4 className="text-md font-bold text-blue-900 mb-3">Tambah Aktivitas Baru ke Library</h4>
                         <p className="text-xs text-blue-700 mb-4">Aktivitas ini akan disimpan ke dalam Perpustakaan Aktivitas untuk posisi <strong>{position}</strong> dan otomatis ditambahkan ke form ABK Anda.</p>
@@ -401,14 +409,16 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                     </div>
                 )}
 
-                <div className="mt-6 flex justify-end items-start gap-4">
-                    <div className="space-x-2">
-                        <button type="button" className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">Draft</button>
-                        <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300">
-                            {isSubmitting ? 'Menyimpan...' : 'Simpan Laporan'}
-                        </button>
+                {!isReadOnly && (
+                    <div className="mt-6 flex justify-end items-start gap-4">
+                        <div className="space-x-2">
+                            <button type="button" className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">Draft</button>
+                            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300">
+                                {isSubmitting ? 'Menyimpan...' : 'Simpan Laporan'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </form>
     );
