@@ -29,7 +29,7 @@ export default class LogAktivitasHarianRepository {
     }>;
     static getByPegawaiAndDate(id_pegawai: string | number, tanggal: string): Promise<any[]>;
     static getSummaryByPegawai(id_pegawai: string | number, startDate: string, endDate: string): Promise<any>;
-    static getAllByDate(tanggal: string): Promise<any[]>;
+    static getAllByDate(tanggal: string, supervisorId?: string): Promise<any[]>;
     static updateStatus(id_log: number, status: 'approved' | 'rejected'): Promise<{
         id_log: number;
         status_approval: "approved" | "rejected";

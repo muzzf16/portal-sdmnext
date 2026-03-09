@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const permintaanCuti_repository_1 = require("./permintaanCuti.repository");
+const company_settings_repository_1 = require("../company-settings/company-settings.repository");
 const errors_1 = require("../../utils/errors");
 class CutiService {
     static async getAllPermintaanCuti(query) {
@@ -83,11 +84,16 @@ class CutiService {
                 const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
                 totalCutiDiambil += dayDiff;
             });
-            const jumlahJatahCuti = 18;
+            const companySettings = await (0, company_settings_repository_1.getCompanySettings)();
+            const jumlahJatahCuti = companySettings?.annualLeaveQuota || 12;
             const cutiBersama = [
-                { id: '1', tanggal: '2025-01-01', deskripsi: 'Tahun Baru' },
-                { id: '2', tanggal: '2025-05-01', deskripsi: 'Hari Buruh Internasional' },
-                { id: '3', tanggal: '2025-08-17', deskripsi: 'Hari Kemerdekaan RI' },
+                { id: '1', tanggal: '2026-01-01', deskripsi: 'Tahun Baru 2026' },
+                { id: '2', tanggal: '2026-03-31', deskripsi: 'Hari Raya Idul Fitri' },
+                { id: '3', tanggal: '2026-04-01', deskripsi: 'Cuti Bersama Idul Fitri' },
+                { id: '4', tanggal: '2026-05-01', deskripsi: 'Hari Buruh Internasional' },
+                { id: '5', tanggal: '2026-08-17', deskripsi: 'Hari Kemerdekaan RI' },
+                { id: '6', tanggal: '2026-12-25', deskripsi: 'Hari Natal' },
+                { id: '7', tanggal: '2026-12-26', deskripsi: 'Cuti Bersama Natal' },
             ];
             const currentYear = new Date().getFullYear();
             const cutiBersamaTahunIni = cutiBersama.filter(c => new Date(c.tanggal).getFullYear() === currentYear).length;
@@ -97,6 +103,7 @@ class CutiService {
                 cutiDiambil: totalCutiDiambil,
                 cutiBersama: cutiBersamaTahunIni,
                 sisaCuti: sisaCuti,
+                sumberJatah: companySettings ? 'company_settings' : 'default_uu13_2003',
             };
         }
         catch (error) {

@@ -14,6 +14,7 @@ declare class CutiService {
         cutiDiambil: number;
         cutiBersama: number;
         sisaCuti: number;
+        sumberJatah: string;
     }>;
 }
 export default CutiService;

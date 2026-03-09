@@ -10,7 +10,7 @@ class LogAktivitasHarianService {
         if (!payload.id_pegawai || !payload.id_activity_library || !payload.tanggal) {
             throw new Error('id_pegawai, id_activity_library, and tanggal are required');
         }
-        const activity = await activity_library_repository_1.ActivityLibraryRepository.findById(payload.id_activity_library.toString());
+        const activity = await activity_library_repository_1.ActivityLibraryRepository.findById(String(payload.id_activity_library));
         if (!activity) {
             throw new Error('Activity Library not found');
         }
@@ -34,7 +34,7 @@ class LogAktivitasHarianService {
         const validLogs = [];
         for (const log of logsData) {
             if (log.frekuensi > 0) {
-                const activity = allActivities.find(a => a.id.toString() === log.id_activity_library.toString());
+                const activity = allActivities.find(a => String(a.id) === String(log.id_activity_library));
                 if (activity) {
                     const total_durasi_terhitung = log.frekuensi * activity.durationMinutes;
                     validLogs.push({
@@ -60,8 +60,8 @@ class LogAktivitasHarianService {
     static async getSummary(id_pegawai, startDate, endDate) {
         return log_aktivitas_harian_repository_1.default.getSummaryByPegawai(id_pegawai, startDate, endDate);
     }
-    static async getAdminSummaryByDate(tanggal) {
-        return log_aktivitas_harian_repository_1.default.getAllByDate(tanggal);
+    static async getAdminSummaryByDate(tanggal, supervisorId) {
+        return log_aktivitas_harian_repository_1.default.getAllByDate(tanggal, supervisorId);
     }
     static async updateStatus(id_log, status) {
         return log_aktivitas_harian_repository_1.default.updateStatus(id_log, status);

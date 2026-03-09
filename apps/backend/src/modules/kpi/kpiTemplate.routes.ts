@@ -41,7 +41,8 @@ router.post('/apply', async (req: Request, res: Response, next: NextFunction) =>
         const { employeeId, period, department, templateIds } = req.body;
 
         if (!employeeId || !period) {
-            return res.status(400).json({ success: false, message: 'employeeId dan period wajib diisi' });
+            res.status(400).json({ success: false, message: 'employeeId dan period wajib diisi' });
+            return;
         }
 
         const db = await openDb();
@@ -60,11 +61,13 @@ router.post('/apply', async (req: Request, res: Response, next: NextFunction) =>
                 department
             );
         } else {
-            return res.status(400).json({ success: false, message: 'Pilih department atau templateIds' });
+            res.status(400).json({ success: false, message: 'Pilih department atau templateIds' });
+            return;
         }
 
         if (templates.length === 0) {
-            return res.status(404).json({ success: false, message: 'Template tidak ditemukan' });
+            res.status(404).json({ success: false, message: 'Template tidak ditemukan' });
+            return;
         }
 
         // Check existing KPIs for this employee+period to avoid duplicates

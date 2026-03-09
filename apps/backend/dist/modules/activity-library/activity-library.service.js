@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const activity_library_repository_1 = require("./activity-library.repository");
+const jabatan_repository_1 = require("../jabatan/jabatan.repository");
 const errors_1 = require("../../utils/errors");
 class ActivityLibraryService {
     static async getAll(filters) {
@@ -39,7 +40,19 @@ class ActivityLibraryService {
             throw new errors_1.AppError('activityName and position are required', 400);
         }
         try {
-            return await activity_library_repository_1.ActivityLibraryRepository.create(data);
+            if (data.position === 'Semua Jabatan') {
+                const allJabatan = await jabatan_repository_1.JabatanRepository.findAll();
+                const createdActivities = [];
+                for (const jab of allJabatan) {
+                    const newData = { ...data, position: jab.nama, department: jab.department };
+                    const created = await activity_library_repository_1.ActivityLibraryRepository.create(newData);
+                    createdActivities.push(created);
+                }
+                return createdActivities[0];
+            }
+            else {
+                return await activity_library_repository_1.ActivityLibraryRepository.create(data);
+            }
         }
         catch (error) {
             throw new errors_1.AppError(`Error creating activity: ${error.message}`, 500);

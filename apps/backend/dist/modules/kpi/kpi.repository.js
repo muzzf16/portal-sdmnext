@@ -42,8 +42,8 @@ exports.KpiRepository = {
         const db = await (0, db_1.openDb)();
         const id = data.id || `kpi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const now = new Date().toISOString();
-        await db.run(`INSERT INTO kpi_targets (id, employeeId, period, kpiName, targetValue, targetUnit, weight, actualValue, score, status, source, abkActivityId, notes, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, data.employeeId, data.period, data.kpiName, data.targetValue || 0, data.targetUnit || '', data.weight || 0, data.actualValue || 0, data.score || 0, data.status || 'active', data.source || 'manual', data.abkActivityId || null, data.notes || '', now, now);
+        await db.run(`INSERT INTO kpi_targets (id, employeeId, period, kpiName, targetValue, targetUnit, weight, actualValue, score, status, source, category, abkActivityId, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, data.employeeId, data.period, data.kpiName, data.targetValue || 0, data.targetUnit || '', data.weight || 0, data.actualValue || 0, data.score || 0, data.status || 'active', data.source || 'manual', data.category || 'process', data.abkActivityId || null, data.notes || '', now, now);
         return this.findById(id);
     },
     async update(id, data) {
@@ -51,7 +51,7 @@ exports.KpiRepository = {
         const now = new Date().toISOString();
         const fields = [];
         const values = [];
-        const allowedFields = ['kpiName', 'targetValue', 'targetUnit', 'weight', 'actualValue', 'score', 'status', 'source', 'abkActivityId', 'notes'];
+        const allowedFields = ['kpiName', 'targetValue', 'targetUnit', 'weight', 'actualValue', 'score', 'status', 'source', 'category', 'abkActivityId', 'notes'];
         for (const field of allowedFields) {
             if (data[field] !== undefined) {
                 fields.push(`${field} = ?`);

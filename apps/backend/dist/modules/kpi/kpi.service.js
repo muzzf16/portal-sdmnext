@@ -70,6 +70,21 @@ class KpiService {
             data.score = this.calculateScore(data.targetValue, data.actualValue, data.targetUnit || '');
         }
         try {
+            if ((!data.source || data.source === 'manual') && !data.abkActivityId) {
+                const db = await (0, db_1.openDb)();
+                const cleanName = data.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
+                let match = await db.get('SELECT id FROM activity_library WHERE LOWER(activityName) = LOWER(?) LIMIT 1', cleanName);
+                if (!match) {
+                    const activityId = `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const now = new Date().toISOString();
+                    await db.run(`INSERT INTO activity_library (id, position, department, activityName, durationMinutes, outputUnit, category, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, activityId, 'Semua Jabatan', '', cleanName, 60, data.targetUnit === 'jumlah' ? 'Kali' : (data.targetUnit || 'Selesai'), 'Tugas Khusus KPI', now);
+                    data.abkActivityId = activityId;
+                }
+                else {
+                    data.abkActivityId = match.id;
+                }
+            }
             return await kpi_repository_1.KpiRepository.create(data);
         }
         catch (error) {
@@ -203,6 +218,7 @@ class KpiService {
                     weight,
                     status: 'active',
                     source: 'abk',
+                    category: 'process',
                     abkActivityId: abkActivityId,
                     notes: `Auto-generated dari ABK. Durasi standar: ${item.durationMinutes} menit.`
                 });
@@ -243,16 +259,13 @@ class KpiService {
                     }
                 }
                 if (!activityId) {
-                    results.push({
-                        kpiId: kpi.id,
-                        kpiName: kpi.kpiName,
-                        targetValue: kpi.targetValue,
-                        actualValue: kpi.actualValue || 0,
-                        score: kpi.score || 0,
-                        skipped: true,
-                        reason: 'Tidak ditemukan aktivitas yang cocok di Activity Library'
-                    });
-                    continue;
+                    const cleanName = kpi.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
+                    const newId = `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const now = new Date().toISOString();
+                    await db.run(`INSERT INTO activity_library (id, position, department, activityName, durationMinutes, outputUnit, category, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, newId, 'Semua Jabatan', '', cleanName, 60, kpi.targetUnit === 'jumlah' ? 'Kali' : (kpi.targetUnit || 'Selesai'), 'Tugas Khusus KPI', now);
+                    activityId = newId;
+                    await db.run('UPDATE kpi_targets SET abkActivityId = ?, updated_at = ? WHERE id = ?', activityId, now, kpi.id);
                 }
                 const row = await db.get(`SELECT 
                         COALESCE(SUM(l.frekuensi), 0) as total_frekuensi,

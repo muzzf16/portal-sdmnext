@@ -25,7 +25,7 @@ export default class LogAktivitasHarianService {
     }>;
     static getMyLogs(id_pegawai: string | number, tanggal: string): Promise<any[]>;
     static getSummary(id_pegawai: string | number, startDate: string, endDate: string): Promise<any>;
-    static getAdminSummaryByDate(tanggal: string): Promise<any[]>;
+    static getAdminSummaryByDate(tanggal: string, supervisorId?: string): Promise<any[]>;
     static updateStatus(id_log: number, status: 'approved' | 'rejected'): Promise<{
         id_log: number;
         status_approval: "approved" | "rejected";

@@ -45,12 +45,16 @@ exports.JabatanRepository = {
     async getTreeWithEmployees() {
         const db = await (0, db_1.openDb)();
         const allJabatan = await db.all('SELECT * FROM jabatan ORDER BY level ASC, nama ASC');
-        const allPegawai = await db.all(`
+        const allPegawaiRaw = await db.all(`
       SELECT id, name, nip, position, department, avatarUrl, jabatan_id, atasan_id
       FROM pegawai
       WHERE isActive = 1
       ORDER BY name ASC
     `);
+        const allPegawai = allPegawaiRaw.map(p => ({
+            ...p,
+            avatarUrl: p.avatarUrl ? p.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '') : p.avatarUrl
+        }));
         const buildTree = (parentId) => {
             return allJabatan
                 .filter(j => j.parent_id === parentId)
@@ -64,21 +68,48 @@ exports.JabatanRepository = {
     },
     async getSubordinates(pegawaiId) {
         const db = await (0, db_1.openDb)();
-        const direct = await db.all('SELECT id, name, nip, position, department, avatarUrl, jabatan_id, atasan_id FROM pegawai WHERE atasan_id = ? AND isActive = 1', pegawaiId);
-        return direct;
+        const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', pegawaiId);
+        if (!supervisor || !supervisor.jabatan_id)
+            return [];
+        const direct = await db.all(`SELECT p.id, p.name, p.nip, p.position, p.department, p.avatarUrl, p.jabatan_id, p.atasan_id 
+             FROM pegawai p
+             JOIN jabatan j ON p.jabatan_id = j.id
+             WHERE j.parent_id = ? AND p.isActive = 1`, supervisor.jabatan_id);
+        return direct.map(p => ({
+            ...p,
+            avatarUrl: p.avatarUrl ? p.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '') : p.avatarUrl
+        }));
     },
     async getAllSubordinates(pegawaiId) {
         const db = await (0, db_1.openDb)();
+        const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', pegawaiId);
+        if (!supervisor || !supervisor.jabatan_id)
+            return [];
         const result = [];
-        const fetchSubs = async (id) => {
-            const subs = await db.all('SELECT id, name, nip, position, department, avatarUrl, jabatan_id, atasan_id FROM pegawai WHERE atasan_id = ? AND isActive = 1', id);
-            for (const sub of subs) {
-                result.push(sub);
-                await fetchSubs(sub.id);
+        const fetchSubs = async (jabatanId) => {
+            const subs = await db.all(`SELECT p.id, p.name, p.nip, p.position, p.department, p.avatarUrl, p.jabatan_id, p.atasan_id, j.id as child_jabatan_id 
+                 FROM pegawai p
+                 JOIN jabatan j ON p.jabatan_id = j.id
+                 WHERE j.parent_id = ? AND p.isActive = 1`, jabatanId);
+            const uniqueChildJabatanIds = [...new Set(subs.map(s => s.child_jabatan_id))];
+            result.push(...subs.map(p => ({
+                ...p,
+                avatarUrl: p.avatarUrl ? p.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '') : p.avatarUrl
+            })));
+            for (const childJabId of uniqueChildJabatanIds) {
+                await fetchSubs(childJabId);
             }
         };
-        await fetchSubs(pegawaiId);
-        return result;
+        await fetchSubs(supervisor.jabatan_id);
+        const uniquePegawaiIds = new Set();
+        const distinctResult = [];
+        for (const emp of result) {
+            if (!uniquePegawaiIds.has(emp.id)) {
+                uniquePegawaiIds.add(emp.id);
+                distinctResult.push(emp);
+            }
+        }
+        return distinctResult;
     },
     async create(data) {
         const db = await (0, db_1.openDb)();

@@ -6,11 +6,25 @@ const parseJsonFields = (rows) => {
     return rows.map(row => ({
         ...row,
         kpis: row.kpis ? JSON.parse(row.kpis) : [],
+        selfAssessmentKpis: row.selfAssessmentKpis ? JSON.parse(row.selfAssessmentKpis) : null,
     }));
 };
 exports.PenilaianKinerjaRepository = {
-    async findAll() {
+    async findAll(supervisorId) {
         const db = await (0, db_1.openDb)();
+        if (supervisorId) {
+            const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', supervisorId);
+            if (!supervisor || !supervisor.jabatan_id)
+                return [];
+            const rows = await db.all(`
+        SELECT pk.* 
+        FROM penilaian_kinerja pk
+        JOIN pegawai p ON pk.employeeId = p.id
+        JOIN jabatan j ON p.jabatan_id = j.id
+        WHERE j.parent_id = ?
+      `, supervisor.jabatan_id);
+            return parseJsonFields(rows);
+        }
         const rows = await db.all('SELECT * FROM penilaian_kinerja');
         return parseJsonFields(rows);
     },
@@ -109,6 +123,42 @@ exports.PenilaianKinerjaRepository = {
       ORDER BY reviewDate ASC
     `);
         return parseJsonFields(rows);
+    },
+    async submitSelfAssessment(id, data) {
+        const db = await (0, db_1.openDb)();
+        const saKpis = data.selfAssessmentKpis || [];
+        let selfScore = 0;
+        if (saKpis.length > 0) {
+            const totalWeight = saKpis.reduce((sum, k) => sum + (k.weight || 1), 0);
+            const weightedScore = saKpis.reduce((sum, k) => {
+                const w = k.weight || 1;
+                return sum + ((k.selfScore || 0) * w);
+            }, 0);
+            selfScore = totalWeight > 0
+                ? parseFloat((weightedScore / totalWeight).toFixed(2))
+                : 0;
+        }
+        const selfAssessmentDate = data.selfAssessmentStatus === 'submitted' ? new Date().toISOString() : null;
+        const result = await db.run(`UPDATE penilaian_kinerja SET 
+        selfAssessmentScore = ?,
+        selfAssessmentKpis = ?,
+        selfAssessmentStrengths = ?,
+        selfAssessmentAreas = ?,
+        selfAssessmentDate = COALESCE(?, selfAssessmentDate),
+        selfAssessmentStatus = ?
+      WHERE id = ?`, [
+            selfScore,
+            JSON.stringify(saKpis),
+            data.selfAssessmentStrengths || null,
+            data.selfAssessmentAreas || null,
+            selfAssessmentDate,
+            data.selfAssessmentStatus,
+            id
+        ]);
+        if (result.changes === 0)
+            throw new Error('Performance review not found');
+        const updatedRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id);
+        return parseJsonFields([updatedRow])[0];
     }
 };
 //# sourceMappingURL=penilaianKinerja.repository.js.map

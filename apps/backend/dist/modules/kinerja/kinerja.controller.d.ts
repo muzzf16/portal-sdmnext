@@ -7,6 +7,8 @@ declare class KinerjaController {
     static updatePenilaianKinerja(req: Request, res: Response, next: NextFunction): Promise<void>;
     static addFeedbackKinerja(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
     static deletePenilaianKinerja(req: Request, res: Response, next: NextFunction): Promise<void>;
+    static submitSelfAssessment(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
+    static transitionStatus(req: Request, res: Response, next: NextFunction): Promise<void | Response<any, Record<string, any>>>;
 }
 export default KinerjaController;
 //# sourceMappingURL=kinerja.controller.d.ts.map

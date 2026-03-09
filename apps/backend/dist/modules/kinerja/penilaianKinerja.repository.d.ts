@@ -1,5 +1,5 @@
 export declare const PenilaianKinerjaRepository: {
-    findAll(): Promise<any[]>;
+    findAll(supervisorId?: string): Promise<any[]>;
     findById(id: string): Promise<any>;
     findByEmployeeId(employeeId: string): Promise<any[]>;
     create(data: any): Promise<any>;
@@ -9,5 +9,11 @@ export declare const PenilaianKinerjaRepository: {
     }>;
     delete(id: string): Promise<boolean>;
     findUpcomingReviews(): Promise<any[]>;
+    submitSelfAssessment(id: string, data: {
+        selfAssessmentKpis: any[];
+        selfAssessmentStrengths: string;
+        selfAssessmentAreas: string;
+        selfAssessmentStatus: "draft" | "submitted";
+    }): Promise<any>;
 };
 //# sourceMappingURL=penilaianKinerja.repository.d.ts.map

@@ -12,6 +12,8 @@ router.get('/:id', kinerja_controller_1.default.getPenilaianKinerjaById);
 router.post('/', kinerja_controller_1.default.createPenilaianKinerja);
 router.put('/:id', kinerja_controller_1.default.updatePenilaianKinerja);
 router.put('/:id/feedback', kinerja_controller_1.default.addFeedbackKinerja);
+router.put('/:id/self-assessment', kinerja_controller_1.default.submitSelfAssessment);
+router.put('/:id/transition', kinerja_controller_1.default.transitionStatus);
 router.delete('/:id', kinerja_controller_1.default.deletePenilaianKinerja);
 exports.default = router;
 //# sourceMappingURL=kinerja.routes.js.map
