@@ -254,8 +254,8 @@ const AdminWlaSummaryPage: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                        <table className="w-full text-sm text-left align-middle">
+                    <div className="overflow-x-auto print:overflow-visible rounded-lg border border-gray-200 print:border-none">
+                        <table className="w-full text-sm text-left align-middle print:w-full print:table-fixed">
                             <thead className="bg-gray-50 text-gray-700 uppercase font-medium text-xs">
                                 <tr>
                                     <th className="px-6 py-4 border-b">Karyawan</th>
@@ -295,7 +295,7 @@ const AdminWlaSummaryPage: React.FC = () => {
 
                                         return (
                                             <React.Fragment key={s.id_pegawai || idx}>
-                                                <tr className="hover:bg-indigo-50/30 transition-colors">
+                                                <tr className="hover:bg-indigo-50/30 transition-colors print:break-inside-avoid">
                                                     <td className="px-6 py-4">
                                                         <div className="font-semibold text-gray-900">{s.nama_lengkap}</div>
                                                         <div className="text-xs text-gray-500">NIP: {s.nip}</div>
@@ -438,7 +438,7 @@ const AdminWlaSummaryPage: React.FC = () => {
             </Card>
 
             {/* Signature Footer */}
-            <div className="mt-20 pt-8 border-t border-gray-200 print:mt-16 print:border-t-0 hidden lg:block print:block">
+            <div className="mt-20 pt-8 border-t border-gray-200 print:mt-16 print:border-t-0 hidden lg:block print:block print:break-inside-avoid">
                 <div className="text-center text-sm font-semibold text-gray-800 mb-12">
                     Mengetahui
                 </div>
