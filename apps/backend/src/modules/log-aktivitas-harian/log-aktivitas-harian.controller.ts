@@ -120,11 +120,19 @@ export default class LogAktivitasHarianController {
     static async getAdminLogs(req: AuthRequest, res: Response, next: NextFunction) {
         try {
             const tanggal = req.query.tanggal as string;
+            const startDate = req.query.startDate as string;
+            const endDate = req.query.endDate as string;
             const id_pegawai = req.query.id_pegawai as string;
-            if (!tanggal || !id_pegawai) {
-                return res.status(400).json({ success: false, message: 'tanggal and id_pegawai are required' });
+
+            // Allow querying by specific tanggal OR by range (startDate, endDate)
+            if ((!tanggal && (!startDate || !endDate)) || !id_pegawai) {
+                return res.status(400).json({ success: false, message: 'tanggal OR (startDate & endDate) and id_pegawai are required' });
             }
-            const data = await LogAktivitasHarianService.getMyLogs(id_pegawai, tanggal);
+
+            const queryStartDate = startDate || tanggal;
+            const queryEndDate = endDate || tanggal;
+
+            const data = await LogAktivitasHarianService.getMyLogs(id_pegawai, queryStartDate, queryEndDate);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);
@@ -134,16 +142,22 @@ export default class LogAktivitasHarianController {
     static async getAdminSummary(req: AuthRequest, res: Response, next: NextFunction) {
         try {
             const tanggal = req.query.tanggal as string;
-            if (!tanggal) {
-                return res.status(400).json({ success: false, message: 'tanggal is required' });
+            const startDate = req.query.startDate as string;
+            const endDate = req.query.endDate as string;
+
+            if (!tanggal && (!startDate || !endDate)) {
+                return res.status(400).json({ success: false, message: 'tanggal OR (startDate & endDate) is required' });
             }
+
+            const queryStartDate = startDate || tanggal;
+            const queryEndDate = endDate || tanggal;
 
             let supervisorId: string | undefined = undefined;
             if (req.user?.role === 'supervisor') {
                 supervisorId = String(req.user?.employeeId || req.user?.id);
             }
 
-            const data = await LogAktivitasHarianService.getAdminSummaryByDate(tanggal, supervisorId);
+            const data = await LogAktivitasHarianService.getAdminSummaryByDateRange(queryStartDate, queryEndDate, supervisorId);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);

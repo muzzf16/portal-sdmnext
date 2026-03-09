@@ -10,7 +10,8 @@ const AdminWlaSummaryPage: React.FC = () => {
     const [summaries, setSummaries] = useState<AdminWlaSummary[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
     const [detailLogs, setDetailLogs] = useState<Record<string, any[]>>({});
@@ -21,7 +22,7 @@ const AdminWlaSummaryPage: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await getAdminLogAktivitasSummaryWla(selectedDate);
+            const res = await getAdminLogAktivitasSummaryWla(undefined, startDate, endDate);
             const fetchedData = res?.data?.data || [];
             setSummaries(Array.isArray(fetchedData) ? fetchedData : []);
         } catch (err: any) {
@@ -35,12 +36,30 @@ const AdminWlaSummaryPage: React.FC = () => {
         fetchSummary();
         setExpandedEmployee(null);
         setDetailLogs({});
-    }, [selectedDate]);
+    }, [startDate, endDate]);
 
     const EFFECTIVE_WORKING_MINUTES = 480;
 
+    // Helper to calculate total working days (Mon-Fri) between two dates
+    const getWorkingDays = (start: string, end: string) => {
+        const startDateObj = new Date(start);
+        const endDateObj = new Date(end);
+        let count = 0;
+        let curDate = new Date(startDateObj.getTime());
+        while (curDate <= endDateObj) {
+            const dayOfWeek = curDate.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0=Sun, 6=Sat
+                count++;
+            }
+            curDate.setDate(curDate.getDate() + 1);
+        }
+        return count > 0 ? count : 1; // Fallback to 1 if same day weekend or invalid
+    };
+
+    const targetMinutes = EFFECTIVE_WORKING_MINUTES * getWorkingDays(startDate, endDate);
+
     const getFteStatus = (minutes: number) => {
-        const percentage = (minutes / EFFECTIVE_WORKING_MINUTES) * 100;
+        const percentage = (minutes / targetMinutes) * 100;
         if (percentage > 100) return { label: 'Overload', color: 'bg-red-100 text-red-800' };
         if (percentage >= 80) return { label: 'Optimal', color: 'bg-green-100 text-green-800' };
         return { label: 'Underload', color: 'bg-yellow-100 text-yellow-800' };
@@ -62,7 +81,7 @@ const AdminWlaSummaryPage: React.FC = () => {
             headers.join(','),
             ...filteredSummaries.map(s => {
                 const durasi = s.total_durasi_menit || 0;
-                const percent = Math.round((durasi / EFFECTIVE_WORKING_MINUTES) * 100);
+                const percent = Math.round((durasi / targetMinutes) * 100);
                 const status = getFteStatus(durasi).label;
                 return `"${s.nama_lengkap}","${s.nip}","${s.departemen}","${s.jabatan}","${s.jumlah_log}","${durasi}","${percent}%","${status}"`;
             })
@@ -72,7 +91,7 @@ const AdminWlaSummaryPage: React.FC = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `Rekap_WLA_${selectedDate}.csv`);
+        link.setAttribute('download', `Rekap_WLA_${startDate}_to_${endDate}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -89,7 +108,7 @@ const AdminWlaSummaryPage: React.FC = () => {
         if (!detailLogs[key]) {
             setDetailLoading(prev => ({ ...prev, [key]: true }));
             try {
-                const res = await getAdminDetailLogsWla(selectedDate, key);
+                const res = await getAdminDetailLogsWla(key, undefined, startDate, endDate);
                 setDetailLogs(prev => ({ ...prev, [key]: res?.data?.data || [] }));
             } catch {
                 setDetailLogs(prev => ({ ...prev, [key]: [] }));
@@ -104,7 +123,7 @@ const AdminWlaSummaryPage: React.FC = () => {
         try {
             await updateLogAktivitasStatusWla(logId, status);
             // Refresh detail logs for the employee
-            const res = await getAdminDetailLogsWla(selectedDate, employeeKey);
+            const res = await getAdminDetailLogsWla(employeeKey, undefined, startDate, endDate);
             setDetailLogs(prev => ({ ...prev, [employeeKey]: res?.data?.data || [] }));
             // Also refresh the summary row so duration/FTE updates automatically
             await fetchSummary();
@@ -138,17 +157,29 @@ const AdminWlaSummaryPage: React.FC = () => {
             <Card className="shadow-lg border-t-4 border-t-indigo-600">
                 <div className="p-6">
                     <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
-                        <div className="flex items-center space-x-3">
-                            <div className="relative">
-                                <label className="text-xs text-gray-500 absolute -top-2 left-2 bg-white px-1">Pilih Tanggal</label>
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="px-4 py-2 pt-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full md:w-48"
-                                />
+                        <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                            <div className="flex items-center space-x-2 w-full sm:w-auto">
+                                <div className="relative flex-1 sm:flex-none">
+                                    <label className="text-xs text-gray-500 absolute -top-2 left-2 bg-white px-1">Dari Tanggal</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="px-4 py-2 pt-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-40"
+                                    />
+                                </div>
+                                <span className="text-gray-500">-</span>
+                                <div className="relative flex-1 sm:flex-none">
+                                    <label className="text-xs text-gray-500 absolute -top-2 left-2 bg-white px-1">Sampai Tanggal</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="px-4 py-2 pt-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-40"
+                                    />
+                                </div>
                             </div>
-                            <div className="relative w-full md:w-64">
+                            <div className="relative w-full sm:w-64">
                                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <input
                                     type="text"
@@ -203,7 +234,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                                 ) : (
                                     filteredSummaries.map((s, idx) => {
                                         const durasi = s.total_durasi_menit || 0;
-                                        const percent = Math.round((durasi / EFFECTIVE_WORKING_MINUTES) * 100);
+                                        const percent = Math.round((durasi / targetMinutes) * 100);
                                         const status = getFteStatus(durasi);
                                         const key = String(s.id_pegawai);
                                         const isExpanded = expandedEmployee === key;
@@ -230,7 +261,10 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
                                                         {durasi > 0 ? (
-                                                            <div className="font-bold text-gray-900">{durasi} <span className="font-normal text-gray-500 text-xs text-center block">menit</span></div>
+                                                            <div className="font-bold text-gray-900 leading-tight">
+                                                                {durasi} <span className="font-normal text-gray-500 text-[11px]">menit</span><br />
+                                                                <span className="font-medium text-indigo-600 text-xs text-center block leading-tight">({(durasi / 60).toFixed(2).replace('.', ',')} jam)</span>
+                                                            </div>
                                                         ) : <span className="text-gray-400">-</span>}
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
@@ -269,7 +303,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                         <td colSpan={7} className="px-0 py-0 bg-indigo-50/40">
                                                             <div className="px-8 py-4 border-t border-indigo-100">
                                                                 <h4 className="text-sm font-semibold text-indigo-900 mb-3">
-                                                                    Detail Log Aktivitas — {s.nama_lengkap} ({selectedDate})
+                                                                    Detail Log Aktivitas — {s.nama_lengkap} ({startDate} s/d {endDate})
                                                                 </h4>
                                                                 {isDetailLoading ? (
                                                                     <div className="text-sm text-gray-500 py-4 text-center">Memuat detail...</div>
@@ -350,6 +384,29 @@ const AdminWlaSummaryPage: React.FC = () => {
                     </div>
                 </div>
             </Card>
+
+            {/* Signature Footer */}
+            <div className="mt-12 mb-8 pt-8 border-t border-gray-200 print:mt-16 print:border-t-0 hidden lg:block print:block">
+                <div className="flex justify-between items-center text-center px-8 sm:px-16 lg:px-32">
+                    <div className="w-1/3 flex flex-col items-center">
+                        <p className="text-sm text-gray-800 mb-20 whitespace-normal">
+                            Mengetahui,<br />
+                            <strong>Direktur Utama</strong>
+                        </p>
+                        <div className="w-48 border-b-2 border-gray-800"></div>
+                        <p className="text-xs text-gray-500 mt-2">Nama Lengkap & Tandatangan</p>
+                    </div>
+
+                    <div className="w-1/3 flex flex-col items-center">
+                        <p className="text-sm text-gray-800 mb-20 whitespace-normal">
+                            Mengetahui,<br />
+                            <strong>Direktur YMFK</strong>
+                        </p>
+                        <div className="w-48 border-b-2 border-gray-800"></div>
+                        <p className="text-xs text-gray-500 mt-2">Nama Lengkap & Tandatangan</p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

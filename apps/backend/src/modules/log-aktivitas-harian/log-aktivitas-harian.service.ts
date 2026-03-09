@@ -67,16 +67,17 @@ export default class LogAktivitasHarianService {
         return await LogAktivitasHarianRepository.createBulk(id_pegawai, tanggal, []);
     }
 
-    static async getMyLogs(id_pegawai: string | number, tanggal: string) {
-        return LogAktivitasHarianRepository.getByPegawaiAndDate(id_pegawai, tanggal);
+    static async getMyLogs(id_pegawai: string | number, startDate: string, endDate?: string) {
+        if (!endDate) endDate = startDate; // Fallback for backward compatibility
+        return LogAktivitasHarianRepository.getByPegawaiAndDateRange(id_pegawai, startDate, endDate);
     }
 
     static async getSummary(id_pegawai: string | number, startDate: string, endDate: string) {
         return LogAktivitasHarianRepository.getSummaryByPegawai(id_pegawai, startDate, endDate);
     }
 
-    static async getAdminSummaryByDate(tanggal: string, supervisorId?: string) {
-        return LogAktivitasHarianRepository.getAllByDate(tanggal, supervisorId);
+    static async getAdminSummaryByDateRange(startDate: string, endDate: string, supervisorId?: string) {
+        return LogAktivitasHarianRepository.getAllByDateRange(startDate, endDate, supervisorId);
     }
 
     static async updateStatus(id_log: number, status: 'approved' | 'rejected') {

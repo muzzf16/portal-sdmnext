@@ -48,16 +48,17 @@ export default class LogAktivitasHarianRepository {
         return { message: `${logs.length} logs inserted successfully`, changes: result.changes };
     }
 
-    static async getByPegawaiAndDate(id_pegawai: string | number, tanggal: string) {
+    static async getByPegawaiAndDateRange(id_pegawai: string | number, startDate: string, endDate: string) {
         const db = await openDb();
         return db.all(
             `SELECT l.*, a.activityName, a.durationMinutes, a.outputUnit, a.category 
              FROM log_aktivitas_harian l
              JOIN activity_library a ON l.id_activity_library = a.id
-             WHERE l.id_pegawai = ? AND l.tanggal = ?
-             ORDER BY l.created_at DESC`,
+             WHERE l.id_pegawai = ? AND l.tanggal >= ? AND l.tanggal <= ?
+             ORDER BY l.tanggal DESC, l.created_at DESC`,
             id_pegawai,
-            tanggal
+            startDate,
+            endDate
         );
     }
 
@@ -73,12 +74,12 @@ export default class LogAktivitasHarianRepository {
         );
     }
 
-    static async getAllByDate(tanggal: string, supervisorId?: string) {
+    static async getAllByDateRange(startDate: string, endDate: string, supervisorId?: string) {
         const db = await openDb();
 
         let supervisorJoin = '';
         let supervisorWhere = `WHERE p.isActive = 1 OR p.statusKaryawan = 'aktif'`;
-        const params: any[] = [tanggal];
+        const params: any[] = [startDate, endDate];
 
         if (supervisorId) {
             const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', supervisorId);
@@ -99,7 +100,7 @@ export default class LogAktivitasHarianRepository {
                 COUNT(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.id_log END) as jumlah_log
              FROM pegawai p
              ${supervisorJoin}
-             LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal = ?
+             LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal >= ? AND l.tanggal <= ?
              ${supervisorWhere}
              GROUP BY p.id
              ORDER BY p.department, p.name ASC`,

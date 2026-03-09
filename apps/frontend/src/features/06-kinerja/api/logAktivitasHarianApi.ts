@@ -40,11 +40,11 @@ export const getMyLogAktivitasWla = (tanggal: string, id_pegawai?: number) =>
 export const getLogAktivitasSummaryWla = (startDate: string, endDate: string, id_pegawai?: number) =>
     api.get('/log-aktivitas-harian/summary', { params: { startDate, endDate, id_pegawai } });
 
-export const getAdminLogAktivitasSummaryWla = (tanggal: string) =>
-    api.get('/log-aktivitas-harian/admin/summary', { params: { tanggal } });
+export const getAdminLogAktivitasSummaryWla = (tanggal?: string, startDate?: string, endDate?: string) =>
+    api.get('/log-aktivitas-harian/admin/summary', { params: { tanggal, startDate, endDate } });
 
-export const getAdminDetailLogsWla = (tanggal: string, id_pegawai: string) =>
-    api.get('/log-aktivitas-harian/admin/logs', { params: { tanggal, id_pegawai } });
+export const getAdminDetailLogsWla = (id_pegawai: string, tanggal?: string, startDate?: string, endDate?: string) =>
+    api.get('/log-aktivitas-harian/admin/logs', { params: { tanggal, startDate, endDate, id_pegawai } });
 
 export const updateLogAktivitasStatusWla = (id: number | string, status: 'approved' | 'rejected') =>
     api.put(`/log-aktivitas-harian/${id}/status`, { status });
