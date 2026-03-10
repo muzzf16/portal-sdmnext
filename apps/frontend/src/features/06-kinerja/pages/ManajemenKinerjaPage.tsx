@@ -89,7 +89,7 @@ const ManajemenKinerjaPage: React.FC = () => {
         },
         {
             id: 'log-wla',
-            label: 'Log WLA Harian',
+            label: 'Entry WLA Harian',
             icon: <BookOpen size={18} />,
             roles: ['admin', 'supervisor', 'employee'],
             component: (
