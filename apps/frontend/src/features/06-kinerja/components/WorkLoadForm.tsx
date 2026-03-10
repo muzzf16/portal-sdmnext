@@ -205,7 +205,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     const BebanKerjaHarian = (totalMinutes / DAYS_IN_YEAR / 60).toFixed(2); // Jam per hari
 
     const formStatus = watch('status');
-    const isReadOnly = formStatus === 'submitted' && user?.role !== 'admin';
+    const isReadOnly = formStatus === 'submitted';
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -409,6 +409,19 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                     </div>
                 )}
 
+                {isReadOnly && user?.role === 'admin' && (
+                    <div className="mt-6 flex justify-end items-start gap-4">
+                        <button
+                            type="button"
+                            onClick={() => { setValue('status', 'draft', { shouldValidate: true }); handleSubmit(onSubmit)(); }}
+                            disabled={isSubmitting}
+                            className="px-4 py-2 border border-red-300 text-red-600 bg-red-50 rounded hover:bg-red-100 font-medium transition-colors"
+                        >
+                            🔓 Buka Kunci Laporan (Kembalikan ke Draft)
+                        </button>
+                    </div>
+                )}
+
                 {!isReadOnly && (
                     <div className="mt-6 flex justify-end items-start gap-4">
                         <div className="space-x-2">
@@ -416,7 +429,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                                 type="button"
                                 onClick={() => { setValue('status', 'draft', { shouldValidate: true }); handleSubmit(onSubmit)(); }}
                                 disabled={isSubmitting}
-                                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+                                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 bg-white"
                             >
                                 Simpan Draft
                             </button>
