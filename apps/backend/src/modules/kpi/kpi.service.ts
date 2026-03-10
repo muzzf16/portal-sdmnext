@@ -282,7 +282,14 @@ export default class KpiService {
 
             const kpis = await KpiRepository.findByEmployeePeriod(employeeId, period);
             if (kpis.length === 0) {
-                throw new AppError('Tidak ada KPI target untuk pegawai dan periode ini.', 400);
+                return {
+                    synced: 0,
+                    skipped: 0,
+                    period,
+                    startDate,
+                    endDate,
+                    details: []
+                };
             }
 
             const db = await openDb();
