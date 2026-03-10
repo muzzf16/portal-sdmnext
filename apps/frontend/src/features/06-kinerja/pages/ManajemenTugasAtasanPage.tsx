@@ -7,6 +7,7 @@ import { Pegawai } from '../../01-pegawai/types';
 import { useToast } from '../../../app/providers/ToastContext';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
+import { emitRefresh } from '@/shared/hooks/useDataRefresh';
 
 const ManajemenTugasAtasanPage: React.FC = () => {
     const { user } = useAuth();
@@ -73,6 +74,7 @@ const ManajemenTugasAtasanPage: React.FC = () => {
 
             // Refresh table
             fetchData(user.employeeId);
+            emitRefresh('task');
         } catch (error) {
             console.error(error);
             addToast('Gagal membuat tugas', 'error');
@@ -87,6 +89,7 @@ const ManajemenTugasAtasanPage: React.FC = () => {
             await deleteTask(id);
             addToast('Tugas dihapus', 'success');
             if (user?.employeeId) fetchData(user.employeeId);
+            emitRefresh('task');
         } catch (error) {
             console.error(error);
             addToast('Gagal menghapus tugas', 'error');
@@ -99,6 +102,7 @@ const ManajemenTugasAtasanPage: React.FC = () => {
             await updateTaskStatus(id, 'approved');
             addToast('Tugas disetujui', 'success');
             if (user?.employeeId) fetchData(user.employeeId);
+            emitRefresh('task');
         } catch (error) {
             console.error(error);
             addToast('Gagal menyetujui tugas', 'error');

@@ -4,6 +4,7 @@ import { getJabatanList, Jabatan } from '../../01-pegawai/api/jabatanApi';
 import { getActivityLibrary, getActivityPositions, createActivity, updateActivity, deleteActivity } from '../api/activityLibraryApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { emitRefresh } from '@/shared/hooks/useDataRefresh';
 
 const ActivityLibraryPage: React.FC = () => {
     const [activities, setActivities] = useState<ActivityLibraryItem[]>([]);
@@ -87,6 +88,7 @@ const ActivityLibraryPage: React.FC = () => {
             }
             resetForm();
             fetchData();
+            emitRefresh('activity-library');
         } catch (err) {
             addToast('Gagal menyimpan aktivitas', 'error');
         }
@@ -98,6 +100,7 @@ const ActivityLibraryPage: React.FC = () => {
             await deleteActivity(id);
             addToast('Aktivitas berhasil dihapus', 'success');
             fetchData();
+            emitRefresh('activity-library');
         } catch (err: any) {
             addToast(err.response?.data?.message || 'Gagal menghapus aktivitas', 'error');
         }

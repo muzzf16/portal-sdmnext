@@ -5,6 +5,7 @@ import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Download, RefreshCw, Paperclip, X, FileText } from 'lucide-react';
+import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
 
 const KpiTargetPage: React.FC = () => {
     const { user } = useAuth();
@@ -108,6 +109,9 @@ const KpiTargetPage: React.FC = () => {
 
     useEffect(() => { fetchKpis(); }, [selectedEmployee, selectedPeriod]);
 
+    // Hot reload: refresh KPIs when WLA entries or ABK workload changes
+    useOnRefresh(['wla-entry', 'workload'], () => fetchKpis());
+
     const handleCreateKpi = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -122,6 +126,7 @@ const KpiTargetPage: React.FC = () => {
             setEditingId(null);
             setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '', category: 'outcome' });
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal menyimpan KPI target', 'error');
         }
@@ -157,6 +162,7 @@ const KpiTargetPage: React.FC = () => {
             setActualModal({ open: false, kpi: null });
             setEvidenceFile(null);
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err) {
             addToast('Gagal update realisasi', 'error');
         }
@@ -169,6 +175,7 @@ const KpiTargetPage: React.FC = () => {
             await deleteKpiTarget(id);
             addToast('KPI target dihapus', 'success');
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err) {
             addToast('Gagal menghapus KPI target', 'error');
         }
@@ -188,6 +195,7 @@ const KpiTargetPage: React.FC = () => {
             await generateKpiFromAbk(selectedEmployee, new Date().getFullYear(), selectedPeriod);
             addToast('KPI berhasil digenerate dari data ABK!', 'success');
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal generate KPI dari ABK', 'error');
         }
@@ -207,6 +215,7 @@ const KpiTargetPage: React.FC = () => {
             const data = res.data?.data || res.data;
             addToast(`Berhasil sync ${data.synced || 0} KPI dari rekap WLA (${data.startDate} s/d ${data.endDate})`, 'success');
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal sync realisasi dari WLA', 'error');
         }
@@ -253,6 +262,7 @@ const KpiTargetPage: React.FC = () => {
             addToast(`Berhasil: ${data.created} KPI dibuat, ${data.skipped} dilewati (sudah ada)`, 'success');
             setTemplateModal(false);
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal apply template', 'error');
         }
@@ -306,6 +316,7 @@ const KpiTargetPage: React.FC = () => {
             await updateKpiTarget(kpi.id, { status: 'waiting_approval' } as any);
             addToast(`KPI "${kpi.kpiName}" diajukan untuk persetujuan`, 'success');
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast('Gagal mengajukan KPI', 'error');
         }
@@ -316,6 +327,7 @@ const KpiTargetPage: React.FC = () => {
             await updateKpiTarget(kpi.id, { status: 'active' } as any);
             addToast(`KPI "${kpi.kpiName}" disetujui dan aktif`, 'success');
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast('Gagal menyetujui KPI', 'error');
         }
@@ -326,6 +338,7 @@ const KpiTargetPage: React.FC = () => {
             await updateKpiTarget(kpi.id, { status: 'completed' } as any);
             addToast(`KPI "${kpi.kpiName}" ditandai selesai`, 'success');
             fetchKpis();
+            emitRefresh('kpi');
         } catch (err: any) {
             addToast('Gagal menyelesaikan KPI', 'error');
         }
@@ -690,8 +703,8 @@ const KpiTargetPage: React.FC = () => {
                                     {templateDepts.map(dept => (
                                         <button key={dept} onClick={() => setTemplateDept(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${templateDept === dept
-                                                    ? 'bg-purple-600 text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}>
                                             {dept}
                                         </button>
@@ -719,8 +732,8 @@ const KpiTargetPage: React.FC = () => {
                                                     </td>
                                                     <td className="px-3 py-2 text-center">
                                                         <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${tpl.category === 'process' ? 'bg-blue-100 text-blue-800' :
-                                                                tpl.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
-                                                                    'bg-amber-100 text-amber-800'
+                                                            tpl.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
+                                                                'bg-amber-100 text-amber-800'
                                                             }`}>
                                                             {tpl.category === 'process' ? '📊 Proses' : tpl.category === 'strategic' ? '🏢 Strategis' : '🎯 Outcome'}
                                                         </span>

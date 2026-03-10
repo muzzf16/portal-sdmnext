@@ -69,7 +69,7 @@ const ManajemenKinerjaPage: React.FC = () => {
         // ── Fase 2: PEMANTAUAN (Sepanjang Periode) ──
         {
             id: 'log-wla',
-            label: 'Log WLA Harian',
+            label: 'Entry WLA Harian',
             icon: <BookOpen size={18} />,
             roles: ['admin', 'supervisor', 'employee'],
             component: (
