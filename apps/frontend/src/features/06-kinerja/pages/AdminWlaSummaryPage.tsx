@@ -8,6 +8,16 @@ import { AdminWlaSummary } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
 
+const getPositionWeight = (job: string) => {
+    const j = (job || '').toLowerCase();
+    if (j.includes('direktur utama')) return 100;
+    if (j.includes('direktur')) return 90;
+    if (j.includes('pemimpin') || j.includes('kepala cabang')) return 80;
+    if (j.includes('kabid') || j.includes('kepala bidang') || j.includes('spi') || j.includes('audit')) return 70;
+    if (j.includes('kasubid') || j.includes('kepala sub') || j.includes('supervisor')) return 60;
+    return 10;
+};
+
 const AdminWlaSummaryPage: React.FC = () => {
     const [summaries, setSummaries] = useState<AdminWlaSummary[]>([]);
     const [loading, setLoading] = useState(false);
@@ -91,10 +101,19 @@ const AdminWlaSummaryPage: React.FC = () => {
         return { label: 'Underload', color: 'bg-yellow-100 text-yellow-800' };
     };
 
-    const filteredSummaries = summaries.filter(s =>
-        (s.nama_lengkap || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.departemen || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredSummaries = summaries
+        .filter(s =>
+            (s.nama_lengkap || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (s.departemen || '').toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => {
+            const weightA = getPositionWeight(a.jabatan);
+            const weightB = getPositionWeight(b.jabatan);
+            if (weightA !== weightB) {
+                return weightB - weightA; // Descending (highest weight first)
+            }
+            return (a.nama_lengkap || '').localeCompare(b.nama_lengkap || '');
+        });
 
     const handleExport = () => {
         if (filteredSummaries.length === 0) {
