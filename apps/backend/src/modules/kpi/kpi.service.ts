@@ -181,7 +181,7 @@ export default class KpiService {
             // Deduplicate ABK items by activityName (keep the one with highest totalMinutes)
             const uniqueItemsMap = new Map<string, any>();
             for (const item of fullAnalysis.items) {
-                const key = item.activityName.toLowerCase();
+                const key = (item.activityName || '').toLowerCase();
                 if (!uniqueItemsMap.has(key) || (item.totalMinutes || 0) > (uniqueItemsMap.get(key).totalMinutes || 0)) {
                     uniqueItemsMap.set(key, item);
                 }
@@ -191,7 +191,7 @@ export default class KpiService {
             // Take top items by totalMinutes, skip those already in KPI
             const topItems = uniqueItems
                 .sort((a: any, b: any) => (b.totalMinutes || 0) - (a.totalMinutes || 0))
-                .filter((item: any) => !existingNames.has(`penyelesaian ${item.activityName}`.toLowerCase()))
+                .filter((item: any) => !existingNames.has(`penyelesaian ${(item.activityName || '')}`.toLowerCase()))
                 .slice(0, 5);
 
             if (topItems.length === 0) {
@@ -214,14 +214,14 @@ export default class KpiService {
                 let abkActivityId = item.activityId || null;
                 if (!abkActivityId) {
                     const exactMatch = libraryActivities.find(
-                        (la: any) => la.activityName.toLowerCase() === item.activityName.toLowerCase()
+                        (la: any) => (la.activityName || '').toLowerCase() === (item.activityName || '').toLowerCase()
                     );
                     if (exactMatch) {
                         abkActivityId = exactMatch.id;
                     } else {
                         const fuzzyMatch = libraryActivities.find(
-                            (la: any) => la.activityName.toLowerCase().includes(item.activityName.toLowerCase())
-                                || item.activityName.toLowerCase().includes(la.activityName.toLowerCase())
+                            (la: any) => (la.activityName || '').toLowerCase().includes((item.activityName || '').toLowerCase())
+                                || (item.activityName || '').toLowerCase().includes((la.activityName || '').toLowerCase())
                         );
                         abkActivityId = fuzzyMatch?.id || null;
                     }
@@ -311,14 +311,14 @@ export default class KpiService {
 
                     // Try exact match first
                     let match = allActivities.find(
-                        (a: any) => a.activityName.toLowerCase() === cleanName.toLowerCase()
+                        (a: any) => (a.activityName || '').toLowerCase() === (cleanName || '').toLowerCase()
                     );
 
                     // If no exact match, try contains match
                     if (!match) {
                         match = allActivities.find(
-                            (a: any) => a.activityName.toLowerCase().includes(cleanName.toLowerCase())
-                                || cleanName.toLowerCase().includes(a.activityName.toLowerCase())
+                            (a: any) => (a.activityName || '').toLowerCase().includes((cleanName || '').toLowerCase())
+                                || (cleanName || '').toLowerCase().includes((a.activityName || '').toLowerCase())
                         );
                     }
 
