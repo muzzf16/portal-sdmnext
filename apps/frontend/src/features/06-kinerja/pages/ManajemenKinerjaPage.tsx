@@ -32,17 +32,7 @@ const ManajemenKinerjaPage: React.FC = () => {
     const role = user?.role || 'employee';
 
     const tabs: TabDef[] = useMemo(() => [
-        {
-            id: 'penilaian',
-            label: 'Penilaian Kinerja',
-            icon: <Award size={18} />,
-            roles: ['admin', 'supervisor'],
-            component: (
-                <Suspense fallback={<TabSpinner />}>
-                    <HalamanKinerjaContent />
-                </Suspense>
-            ),
-        },
+        // ── Fase 1: PERSIAPAN (Awal Periode) ──
         {
             id: 'perpustakaan',
             label: 'Perpustakaan Aktivitas',
@@ -76,17 +66,7 @@ const ManajemenKinerjaPage: React.FC = () => {
                 </Suspense>
             ),
         },
-        {
-            id: 'rekap-wla',
-            label: 'Rekap WLA Harian',
-            icon: <BarChart2 size={18} />,
-            roles: ['admin', 'supervisor'],
-            component: (
-                <Suspense fallback={<TabSpinner />}>
-                    <AdminWlaSummaryContent />
-                </Suspense>
-            ),
-        },
+        // ── Fase 2: PEMANTAUAN (Sepanjang Periode) ──
         {
             id: 'log-wla',
             label: 'Log WLA Harian',
@@ -95,6 +75,17 @@ const ManajemenKinerjaPage: React.FC = () => {
             component: (
                 <Suspense fallback={<TabSpinner />}>
                     <LogWlaContent />
+                </Suspense>
+            ),
+        },
+        {
+            id: 'rekap-wla',
+            label: 'Rekap WLA Harian',
+            icon: <BarChart2 size={18} />,
+            roles: ['admin', 'supervisor'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <AdminWlaSummaryContent />
                 </Suspense>
             ),
         },
@@ -109,6 +100,18 @@ const ManajemenKinerjaPage: React.FC = () => {
                 </Suspense>
             ),
         },
+        // ── Fase 3-6: PENILAIAN & REVIEW (Akhir Periode) ──
+        {
+            id: 'penilaian',
+            label: 'Penilaian Kinerja',
+            icon: <Award size={18} />,
+            roles: ['admin', 'supervisor'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <HalamanKinerjaContent />
+                </Suspense>
+            ),
+        },
     ], []);
 
     // Filter tabs by role
@@ -118,7 +121,7 @@ const ManajemenKinerjaPage: React.FC = () => {
 
     // Default tab based on role
     const defaultTab = useMemo(() => {
-        if (role === 'admin' || role === 'supervisor') return 'penilaian';
+        if (role === 'admin' || role === 'supervisor') return 'perpustakaan';
         return 'abk';
     }, [role]);
 
