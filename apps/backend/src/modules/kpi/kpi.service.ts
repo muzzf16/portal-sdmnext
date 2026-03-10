@@ -191,8 +191,7 @@ export default class KpiService {
             // Take top items by totalMinutes, skip those already in KPI
             const topItems = uniqueItems
                 .sort((a: any, b: any) => (b.totalMinutes || 0) - (a.totalMinutes || 0))
-                .filter((item: any) => !existingNames.has(`penyelesaian ${(item.activityName || '')}`.toLowerCase()))
-                .slice(0, 5);
+                .filter((item: any) => !existingNames.has(`penyelesaian ${(item.activityName || '')}`.toLowerCase()));
 
             if (topItems.length === 0) {
                 throw new AppError('Semua aktivitas ABK sudah ada di KPI untuk periode ini.', 400);
