@@ -117,6 +117,9 @@ export default class KpiController {
                 return res.status(400).json({ success: false, message: 'employeeId, year, and period are required' });
             }
             const data = await KpiService.generateFromAbk(employeeId, parseInt(year), period);
+            if (data && (data as any)._isBusinessError) {
+                return res.status(200).json({ success: false, message: (data as any).message });
+            }
             return res.status(201).json({ success: true, data });
         } catch (error) {
             return next(error);

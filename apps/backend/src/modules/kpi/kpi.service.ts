@@ -194,13 +194,13 @@ export default class KpiService {
                 .filter((item: any) => !existingNames.has(`penyelesaian ${(item.activityName || '')}`.toLowerCase()));
 
             if (topItems.length === 0) {
-                throw new AppError('Semua aktivitas ABK sudah ada di KPI untuk periode ini.', 400);
+                return { _isBusinessError: true, message: 'Semua aktivitas ABK sudah ada di KPI untuk periode ini.' };
             }
 
             // Calculate available weight (remaining from 100%)
             const availableWeight = Math.max(0, 100 - existingTotalWeight);
             if (availableWeight <= 0) {
-                throw new AppError('Total bobot KPI sudah mencapai 100%. Hapus atau kurangi bobot KPI yang ada terlebih dahulu.', 400);
+                return { _isBusinessError: true, message: 'Total bobot KPI sudah mencapai 100%. Hapus atau kurangi bobot KPI yang ada terlebih dahulu.' };
             }
 
             const weightPerItem = Math.floor(availableWeight / topItems.length);

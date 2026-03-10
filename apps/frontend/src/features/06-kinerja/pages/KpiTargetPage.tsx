@@ -185,11 +185,15 @@ const KpiTargetPage: React.FC = () => {
         }
         if (!confirm(`Generate KPI dari ABK untuk periode ${selectedPeriod}?`)) return;
         try {
-            await generateKpiFromAbk(selectedEmployee, new Date().getFullYear(), selectedPeriod);
+            const res = await generateKpiFromAbk(selectedEmployee, new Date().getFullYear(), selectedPeriod);
+            if (res.data && res.data.success === false) {
+                addToast(res.data.message || 'Gagal generate KPI dari ABK', 'error');
+                return;
+            }
             addToast('KPI berhasil digenerate dari data ABK!', 'success');
             fetchKpis();
         } catch (err: any) {
-            addToast(err?.response?.data?.message || 'Gagal generate KPI dari ABK', 'error');
+            addToast(err?.response?.data?.message || err.message || 'Gagal generate KPI dari ABK', 'error');
         }
     };
 
@@ -204,11 +208,15 @@ const KpiTargetPage: React.FC = () => {
         }
         try {
             const res = await syncKpiFromWla(selectedEmployee, selectedPeriod);
+            if (res.data && res.data.success === false) {
+                addToast(res.data.message || 'Gagal sync realisasi dari WLA', 'error');
+                return;
+            }
             const data = res.data?.data || res.data;
             addToast(`Berhasil sync ${data.synced || 0} KPI dari rekap WLA (${data.startDate} s/d ${data.endDate})`, 'success');
             fetchKpis();
         } catch (err: any) {
-            addToast(err?.response?.data?.message || 'Gagal sync realisasi dari WLA', 'error');
+            addToast(err?.response?.data?.message || err.message || 'Gagal sync realisasi dari WLA', 'error');
         }
     };
 
@@ -690,8 +698,8 @@ const KpiTargetPage: React.FC = () => {
                                     {templateDepts.map(dept => (
                                         <button key={dept} onClick={() => setTemplateDept(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${templateDept === dept
-                                                    ? 'bg-purple-600 text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}>
                                             {dept}
                                         </button>
@@ -719,8 +727,8 @@ const KpiTargetPage: React.FC = () => {
                                                     </td>
                                                     <td className="px-3 py-2 text-center">
                                                         <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${tpl.category === 'process' ? 'bg-blue-100 text-blue-800' :
-                                                                tpl.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
-                                                                    'bg-amber-100 text-amber-800'
+                                                            tpl.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
+                                                                'bg-amber-100 text-amber-800'
                                                             }`}>
                                                             {tpl.category === 'process' ? '📊 Proses' : tpl.category === 'strategic' ? '🏢 Strategis' : '🎯 Outcome'}
                                                         </span>
