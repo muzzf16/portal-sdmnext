@@ -295,7 +295,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                         </div>
                                                     </div>
                                                     <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center">
-                                                        <label className="text-xs text-gray-500 mr-2">Frekuensi:</label>
+                                                        <label className="text-xs text-gray-500 mr-2">Aktivitas:</label>
                                                         <div className="flex rounded-md w-12 justify-end">
                                                             <input
                                                                 type="checkbox"
