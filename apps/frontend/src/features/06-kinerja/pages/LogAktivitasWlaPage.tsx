@@ -202,7 +202,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center">
                         <ActivityIcon className="mr-2 h-6 w-6 text-indigo-600" />
-                        Log Beban Kerja (WLA)
+                        Entry WLA Harian
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">
                         Catatan checklist aktivitas harian berdasarkan Norma Waktu (ABK).
@@ -296,14 +296,12 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                     </div>
                                                     <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center">
                                                         <label className="text-xs text-gray-500 mr-2">Frekuensi:</label>
-                                                        <div className="flex rounded-md shadow-sm w-24">
+                                                        <div className="flex rounded-md w-12 justify-end">
                                                             <input
-                                                                type="number"
-                                                                min="0"
-                                                                value={val.frekuensi}
-                                                                onChange={(e) => handleInputChange(actId, 'frekuensi', e.target.value)}
-                                                                className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 text-sm w-full text-center"
-                                                                placeholder="0"
+                                                                type="checkbox"
+                                                                checked={Number(val.frekuensi) > 0}
+                                                                onChange={(e) => handleInputChange(actId, 'frekuensi', e.target.checked ? 1 : 0)}
+                                                                className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
                                                             />
                                                         </div>
                                                     </div>
