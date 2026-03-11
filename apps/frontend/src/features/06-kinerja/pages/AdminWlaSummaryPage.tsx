@@ -7,6 +7,7 @@ import { getEmployees } from '../../../shared/services/employeeAPI';
 import { AdminWlaSummary } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
+import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
 
 const getPositionWeight = (job: string) => {
     const j = (job || '').toLowerCase();
@@ -73,6 +74,9 @@ const AdminWlaSummaryPage: React.FC = () => {
         };
         fetchDirectors();
     }, []);
+
+    // Hot reload: refresh summary when new WLA entries are saved
+    useOnRefresh('wla-entry', () => fetchSummary());
 
     const EFFECTIVE_WORKING_MINUTES = 480;
 
@@ -180,6 +184,7 @@ const AdminWlaSummaryPage: React.FC = () => {
             setDetailLogs(prev => ({ ...prev, [employeeKey]: res?.data?.data || [] }));
             // Also refresh the summary row so duration/FTE updates automatically
             await fetchSummary();
+            emitRefresh('wla-status');
         } catch (err) {
             alert('Gagal mengubah status log.');
         } finally {

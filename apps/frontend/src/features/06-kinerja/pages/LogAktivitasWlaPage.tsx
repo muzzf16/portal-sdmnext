@@ -10,6 +10,7 @@ import { getActivityLibrary } from '../api/activityLibraryApi';
 import { LogAktivitasHarian, ActivityLibraryItem } from '../types';
 import { AssignedTask } from '../../../shared/types/types';
 import clsx from 'clsx';
+import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
 
 const LogAktivitasWlaPage: React.FC = () => {
     const { user } = useAuth();
@@ -90,6 +91,11 @@ const LogAktivitasWlaPage: React.FC = () => {
         fetchLibrary();
     }, []);
 
+    // Hot reload: refresh data when related domains change
+    useOnRefresh('activity-library', () => fetchLibrary());
+    useOnRefresh('task', () => fetchTasks());
+    useOnRefresh('wla-status', () => fetchMyLogs());
+
 
 
     // Pre-fill form inputs whenever myLogs changes (e.g. initial load or after changing date)
@@ -132,7 +138,7 @@ const LogAktivitasWlaPage: React.FC = () => {
             }));
 
         if (payloadLogs.length === 0) {
-            addToast("Tidak ada aktivitas yang diisi frekuensinya.", "error");
+            addToast("Tidak ada aktivitas yang dicentang.", "error");
             return;
         }
 
@@ -152,6 +158,7 @@ const LogAktivitasWlaPage: React.FC = () => {
             });
             addToast(`Berhasil! ${payloadLogs.length} aktivitas berhasil disimpan.`, "success");
             fetchMyLogs();
+            emitRefresh('wla-entry');
         } catch (err: any) {
             addToast(err.response?.data?.message || 'Gagal menyimpan log massal.', "error");
         } finally {
@@ -187,6 +194,8 @@ const LogAktivitasWlaPage: React.FC = () => {
             setOpenTaskModal(false);
             fetchTasks();
             fetchMyLogs();
+            emitRefresh('wla-entry');
+            emitRefresh('task');
         } catch (err: any) {
             addToast(err.response?.data?.message || 'Gagal menyelesaikan tugas.', 'error');
         } finally {
@@ -205,7 +214,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                         Entry WLA Harian
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">
-                        Catatan checklist aktivitas harian berdasarkan Norma Waktu (ABK).
+                        Centang aktivitas yang dikerjakan hari ini berdasarkan Norma Waktu (ABK).
                     </p>
                 </div>
                 <div className="bg-white px-4 py-2 border border-gray-200 rounded-lg shadow-sm flex items-center mt-4 sm:mt-0">
@@ -347,7 +356,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                             >
                                 {submitting ? 'Menyimpan...' : (
                                     <>
-                                        <Save className="w-5 h-5 mr-2" /> Simpan Aktivitas Terpilih
+                                        <Save className="w-5 h-5 mr-2" /> Simpan Checklist Hari Ini
                                     </>
                                 )}
                             </Button>

@@ -5,6 +5,7 @@ import { getWorkloadAnalysis } from '../api/workloadApi';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { Pegawai } from '../../01-pegawai/types';
+import { useOnRefresh } from '@/shared/hooks/useDataRefresh';
 
 interface WorkLoadPageProps {
     employeeId?: string;
@@ -72,6 +73,9 @@ const WorkLoadPage: React.FC<WorkLoadPageProps> = ({ employeeId }) => {
     useEffect(() => {
         fetchFte();
     }, [targetEmployeeId, year]);
+
+    // Hot reload: refresh FTE if activity library changes
+    useOnRefresh('activity-library', () => fetchFte());
 
     const getFteStatusColor = (status?: string) => {
         switch (status) {

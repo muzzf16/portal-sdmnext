@@ -7,6 +7,7 @@ import { getActivityByPosition, createActivity } from '../api/activityLibraryApi
 import { getPegawaiById } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { emitRefresh } from '@/shared/hooks/useDataRefresh';
 
 // Constants for calculation
 const DAYS_IN_YEAR = 264;
@@ -146,6 +147,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
             addToast('Laporan kerja berhasil disimpan', 'success');
             if (onSuccess) onSuccess();
             if (onSaved) onSaved();
+            emitRefresh('workload');
         } catch (error) {
             console.error(error);
             addToast('Gagal menyimpan laporan kerja', 'error');
@@ -174,6 +176,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
             const createdActivity = res.data?.data;
 
             addToast('Aktivitas berhasil ditambahkan ke library', 'success');
+            emitRefresh('activity-library');
 
             // Add to local library state
             if (createdActivity) {
