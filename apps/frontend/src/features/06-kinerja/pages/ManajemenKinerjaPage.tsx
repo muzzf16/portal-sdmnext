@@ -90,17 +90,6 @@ const ManajemenKinerjaPage: React.FC = () => {
             ),
         },
         {
-            id: 'log-wla',
-            label: 'Entry WLA Harian',
-            icon: <BookOpen size={18} />,
-            roles: ['admin', 'supervisor', 'employee'],
-            component: (
-                <Suspense fallback={<TabSpinner />}>
-                    <LogWlaContent />
-                </Suspense>
-            ),
-        },
-        {
             id: 'penugasan',
             label: 'Penugasan Bawahan',
             icon: <Briefcase size={18} />,
