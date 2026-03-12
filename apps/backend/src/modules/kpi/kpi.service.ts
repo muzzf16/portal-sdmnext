@@ -523,13 +523,8 @@ export default class KpiService {
             }
 
             if (missingRequired.length > 0) {
-                // Return business error without rebalancing
-                const catNames = missingRequired.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ');
-                return {
-                    success: false,
-                    _isBusinessError: true,
-                    message: `Standar SOP untuk departemen ${employee.department} membutuhkan KPI kategori: ${catNames}. Silakan tambahkan KPI tersebut terlebih dahulu.`
-                };
+                // We no longer block this. Instead we let the algorithm redistribute the missing weight 
+                // to the existing categories, and append a warning to the success message.
             }
 
             // Step 1: Detect missing categories and redistribute their weight to active categories
@@ -613,9 +608,15 @@ export default class KpiService {
                     item.newWeight, new Date().toISOString(), item.id);
             }
 
+            let msg = `Bobot KPI berhasil disesuaikan menjadi 100% mengikuti standar komposisi SOP departemen ${employee.department}.`;
+            if (missingRequired.length > 0) {
+                const catNames = missingRequired.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ');
+                msg += ` Catatan: Anda belum memiliki target untuk kategori ${catNames}, sehingga bobotnya didistribusikan sementara ke kategori lain.`;
+            }
+
             return {
                 success: true,
-                message: `Bobot KPI berhasil disesuaikan menjadi 100% mengikuti standar komposisi SOP departemen ${employee.department}.`,
+                message: msg,
                 details: updates
             };
 

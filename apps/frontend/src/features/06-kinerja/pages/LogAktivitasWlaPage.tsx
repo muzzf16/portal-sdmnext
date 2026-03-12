@@ -24,8 +24,8 @@ const LogAktivitasWlaPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    // Map of activity ID to { frekuensi, catatan, files }
-    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, files?: File[] }>>({});
+    // Map of activity ID to { frekuensi, catatan, files, target }
+    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, files?: File[], target?: string }>>({});
 
     // Task Modal state
     const [openTaskModal, setOpenTaskModal] = useState(false);
@@ -101,11 +101,17 @@ const LogAktivitasWlaPage: React.FC = () => {
     // Pre-fill form inputs whenever myLogs changes (e.g. initial load or after changing date)
     useEffect(() => {
         if (myLogs && myLogs.length > 0) {
-            const newFormInputs: Record<string, { frekuensi: number | string, catatan: string }> = {};
+            const newFormInputs: Record<string, { frekuensi: number | string, catatan: string, target?: string }> = {};
             myLogs.forEach(log => {
+                // Try to extract Target from Catatan if it was previously saved that way
+                let targetMatch = log.catatan?.match(/\[Target: (.*?)\]/);
+                let target = targetMatch ? targetMatch[1] : '';
+                let cleanCatatan = log.catatan ? log.catatan.replace(/\[Target: .*?\]\s*-?\s*/, '') : '';
+
                 newFormInputs[String(log.id_activity_library)] = {
                     frekuensi: log.frekuensi,
-                    catatan: log.catatan || ''
+                    catatan: cleanCatatan,
+                    target: target
                 };
             });
             setFormInputs(newFormInputs);
@@ -114,7 +120,7 @@ const LogAktivitasWlaPage: React.FC = () => {
         }
     }, [myLogs]);
 
-    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'files', value: any) => {
+    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'files' | 'target', value: any) => {
         setFormInputs(prev => ({
             ...prev,
             [id]: {
@@ -122,6 +128,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                 frekuensi: prev[id]?.frekuensi || 0,
                 catatan: prev[id]?.catatan || '',
                 files: prev[id]?.files || [],
+                target: prev[id]?.target || '',
                 [field]: value
             }
         }));
@@ -130,12 +137,18 @@ const LogAktivitasWlaPage: React.FC = () => {
     const handleBulkSubmit = async () => {
         const payloadLogs = Object.entries(formInputs)
             .filter(([_, data]) => Number(data.frekuensi) > 0)
-            .map(([id, data]) => ({
-                id_activity_library: id,
-                frekuensi: Number(data.frekuensi),
-                catatan: data.catatan,
-                files: data.files || []
-            }));
+            .map(([id, data]) => {
+                let finalCatatan = data.catatan;
+                if (data.target && data.target.trim() !== '') {
+                    finalCatatan = `[Target: ${data.target.trim()}] ${data.catatan ? '- ' + data.catatan : ''}`;
+                }
+                return {
+                    id_activity_library: id,
+                    frekuensi: Number(data.frekuensi),
+                    catatan: finalCatatan,
+                    files: data.files || []
+                };
+            });
 
         if (payloadLogs.length === 0) {
             addToast("Tidak ada aktivitas yang dicentang.", "error");
@@ -290,39 +303,67 @@ const LogAktivitasWlaPage: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {library.map((act, index) => {
+                                    {library.slice().sort((a, b) => {
+                                        if (a.position === 'Semua Jabatan' && b.position !== 'Semua Jabatan') return 1;
+                                        if (a.position !== 'Semua Jabatan' && b.position === 'Semua Jabatan') return -1;
+                                        return 0;
+                                    }).map((act, index) => {
                                         const actId = String(act.id || '');
                                         const val = formInputs[actId] || { frekuensi: '', catatan: '', files: [] };
+                                        const isSemuaJabatan = act.position === 'Semua Jabatan';
+                                        
                                         return (
-                                            <div key={act.id || `act-${index}`} className="border border-gray-200 p-4 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white">
+                                            <div key={act.id || `act-${index}`} className={clsx("p-4 rounded-lg hover:shadow-md transition-all", isSemuaJabatan ? "border-2 border-amber-400 bg-amber-50" : "border border-gray-200 hover:border-indigo-300 bg-white")}>
                                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3">
                                                     <div className="flex-1">
-                                                        <h3 className="text-sm font-bold text-gray-900">{act.activityName}</h3>
+                                                        <h3 className="text-sm font-bold text-gray-900 flex items-center flex-wrap gap-2">
+                                                            {act.activityName}
+                                                            {isSemuaJabatan && (
+                                                                <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded border border-amber-300 font-bold uppercase tracking-wider shadow-sm">Khusus Semua Jabatan</span>
+                                                            )}
+                                                        </h3>
                                                         <div className="text-xs text-gray-500 mt-1 flex gap-2">
-                                                            <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600">{act.category || 'Umum'}</span>
-                                                            <span className="text-indigo-600 font-medium">{act.durationMinutes} Menit / {act.outputUnit}</span>
+                                                            <span className={clsx("px-2 py-0.5 rounded", isSemuaJabatan ? "bg-white border border-amber-200 text-amber-700 font-medium" : "bg-gray-100 text-gray-600")}>{act.category || 'Umum'}</span>
+                                                            <span className={clsx("font-medium", isSemuaJabatan ? "text-amber-700" : "text-indigo-600")}>{act.durationMinutes} Menit / {act.outputUnit}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center">
+                                                    
+                                                    {/* Target Input khusus Semua Jabatan */}
+                                                    {isSemuaJabatan && (
+                                                        <div className="mt-3 sm:mt-0 sm:ml-4 flex-1">
+                                                            <div className="flex bg-white border border-amber-200 rounded p-2 shadow-sm min-h-[60px]">
+                                                                <label className="text-xs text-amber-700 font-medium mr-2 whitespace-nowrap pt-1">Target:</label>
+                                                                <textarea
+                                                                    value={val.target || ''}
+                                                                    onChange={(e) => handleInputChange(actId, 'target', e.target.value)}
+                                                                    className="w-full text-xs border-none focus:ring-0 p-0 text-gray-700 resize-none"
+                                                                    placeholder="..."
+                                                                    rows={2}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center justify-end w-24">
                                                         <label className="text-xs text-gray-500 mr-2">Aktivitas:</label>
-                                                        <div className="flex rounded-md w-12 justify-end">
+                                                        <div className="flex rounded-md w-6 justify-end">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={Number(val.frekuensi) > 0}
                                                                 onChange={(e) => handleInputChange(actId, 'frekuensi', e.target.checked ? 1 : 0)}
-                                                                className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                                                className={clsx("h-5 w-5 rounded focus:ring-offset-1 cursor-pointer", isSemuaJabatan ? "text-amber-600 border-amber-400 focus:ring-amber-500" : "text-indigo-600 border-gray-300 focus:ring-indigo-500")}
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
                                                 {Number(val.frekuensi) > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-gray-100 border-dashed animate-in fade-in slide-in-from-top-2">
-                                                        <input
-                                                            type="text"
-                                                            value={val.catatan}
+                                                        <textarea
+                                                            value={val.catatan || ''}
                                                             onChange={(e) => handleInputChange(actId, 'catatan', e.target.value)}
-                                                            placeholder="Catatan opsional..."
-                                                            className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 mb-2"
+                                                            placeholder="Catatan opsional... (long teks/free teks)"
+                                                            className="w-full px-3 py-2 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 mb-2 resize-y min-h-[60px]"
+                                                            rows={2}
                                                         />
                                                         <div className="flex flex-col text-xs gap-1">
                                                             <div className="flex items-center">
