@@ -276,6 +276,28 @@ const KpiTargetPage: React.FC = () => {
         }
     };
 
+    const handleRebalance = async () => {
+        if (!selectedEmployee || !selectedPeriod) return;
+        if (!confirm('Normalisasi akan mendistribusikan bobot menjadi tepat 100% secara proporsional. Lanjutkan?')) return;
+        
+        try {
+            const { rebalanceKpiWeights } = await import('../api/kpiApi');
+            const res = await rebalanceKpiWeights(selectedEmployee, selectedPeriod);
+            
+            if (res.data && res.data.success === false) {
+                 // Business error, missing category
+                 addToast(res.data.message, 'error');
+                 return;
+            }
+            
+            addToast(res.data?.message || 'Bobot berhasil dinormalkan', 'success');
+            fetchKpis();
+            emitRefresh('kpi');
+        } catch (err: any) {
+             addToast(err?.response?.data?.message || err.message || 'Gagal normalisasi bobot', 'error');
+        }
+    };
+
     const filteredTemplates = templates.filter(t => t.department === templateDept);
 
     const getScoreColor = (score: number) => {
@@ -410,6 +432,12 @@ const KpiTargetPage: React.FC = () => {
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Sync Realisasi dari WLA
                             </button>
+                            {totalWeight !== 100 && kpis.length > 0 && (
+                                <button onClick={handleRebalance}
+                                    className="px-4 py-2 bg-indigo-100 border border-indigo-600 text-indigo-700 rounded-lg hover:bg-indigo-200 text-sm font-semibold flex items-center shadow-sm">
+                                    ⚖️ Auto-Rebalance (100%)
+                                </button>
+                            )}
                             <button onClick={() => {
                                 setEditingId(null);
                                 setForm({ employeeId: selectedEmployee || '', period: selectedPeriod || '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '', category: 'outcome' });
@@ -467,6 +495,14 @@ const KpiTargetPage: React.FC = () => {
                             </p>
                         </div>
                     </div>
+                    {totalWeight !== 100 && (
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                            <p className="text-sm font-semibold text-amber-800 flex items-center">
+                                ⚠️ Peringatan: Total bobot KPI Anda ({totalWeight}%) tidak mencapai 100%. 
+                                Silakan gunakan fitur "Auto-Rebalance (100%)" untuk menyesuaikan ke standar SOP.
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
 

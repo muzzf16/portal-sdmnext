@@ -1,6 +1,7 @@
 import { KpiRepository } from './kpi.repository';
 import { WorkloadRepository } from '../workload/workload.repository';
 import { ActivityLibraryRepository } from '../activity-library/activity-library.repository';
+import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import { AppError } from '../../utils/errors';
 import { openDb } from '../../config/db';
 
@@ -436,5 +437,191 @@ export default class KpiService {
         const yearMatch = period.match(/^(\d{4})/);
         const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
         return { startDate: `${year}-01-01`, endDate: `${year}-12-31` };
+    }
+
+    /**
+     * Rebalance KPI weights for an employee and period so the total is 100%.
+     * Uses composition rules based on SOP_06_KINERJA.md for each department.
+     */
+    static async rebalanceWeights(employeeId: string, period: string) {
+        try {
+            const employee = await PegawaiRepository.findById(employeeId);
+            if (!employee) throw new AppError('Employee not found', 404);
+
+            const deptName = (employee.department || '').toLowerCase();
+
+            // Default fallback composition
+            let targetComp = { process: 40, outcome: 40, strategic: 20 };
+
+            // Apply SOP_06_KINERJA.md composition mapping based on department/division
+            if (deptName.includes('pemasaran') || deptName.includes('marketing')) {
+                // A.1 Bagian Pemasaran (Marketing): Process 25% + Outcome 65% + Strategic 10%
+                targetComp = { process: 25, outcome: 65, strategic: 10 };
+            } else if (deptName.includes('penagihan') || deptName.includes('kolektor')) {
+                // A.2 Bagian Penagihan Nasabah Kredit: Process 40% + Outcome 40% + Strategic 20%
+                targetComp = { process: 40, outcome: 40, strategic: 20 };
+            } else if (deptName.includes('pelaporan')) {
+                // A.3 Bagian Pelaporan: Process 40% + Outcome 50% + Strategic 10%
+                targetComp = { process: 40, outcome: 50, strategic: 10 };
+            } else if (deptName.includes('account officer') || deptName.includes('kredit')) {
+                // A.4 Bagian Account Officer (Kredit): Process 40% + Outcome 50% + Strategic 10%
+                targetComp = { process: 40, outcome: 50, strategic: 10 };
+            } else if (deptName.includes('operasional') || deptName.includes('teller')) {
+                // A.5 Bagian Operasional & Teller: Process 60% + Outcome 40%
+                targetComp = { process: 60, outcome: 40, strategic: 0 };
+            } else if (deptName.includes('customer service') || deptName.includes('cs')) {
+                // A.6 Bagian Customer Service: Process 50% + Outcome 50%
+                targetComp = { process: 50, outcome: 50, strategic: 0 };
+            } else if (deptName.includes('hrd') || deptName.includes('umum')) {
+                // A.7 Bagian HRD & Umum: Process 40% + Outcome 50% + Strategic 10%
+                targetComp = { process: 40, outcome: 50, strategic: 10 };
+            } else if (deptName.includes('teknologi informasi') || deptName.includes('it') || deptName.includes('ti')) {
+                // A.8 Bagian TI (Teknologi Informasi): Process 50% + Outcome 35% + Strategic 15%
+                targetComp = { process: 50, outcome: 35, strategic: 15 };
+            } else if (deptName.includes('akuntansi') || deptName.includes('keuangan')) {
+                // A.9 Bagian Akuntansi & Keuangan: Process 50% + Outcome 50%
+                targetComp = { process: 50, outcome: 50, strategic: 0 };
+            } else if (deptName.includes('audit') || deptName.includes('skai')) {
+                // A.10 Bagian Satuan Kerja Audit Internal (SKAI): Process 50% + Outcome 30% + Strategic 20%
+                targetComp = { process: 50, outcome: 30, strategic: 20 };
+            }
+
+            const kpis = await KpiRepository.findByEmployeePeriod(employeeId, period);
+            if (!kpis || kpis.length === 0) {
+                return { success: true, message: 'Tidak ada KPI untuk direbalance.' };
+            }
+
+            // Group KPIs by category
+            const kpisByCategory: Record<string, any[]> = {
+                process: [],
+                outcome: [],
+                strategic: []
+            };
+
+            for (const kpi of kpis) {
+                let cat = (kpi.category || 'process').toLowerCase().trim();
+                // Map localized or UI strings to standard English keys
+                if (cat.includes('proses')) cat = 'process';
+                if (cat.includes('outcome') || cat.includes('hasil')) cat = 'outcome';
+                if (cat.includes('strategic') || cat.includes('strategis')) cat = 'strategic';
+
+                if (kpisByCategory[cat]) {
+                    kpisByCategory[cat].push(kpi);
+                } else {
+                    // fallback to process if unknown
+                    kpisByCategory.process.push(kpi);
+                }
+            }
+
+            // Check missing categories based on target comp
+            const missingRequired = [];
+            const targetEntries = Object.entries(targetComp);
+            for (const [cat, targetPct] of targetEntries) {
+                if (targetPct > 0 && kpisByCategory[cat].length === 0) {
+                    missingRequired.push(cat);
+                }
+            }
+
+            if (missingRequired.length > 0) {
+                // Return business error without rebalancing
+                const catNames = missingRequired.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ');
+                return {
+                    success: false,
+                    _isBusinessError: true,
+                    message: `Standar SOP untuk departemen ${employee.department} membutuhkan KPI kategori: ${catNames}. Silakan tambahkan KPI tersebut terlebih dahulu.`
+                };
+            }
+
+            // Step 1: Detect missing categories and redistribute their weight to active categories
+            let activeCategories = [];
+            let missingTargetPct = 0;
+            const currentTargets = { ...targetComp } as Record<string, number>;
+
+            for (const [cat, targetPct] of targetEntries) {
+                if (kpisByCategory[cat].length === 0) {
+                    missingTargetPct += targetPct;
+                    currentTargets[cat] = 0;
+                } else {
+                    activeCategories.push(cat);
+                }
+            }
+
+            // If some categories are missing but there are active ones, distribute the missing % to the active ones proportionally
+            if (missingTargetPct > 0 && activeCategories.length > 0) {
+                const totalActiveTarget = activeCategories.reduce((sum, cat) => sum + currentTargets[cat], 0);
+                if (totalActiveTarget > 0) {
+                     let remainingRedistribute = missingTargetPct;
+                     for (let i = 0; i < activeCategories.length; i++) {
+                         const cat = activeCategories[i];
+                         if (i === activeCategories.length - 1) {
+                             currentTargets[cat] += remainingRedistribute;
+                         } else {
+                             const extra = Math.round((currentTargets[cat] / totalActiveTarget) * missingTargetPct);
+                             currentTargets[cat] += extra;
+                             remainingRedistribute -= extra;
+                         }
+                     }
+                }
+            }
+
+            // Redistribute logic
+            const updates = [];
+            for (const cat of activeCategories) {
+                const targetPct = currentTargets[cat];
+                const catKpis = kpisByCategory[cat];
+                
+                // Give each KPI in this category a proportional share of the targetPct
+                const currentCatTotalWeight = catKpis.reduce((sum: number, k: any) => sum + (Number(k.weight) || 0), 0);
+                let remainingPct = Number(targetPct);
+                
+                for (let i = 0; i < catKpis.length; i++) {
+                    const kpi = catKpis[i];
+                    let newWeight = 0;
+
+                    if (i === catKpis.length - 1) {
+                        // Last item gets the exact remaining to handle rounding (ensures total hits targetPct)
+                        newWeight = remainingPct;
+                    } else {
+                        if (currentCatTotalWeight === 0) {
+                             newWeight = Math.floor(targetPct / catKpis.length);
+                        } else {
+                             // Proportional based on current weight
+                             const currentKpiWeight = Number(kpi.weight) || 0;
+                             newWeight = Math.round((currentKpiWeight / currentCatTotalWeight) * targetPct);
+                        }
+                        
+                        // Prevent remainingPct from dropping below what is needed for at least 1% for remaining items
+                        if (newWeight <= 0) newWeight = 1;
+                        
+                        // Ensure we don't consume more than available
+                        const maxAllowed = remainingPct - (catKpis.length - 1 - i); // reserve 1 for each remaining
+                        if (newWeight > maxAllowed && maxAllowed > 0) {
+                            newWeight = maxAllowed;
+                        }
+
+                        remainingPct -= newWeight;
+                    }
+
+                    updates.push({ id: kpi.id, newWeight });
+                }
+            }
+
+            // Perform DB updates
+            const db = await openDb();
+            for (const item of updates) {
+                await db.run('UPDATE kpi_targets SET weight = ?, updated_at = ? WHERE id = ?', 
+                    item.newWeight, new Date().toISOString(), item.id);
+            }
+
+            return {
+                success: true,
+                message: `Bobot KPI berhasil disesuaikan menjadi 100% mengikuti standar komposisi SOP departemen ${employee.department}.`,
+                details: updates
+            };
+
+        } catch (error: any) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(`Error rebalancing weights: ${error.message}`, 500);
+        }
     }
 }

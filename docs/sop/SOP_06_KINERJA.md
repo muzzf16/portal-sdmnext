@@ -224,7 +224,87 @@ Fase 7: FEEDBACK & TINDAK LANJUT
 | 5 | Kepatuhan regulasi pelaporan | 🏢 Strategic | 100 | % | 10% | Hasil audit (manual) |
 | 6 | Pembuatan lap. internal manajemen | 📊 Process | 4 | jumlah/bln | 5% | Log WLA (otomatis) |
 
-### A.4 Panduan Kategori KPI
+### A.4 Bagian Account Officer (Kredit)
+
+**Komposisi: Process 40% + Outcome 50% + Strategic 10% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Jumlah kunjungan calon debitur | 📊 Process | 40 | jumlah/bln | 20% | Log WLA (otomatis) |
+| 2 | Pembuatan analisa kredit | 📊 Process | 15 | jumlah/bln | 20% | Log WLA (otomatis) |
+| 3 | Pencairan kredit baru | 🎯 Outcome | 300 | juta/bln | 30% | Data pencairan |
+| 4 | Kualitas kredit (NPL < 5%) | 🎯 Outcome | 100 | % | 20% | Laporan NPL |
+| 5 | Pertumbuhan kredit produktif | 🏢 Strategic | 10 | %/semester | 10% | Laporan portofolio |
+
+### A.5 Bagian Operasional & Teller
+
+**Komposisi: Process 60% + Outcome 40% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Jumlah transaksi diproses | 📊 Process | 1500 | jumlah/bln | 30% | Log WLA (otomatis) |
+| 2 | Rekonsiliasi kas harian selesai | 📊 Process | 22 | jumlah/bln | 30% | Log WLA (otomatis) |
+| 3 | Selisih kas (Zero Tolerance) | 🎯 Outcome | 0 | rupiah/bln | 20% | Berita Acara Selisih Kas |
+| 4 | Komplain layanan kas | 🎯 Outcome | 0 | jumlah/bln | 20% | Log Komplain |
+
+### A.6 Bagian Customer Service
+
+**Komposisi: Process 50% + Outcome 50% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Pelayanan nasabah/tamu | 📊 Process | 400 | jumlah/bln | 25% | Log WLA (otomatis) |
+| 2 | Pembukaan rekening baru | 📊 Process | 50 | jumlah/bln | 25% | Log WLA (otomatis) |
+| 3 | Indeks Kepuasan Nasabah (IKN) | 🎯 Outcome | 90 | % | 30% | Survei IKN |
+| 4 | Penyelesaian komplain < 24 jam | 🎯 Outcome | 100 | % | 20% | SLA Komplain |
+
+### A.7 Bagian HRD & Umum
+
+**Komposisi: Process 40% + Outcome 50% + Strategic 10% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Perekrutan dan Onboarding | 📊 Process | 100 | % req | 20% | Log WLA (otomatis) |
+| 2 | Proses penggajian tepat waktu | 📊 Process | 1 | jumlah/bln | 20% | Log WLA (otomatis) |
+| 3 | Tingkat absensi/keterlambatan | 🎯 Outcome | < 5 | % | 20% | Laporan Presensi |
+| 4 | Tingkat penyelesaian training | 🎯 Outcome | 90 | % | 30% | Laporan Training |
+| 5 | Retensi karyawan (Turnover < 10%) | 🏢 Strategic | 100 | % | 10% | Laporan Turnover |
+
+### A.8 Bagian TI (Teknologi Informasi)
+
+**Komposisi: Process 50% + Outcome 35% + Strategic 15% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Resolusi tiket IT Helpdesk | 📊 Process | 100 | % SLA | 30% | Log WLA (otomatis) |
+| 2 | Maintenance hardware & jaringan | 📊 Process | 4 | jumlah/bln | 20% | Log WLA (otomatis) |
+| 3 | Uptime sistem utama | 🎯 Outcome | 99 | % | 25% | Laporan Server Uptime |
+| 4 | Zero major security incident | 🎯 Outcome | 100 | % | 10% | Laporan Keamanan |
+| 5 | Implementasi fitur baru / project | 🏢 Strategic | 1 | jumlah/kuartal | 15% | Update release log |
+
+### A.9 Bagian Akuntansi & Keuangan
+
+**Komposisi: Process 50% + Outcome 50% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Penjurnalan harian | 📊 Process | 22 | jumlah/bln | 25% | Log WLA (otomatis) |
+| 2 | Pembuatan laporan keuangan | 📊 Process | 1 | jumlah/bln | 25% | Log WLA (otomatis) |
+| 3 | Ketepatan waktu laporan pajak | 🎯 Outcome | 100 | % deadline | 25% | Bukti lapor pajak |
+| 4 | Akurasi pembukuan (bebas koreksi) | 🎯 Outcome | 98 | % | 25% | Temuan audit intern |
+
+### A.10 Bagian Satuan Kerja Audit Internal (SKAI)
+
+**Komposisi: Process 50% + Outcome 30% + Strategic 20% = 100%**
+
+| # | Nama KPI | Kategori | Target | Satuan | Bobot | Sumber Pengukuran |
+|---|---|---|---|---|---|---|
+| 1 | Pelaksanaan audit cabang/divisi | 📊 Process | 2 | jumlah/bln | 25% | Log WLA (otomatis) |
+| 2 | Pembuatan LHA (Laporan Hasil Audit) | 📊 Process | 2 | jumlah/bln | 25% | Log WLA (otomatis) |
+| 3 | Tindak lanjut temuan audit | 🎯 Outcome | 90 | % | 30% | Laporan follow up |
+| 4 | Penurunan tingkat pelanggaran prosedur | 🏢 Strategic | 100 | % | 20% | Evaluasi LHA Tahunan |
+
+### A.11 Panduan Kategori KPI
 
 | Kategori | Ciri | Sumber Realisasi | Contoh |
 |---|---|---|---|
@@ -232,7 +312,7 @@ Fase 7: FEEDBACK & TINDAK LANJUT
 | 🎯 **Outcome** | Ukur hasil/dampak dari aktivitas | **Manual input + evidence** | Nasabah baru, collection rate, akurasi |
 | 🏢 **Strategic** | Target cascading dari RKAT | **Manual input** | NPL, DPK growth, kepatuhan regulasi |
 
-### A.5 Tips Menetapkan KPI
+### A.12 Tips Menetapkan KPI
 
 1. Total bobot per pegawai **harus = 100%**
 2. Minimal **3 KPI**, maksimal **7 KPI** per pegawai per periode

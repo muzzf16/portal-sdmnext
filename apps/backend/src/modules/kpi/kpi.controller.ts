@@ -138,4 +138,20 @@ export default class KpiController {
             return next(error);
         }
     }
+
+    static async rebalanceWeights(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { employeeId, period } = req.body;
+            if (!employeeId || !period) {
+                return res.status(400).json({ success: false, message: 'employeeId and period are required' });
+            }
+            const data = await KpiService.rebalanceWeights(employeeId, period);
+            if (data && (data as any)._isBusinessError) {
+                return res.status(200).json({ success: false, message: (data as any).message });
+            }
+            return res.status(200).json(data); // data already contains success and message properties
+        } catch (error) {
+            return next(error);
+        }
+    }
 }
