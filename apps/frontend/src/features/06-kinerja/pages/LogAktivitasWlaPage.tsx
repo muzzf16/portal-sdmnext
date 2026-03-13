@@ -358,6 +358,17 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                 </div>
                                                 {Number(val.frekuensi) > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-gray-100 border-dashed animate-in fade-in slide-in-from-top-2">
+                                                        <div className="flex items-center mb-3">
+                                                            <label className="text-xs text-gray-700 font-bold mr-2">Frekuensi Kegiatan:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={val.frekuensi}
+                                                                onChange={(e) => handleInputChange(actId, 'frekuensi', e.target.value)}
+                                                                className="w-20 px-2 py-1.5 text-xs border border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                            />
+                                                            <span className="text-xs text-gray-600 ml-2 font-medium bg-gray-100 border border-gray-200 px-2 py-1 rounded">{act.outputUnit || 'Kali'}</span>
+                                                        </div>
                                                         <textarea
                                                             value={val.catatan || ''}
                                                             onChange={(e) => handleInputChange(actId, 'catatan', e.target.value)}

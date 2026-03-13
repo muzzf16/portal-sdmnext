@@ -262,14 +262,14 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                                         <input {...register(`items.${index}.activityName` as const, { required: true })} disabled={isReadOnly} className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-1 disabled:bg-gray-100 disabled:text-gray-600" placeholder="Nama aktivitas" />
                                     </td>
                                     <td className="px-3 py-2">
-                                        <input type="number" min="0" {...register(`items.${index}.durationMinutes` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-16 text-center border-gray-300 rounded-md shadow-sm sm:text-sm border p-1 disabled:bg-gray-100 disabled:text-gray-600" />
+                                        <input type="number" min="0" {...register(`items.${index}.durationMinutes` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-16 text-center border-gray-300 rounded-md shadow-sm sm:text-sm border p-1 disabled:bg-gray-100 disabled:text-gray-600" />
                                     </td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqDaily` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqWeekly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqMonthly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqQuarterly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqSemester` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
-                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqYearly` as const, { valueAsNumber: true })} disabled={isReadOnly} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqDaily` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqWeekly` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqMonthly` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqQuarterly` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqSemester` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
+                                    <td className="px-1 py-2"><input type="number" min="0" {...register(`items.${index}.freqYearly` as const, { valueAsNumber: true })} disabled={isReadOnly || user?.role !== 'admin'} className="w-12 text-center border-gray-300 rounded-md border p-1 disabled:bg-gray-100 disabled:text-gray-600" /></td>
                                     <td className="px-3 py-2 text-right font-mono text-gray-900 font-medium bg-gray-50">
                                         {rowTotal.toLocaleString()}
                                     </td>
@@ -309,8 +309,11 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                 <div className="mt-4 flex justify-between items-start gap-4 flex-wrap">
                     {!isReadOnly && (
                         <div className="flex gap-2 items-center">
-                            <button type="button" onClick={() => setShowAddActivity(!showAddActivity)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow-sm transition-colors">
-                                {showAddActivity ? '- Batal Tambah Baris' : '+ Tambah Baris'}
+                            <button type="button" onClick={() => append({ activityName: '', durationMinutes: 0, freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 })} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow-sm transition-colors">
+                                + Tambah Baris
+                            </button>
+                            <button type="button" onClick={() => setShowAddActivity(!showAddActivity)} className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 font-medium shadow-sm transition-colors">
+                                {showAddActivity ? '- Batal Tambah ke Library' : '+ Tambah ke Library'}
                             </button>
                             {libraryActivities.length > 0 && (
                                 <select
