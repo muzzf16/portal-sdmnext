@@ -309,9 +309,6 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
                 <div className="mt-4 flex justify-between items-start gap-4 flex-wrap">
                     {!isReadOnly && (
                         <div className="flex gap-2 items-center">
-                            <button type="button" onClick={() => append({ activityName: '', durationMinutes: 0, freqDaily: 0, freqWeekly: 0, freqMonthly: 0, freqQuarterly: 0, freqSemester: 0, freqYearly: 0 })} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow-sm transition-colors">
-                                + Tambah Baris
-                            </button>
                             <button type="button" onClick={() => setShowAddActivity(!showAddActivity)} className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 font-medium shadow-sm transition-colors">
                                 {showAddActivity ? '- Batal Tambah ke Library' : '+ Tambah ke Library'}
                             </button>
