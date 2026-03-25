@@ -10,6 +10,15 @@ export const getKpiTargets = (filters?: { employeeId?: string; period?: string; 
     return api.get(`/kpi-targets${qs ? `?${qs}` : ''}`);
 };
 
+export const getKpiSummary = (filters: { employeeId?: string; period?: string; startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters.period) params.append('period', filters.period);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    return api.get(`/kpi-targets/summary?${params.toString()}`);
+};
+
 export const getKpiByEmployeeId = (employeeId: string) =>
     api.get(`/kpi-targets/employee/${employeeId}`);
 

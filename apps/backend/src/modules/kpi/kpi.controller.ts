@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import KpiService from './kpi.service';
 
+interface AuthRequest extends Request {
+    user?: any;
+}
+
 export default class KpiController {
 
     static async getAll(req: Request, res: Response, next: NextFunction) {
@@ -12,6 +16,28 @@ export default class KpiController {
                 status: status as string | undefined,
             };
             const data = await KpiService.getAll(filters);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
+    static async getSummary(req: AuthRequest, res: Response, next: NextFunction) {
+        try {
+            const { employeeId, period, startDate, endDate } = req.query;
+
+            let supervisorId: string | undefined = undefined;
+            if (req.user?.role === 'supervisor') {
+                supervisorId = String(req.user?.employeeId || req.user?.id);
+            }
+
+            const data = await KpiService.getSummary({
+                employeeId: employeeId as string | undefined,
+                period: period as string | undefined,
+                startDate: startDate as string | undefined,
+                endDate: endDate as string | undefined,
+            }, supervisorId);
+
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);

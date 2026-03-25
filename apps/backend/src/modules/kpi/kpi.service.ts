@@ -2,6 +2,7 @@ import { KpiRepository } from './kpi.repository';
 import { WorkloadRepository } from '../workload/workload.repository';
 import { ActivityLibraryRepository } from '../activity-library/activity-library.repository';
 import { PegawaiRepository } from '../pegawai/pegawai.repository';
+import JabatanService from '../jabatan/jabatan.service';
 import { AppError } from '../../utils/errors';
 import { openDb } from '../../config/db';
 
@@ -58,6 +59,134 @@ export default class KpiService {
             return await KpiRepository.findByEmployeePeriod(employeeId, period);
         } catch (error: any) {
             throw new AppError(`Error retrieving KPIs: ${error.message}`, 500);
+        }
+    }
+
+    static async getSummary(filters: { employeeId?: string; period?: string; startDate?: string; endDate?: string }, supervisorId?: string) {
+        const hasPeriod = Boolean(filters.period);
+        const hasDateRange = Boolean(filters.startDate && filters.endDate);
+
+        if (!hasPeriod && !hasDateRange) {
+            throw new AppError('period or startDate/endDate is required', 400);
+        }
+
+        try {
+            let allowedEmployeeIds: string[] | undefined;
+
+            if (supervisorId) {
+                const subordinates = await JabatanService.getAllSubordinates(supervisorId);
+                allowedEmployeeIds = subordinates.map((employee: any) => String(employee.id));
+
+                if (allowedEmployeeIds.length === 0) {
+                    return [];
+                }
+
+                if (filters.employeeId && !allowedEmployeeIds.includes(filters.employeeId)) {
+                    return [];
+                }
+            }
+
+            const employees = await KpiRepository.findSummaryEmployees({
+                employeeId: filters.employeeId,
+                employeeIds: allowedEmployeeIds,
+            });
+
+            const rows = await KpiRepository.findSummaryRecords({
+                employeeId: filters.employeeId,
+                employeeIds: allowedEmployeeIds,
+                period: filters.period,
+            });
+
+            const filteredRows = hasDateRange
+                ? rows.filter((row: any) => this.periodOverlapsDateRange(row.period, filters.startDate!, filters.endDate!))
+                : rows;
+
+            const grouped = new Map<string, any>();
+
+            for (const employee of employees) {
+                grouped.set(String(employee.employeeId), {
+                    employeeId: String(employee.employeeId),
+                    employeeName: employee.employeeName || '',
+                    nip: employee.nip || '',
+                    department: employee.department || '',
+                    position: employee.position || '',
+                    totalKpi: 0,
+                    totalWeight: 0,
+                    weightedScoreAccumulator: 0,
+                    draftCount: 0,
+                    waitingApprovalCount: 0,
+                    activeCount: 0,
+                    completedCount: 0,
+                });
+            }
+
+            for (const row of filteredRows) {
+                const employeeId = String(row.employeeId);
+                const weight = Number(row.weight || 0);
+                const score = Number(row.score || 0);
+
+                if (!grouped.has(employeeId)) {
+                    grouped.set(employeeId, {
+                        employeeId,
+                        employeeName: row.employeeName || '',
+                        nip: row.nip || '',
+                        department: row.department || '',
+                        position: row.position || '',
+                        totalKpi: 0,
+                        totalWeight: 0,
+                        weightedScoreAccumulator: 0,
+                        draftCount: 0,
+                        waitingApprovalCount: 0,
+                        activeCount: 0,
+                        completedCount: 0,
+                    });
+                }
+
+                const current = grouped.get(employeeId);
+                current.totalKpi += 1;
+                current.totalWeight += weight;
+                current.weightedScoreAccumulator += score * weight;
+
+                if (row.status === 'draft') current.draftCount += 1;
+                else if (row.status === 'waiting_approval') current.waitingApprovalCount += 1;
+                else if (row.status === 'active') current.activeCount += 1;
+                else if (row.status === 'completed') current.completedCount += 1;
+            }
+
+            return Array.from(grouped.values())
+                .map((row: any) => {
+                    let statusSummary: 'empty' | 'draft' | 'waiting_approval' | 'active' | 'completed' = 'active';
+
+                    if (row.totalKpi === 0) {
+                        statusSummary = 'empty';
+                    } else if (row.completedCount === row.totalKpi) {
+                        statusSummary = 'completed';
+                    } else if (row.waitingApprovalCount > 0) {
+                        statusSummary = 'waiting_approval';
+                    } else if (row.draftCount > 0) {
+                        statusSummary = 'draft';
+                    }
+
+                    return {
+                        employeeId: row.employeeId,
+                        employeeName: row.employeeName,
+                        nip: row.nip,
+                        department: row.department,
+                        position: row.position,
+                        totalKpi: row.totalKpi,
+                        totalWeight: row.totalWeight,
+                        weightedScore: row.totalWeight > 0 ? row.weightedScoreAccumulator / row.totalWeight : 0,
+                        draftCount: row.draftCount,
+                        waitingApprovalCount: row.waitingApprovalCount,
+                        activeCount: row.activeCount,
+                        completedCount: row.completedCount,
+                        statusSummary,
+                    };
+                })
+                .sort((a: any, b: any) => a.employeeName.localeCompare(b.employeeName));
+        } catch (error: any) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(`Error retrieving KPI summary: ${error.message}`, 500);
         }
     }
 
@@ -437,6 +566,11 @@ export default class KpiService {
         const yearMatch = period.match(/^(\d{4})/);
         const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
         return { startDate: `${year}-01-01`, endDate: `${year}-12-31` };
+    }
+
+    private static periodOverlapsDateRange(period: string, filterStartDate: string, filterEndDate: string) {
+        const { startDate, endDate } = this.parsePeriodToDateRange(period);
+        return startDate <= filterEndDate && endDate >= filterStartDate;
     }
 
     /**

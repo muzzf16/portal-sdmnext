@@ -50,6 +50,121 @@ export const KpiRepository = {
         return db.get('SELECT * FROM kpi_targets WHERE id = ?', id);
     },
 
+    async findSummaryEmployees(filters?: { employeeId?: string; employeeIds?: string[] }) {
+        const db = await openDb();
+        const params: any[] = [];
+        const conditions = [`(p.isActive = 1 OR p.statusKaryawan = 'aktif')`];
+
+        if (filters?.employeeId) {
+            conditions.push('p.id = ?');
+            params.push(filters.employeeId);
+        }
+
+        if (filters?.employeeIds && filters.employeeIds.length > 0) {
+            const placeholders = filters.employeeIds.map(() => '?').join(', ');
+            conditions.push(`p.id IN (${placeholders})`);
+            params.push(...filters.employeeIds);
+        }
+
+        return db.all(
+            `SELECT
+                p.id AS employeeId,
+                p.name AS employeeName,
+                p.nip AS nip,
+                p.department AS department,
+                p.position AS position
+             FROM pegawai p
+             WHERE ${conditions.join(' AND ')}
+             ORDER BY p.department ASC, p.name ASC`,
+            ...params
+        );
+    },
+
+    async findSummaryRecords(filters?: { employeeId?: string; employeeIds?: string[]; period?: string }) {
+        const db = await openDb();
+        const params: any[] = [];
+        const conditions: string[] = [];
+
+        if (filters?.employeeId) {
+            conditions.push('k.employeeId = ?');
+            params.push(filters.employeeId);
+        }
+
+        if (filters?.employeeIds && filters.employeeIds.length > 0) {
+            const placeholders = filters.employeeIds.map(() => '?').join(', ');
+            conditions.push(`k.employeeId IN (${placeholders})`);
+            params.push(...filters.employeeIds);
+        }
+
+        if (filters?.period) {
+            conditions.push('k.period = ?');
+            params.push(filters.period);
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        return db.all(
+            `SELECT
+                k.id,
+                k.employeeId,
+                k.period,
+                k.weight,
+                k.score,
+                k.status,
+                p.name AS employeeName,
+                p.nip AS nip,
+                p.department AS department,
+                p.position AS position
+             FROM kpi_targets k
+             JOIN pegawai p ON p.id = k.employeeId
+             ${whereClause}
+             ORDER BY p.name ASC, k.period DESC, k.kpiName ASC`,
+            ...params
+        );
+    },
+
+    async findSummary(filters: { period: string; employeeId?: string; employeeIds?: string[] }) {
+        const db = await openDb();
+        const params: any[] = [filters.period];
+        const conditions = ['k.period = ?'];
+
+        if (filters.employeeId) {
+            conditions.push('k.employeeId = ?');
+            params.push(filters.employeeId);
+        }
+
+        if (filters.employeeIds && filters.employeeIds.length > 0) {
+            const placeholders = filters.employeeIds.map(() => '?').join(', ');
+            conditions.push(`k.employeeId IN (${placeholders})`);
+            params.push(...filters.employeeIds);
+        }
+
+        return db.all(
+            `SELECT
+                p.id AS employeeId,
+                p.name AS employeeName,
+                p.nip AS nip,
+                p.department AS department,
+                p.position AS position,
+                COUNT(k.id) AS totalKpi,
+                COALESCE(SUM(COALESCE(k.weight, 0)), 0) AS totalWeight,
+                COALESCE(
+                    SUM(COALESCE(k.score, 0) * COALESCE(k.weight, 0)) / NULLIF(SUM(COALESCE(k.weight, 0)), 0),
+                    0
+                ) AS weightedScore,
+                SUM(CASE WHEN k.status = 'draft' THEN 1 ELSE 0 END) AS draftCount,
+                SUM(CASE WHEN k.status = 'waiting_approval' THEN 1 ELSE 0 END) AS waitingApprovalCount,
+                SUM(CASE WHEN k.status = 'active' THEN 1 ELSE 0 END) AS activeCount,
+                SUM(CASE WHEN k.status = 'completed' THEN 1 ELSE 0 END) AS completedCount
+             FROM kpi_targets k
+             JOIN pegawai p ON p.id = k.employeeId
+             WHERE ${conditions.join(' AND ')}
+             GROUP BY p.id, p.name, p.nip, p.department, p.position
+             ORDER BY p.name ASC`,
+            ...params
+        );
+    },
+
     async create(data: any) {
         const db = await openDb();
         const id = data.id || `kpi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

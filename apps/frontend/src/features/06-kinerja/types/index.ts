@@ -76,6 +76,22 @@ export interface KpiTarget {
   updated_at?: string;
 }
 
+export interface KpiSummaryRow {
+  employeeId: string;
+  employeeName: string;
+  nip: string;
+  department: string;
+  position: string;
+  totalKpi: number;
+  totalWeight: number;
+  weightedScore: number;
+  draftCount: number;
+  waitingApprovalCount: number;
+  activeCount: number;
+  completedCount: number;
+  statusSummary: 'empty' | 'draft' | 'waiting_approval' | 'active' | 'completed';
+}
+
 export interface DailyActivity {
   id_daily_activity: number;
   id_pegawai: number;

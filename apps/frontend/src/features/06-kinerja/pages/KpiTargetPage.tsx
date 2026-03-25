@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { KpiTarget } from '../types';
 import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget, syncKpiFromWla, getKpiTemplates, applyKpiTemplates } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
@@ -6,10 +7,12 @@ import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Download, RefreshCw, Paperclip, X, FileText } from 'lucide-react';
 import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
+import KpiSummaryView from '../components/KpiSummaryView';
 
 const KpiTargetPage: React.FC = () => {
     const { user } = useAuth();
     const role = user?.role || 'employee'; // default to lowest privilege
+    const [searchParams, setSearchParams] = useSearchParams();
     const [kpis, setKpis] = useState<KpiTarget[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -31,6 +34,8 @@ const KpiTargetPage: React.FC = () => {
     const [templateDepts, setTemplateDepts] = useState<string[]>([]);
     const [templates, setTemplates] = useState<any[]>([]);
     const [templateLoading, setTemplateLoading] = useState(false);
+    const canViewSummary = role === 'admin' || role === 'supervisor';
+    const currentKpiView = canViewSummary && searchParams.get('kpiView') === 'summary' ? 'summary' : 'manage';
 
     // Form state
     const [form, setForm] = useState({
@@ -65,6 +70,16 @@ const KpiTargetPage: React.FC = () => {
         });
         return options;
     }, []);
+
+    const handleKpiViewChange = (view: 'manage' | 'summary') => {
+        const nextParams = new URLSearchParams(searchParams);
+        if (view === 'manage') {
+            nextParams.delete('kpiView');
+        } else {
+            nextParams.set('kpiView', view);
+        }
+        setSearchParams(nextParams, { replace: true });
+    };
 
     const fetchKpis = async () => {
         setLoading(true);
@@ -107,10 +122,18 @@ const KpiTargetPage: React.FC = () => {
         fetchEmployees();
     }, [role, user]);
 
-    useEffect(() => { fetchKpis(); }, [selectedEmployee, selectedPeriod]);
+    useEffect(() => {
+        if (currentKpiView === 'manage') {
+            void fetchKpis();
+        }
+    }, [selectedEmployee, selectedPeriod, currentKpiView]);
 
     // Hot reload: refresh KPIs when WLA entries or ABK workload changes
-    useOnRefresh(['wla-entry', 'workload'], () => fetchKpis());
+    useOnRefresh(['wla-entry', 'workload', 'kpi'], () => {
+        if (currentKpiView === 'manage') {
+            void fetchKpis();
+        }
+    });
 
     const handleCreateKpi = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -406,6 +429,35 @@ const KpiTargetPage: React.FC = () => {
 
     return (
         <div className="p-6">
+            {canViewSummary && (
+                <div className="mb-6 border-b border-gray-200">
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleKpiViewChange('manage')}
+                            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${currentKpiView === 'manage'
+                                ? 'border-indigo-500 text-indigo-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Manajemen KPI
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleKpiViewChange('summary')}
+                            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${currentKpiView === 'summary'
+                                ? 'border-indigo-500 text-indigo-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Rekap KPI
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {currentKpiView === 'manage' ? (
+                <>
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Manajemen KPI</h1>
@@ -807,6 +859,12 @@ const KpiTargetPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+                </>
+            ) : (
+                <KpiSummaryView
+                    isActive
+                />
             )}
         </div>
     );
