@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import routes from './routes';
 import errorHandler from './middleware/errorHandler';
+import { requestContextMiddleware } from './middleware/requestContext';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(cors({
     },
     credentials: true
 }));
+app.use(requestContextMiddleware);
 app.use('/api', routes);
 
 // Serve static files (Uploaded content)

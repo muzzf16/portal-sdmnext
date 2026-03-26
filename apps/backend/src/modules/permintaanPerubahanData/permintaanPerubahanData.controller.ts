@@ -4,21 +4,23 @@ import * as service from './permintaanPerubahanData.service';
 export const submitRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { requestedChanges } = req.body;
-    // @ts-ignore
-    const employeeId = req.user.employeeId; 
+    const employeeId = req.user?.employeeId;
+    if (!employeeId) {
+      return res.status(401).json({ message: 'Employee identity is required' });
+    }
     const newRequestId = await service.createChangeRequest({ employeeId, requestedChanges });
-    res.status(201).json({ message: 'Request submitted successfully', id: newRequestId });
+    return res.status(201).json({ message: 'Request submitted successfully', id: newRequestId });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
 export const getRequests = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const requests = await service.getAllChangeRequests();
-    res.json(requests);
+    return res.json(requests);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -26,12 +28,14 @@ export const handleRequest = async (req: Request, res: Response, next: NextFunct
     try {
         const { id } = req.params;
         const { status, reviewNotes } = req.body;
-        // @ts-ignore
-        const reviewedBy = req.user.id; // Admin user ID
+        const reviewedBy = req.user?.id;
+        if (!reviewedBy) {
+            return res.status(401).json({ message: 'Reviewer identity is required' });
+        }
 
         await service.processChangeRequest(Number(id), status, reviewedBy, reviewNotes);
-        res.status(200).json({ message: `Request ${status} successfully` });
+        return res.status(200).json({ message: `Request ${status} successfully` });
     } catch (error) {
-        next(error);
+        return next(error);
     }
 };

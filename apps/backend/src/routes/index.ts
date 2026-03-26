@@ -25,6 +25,8 @@ import jabatanRoutes from '../modules/jabatan/jabatan.routes';
 import logAktivitasHarianRoutes from '../modules/log-aktivitas-harian/log-aktivitas-harian.routes';
 import taskRoutes from '../modules/task/task.routes';
 import integrationRoutes from '../modules/integration/integration.routes';
+import auditLogRoutes from '../modules/audit-log/audit-log.routes';
+import changelogRoutes from '../modules/changelog/changelog.routes';
 
 const router = Router();
 
@@ -53,5 +55,7 @@ router.use('/jabatan', jabatanRoutes);
 router.use('/log-aktivitas-harian', logAktivitasHarianRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/integrations', integrationRoutes);
+router.use('/audit-logs', auditLogRoutes);
+router.use('/changelog', changelogRoutes);
 router.use('/', uploadRoutes);
 export default router;
