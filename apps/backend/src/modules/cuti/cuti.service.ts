@@ -1,12 +1,54 @@
-
-import { PermintaanCutiRepository } from './permintaanCuti.repository';
-import { getCompanySettings } from '../company-settings/company-settings.repository';
+import { withTransaction } from '../../config/db';
 import { AppError } from '../../utils/errors';
+import { getCompanySettings } from '../company-settings/company-settings.repository';
+import { PermintaanCutiRepository } from './permintaanCuti.repository';
+import {
+  CreateLeaveRequestInput,
+  LEAVE_STATUSES,
+  LeaveBalanceSummary,
+  LeaveRequestFilters,
+  isAnnualLeaveType,
+  normalizeLeaveStatus
+} from './cuti.types';
+
+const CUTI_BERSAMA = [
+  { id: '1', tanggal: '2026-01-01', deskripsi: 'Tahun Baru 2026' },
+  { id: '2', tanggal: '2026-03-31', deskripsi: 'Hari Raya Idul Fitri' },
+  { id: '3', tanggal: '2026-04-01', deskripsi: 'Cuti Bersama Idul Fitri' },
+  { id: '4', tanggal: '2026-05-01', deskripsi: 'Hari Buruh Internasional' },
+  { id: '5', tanggal: '2026-08-17', deskripsi: 'Hari Kemerdekaan RI' },
+  { id: '6', tanggal: '2026-12-25', deskripsi: 'Hari Natal' },
+  { id: '7', tanggal: '2026-12-26', deskripsi: 'Cuti Bersama Natal' }
+];
+
+const parseFilters = (query: Record<string, unknown>): LeaveRequestFilters => ({
+  employeeId: typeof query.employeeId === 'string' ? query.employeeId : undefined,
+  status: typeof query.status === 'string' ? query.status : undefined
+});
+
+const assertValidDateRange = (startDate: string, endDate: string) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw new AppError('Tanggal cuti tidak valid', 400);
+  }
+
+  if (end < start) {
+    throw new AppError('Tanggal selesai tidak boleh lebih awal dari tanggal mulai', 400);
+  }
+};
+
+const assertRequiredLeaveFields = (requestData: Partial<CreateLeaveRequestInput>) => {
+  if (!requestData.employeeId || !requestData.employeeName || !requestData.leaveType || !requestData.startDate || !requestData.endDate) {
+    throw new AppError('Data pengajuan cuti belum lengkap', 400);
+  }
+};
 
 class CutiService {
-  static async getAllPermintaanCuti(query: any) {
+  static async getAllPermintaanCuti(query: Record<string, unknown>) {
     try {
-      return await PermintaanCutiRepository.findAll(query);
+      return await PermintaanCutiRepository.findAll(parseFilters(query));
     } catch (error: any) {
       throw new AppError(`Error retrieving leave requests: ${error.message}`, 500);
     }
@@ -20,7 +62,7 @@ class CutiService {
       }
       return request;
     } catch (error: any) {
-      if (error.message === 'Leave request not found') {
+      if (error instanceof AppError) {
         throw error;
       }
       throw new AppError(`Error retrieving leave request: ${error.message}`, 500);
@@ -35,21 +77,81 @@ class CutiService {
     }
   }
 
-  static async submitPermintaanCuti(requestData: any) {
+  static async submitPermintaanCuti(requestData: Partial<CreateLeaveRequestInput>) {
     try {
-      return await PermintaanCutiRepository.create(requestData);
+      assertRequiredLeaveFields(requestData);
+      assertValidDateRange(requestData.startDate!, requestData.endDate!);
+
+      return await PermintaanCutiRepository.create({
+        employeeId: requestData.employeeId!,
+        employeeName: requestData.employeeName!,
+        leaveType: requestData.leaveType!,
+        startDate: requestData.startDate!,
+        endDate: requestData.endDate!,
+        reason: requestData.reason || '',
+        supportingDocument: requestData.supportingDocument || null,
+        rejectionReason: requestData.rejectionReason || null
+      });
     } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
       throw new AppError(`Error submitting leave request: ${error.message}`, 500);
     }
   }
 
   static async updateStatusCuti(id: string, status: string, rejectionReason: string | null) {
     try {
-      return await PermintaanCutiRepository.updateStatus(id, status, rejectionReason);
+      const nextStatus = normalizeLeaveStatus(status);
+      return await withTransaction(async (db) => {
+        const existingRequest = await PermintaanCutiRepository.findById(id, db);
+
+        if (!existingRequest) {
+          throw new AppError('Leave request not found', 404);
+        }
+
+        const previousStatus = normalizeLeaveStatus(existingRequest.status);
+        const updatedRequest = await PermintaanCutiRepository.updateStatus(
+          id,
+          nextStatus,
+          nextStatus === LEAVE_STATUSES.rejected ? rejectionReason : null,
+          db
+        );
+
+        if (isAnnualLeaveType(existingRequest.leaveType)) {
+          const leaveDays = existingRequest.jumlahHari ?? PermintaanCutiRepository.calculateLeaveDuration(existingRequest.startDate, existingRequest.endDate);
+          const employee = await PermintaanCutiRepository.findEmployeeLeaveBalance(existingRequest.employeeId, db);
+
+          if (employee) {
+            if (previousStatus !== LEAVE_STATUSES.approved && nextStatus === LEAVE_STATUSES.approved) {
+              await PermintaanCutiRepository.updateEmployeeLeaveBalance(
+                existingRequest.employeeId,
+                Math.max(0, employee.leaveBalance - leaveDays),
+                db
+              );
+            }
+
+            if (previousStatus === LEAVE_STATUSES.approved && nextStatus !== LEAVE_STATUSES.approved) {
+              await PermintaanCutiRepository.updateEmployeeLeaveBalance(
+                existingRequest.employeeId,
+                employee.leaveBalance + leaveDays,
+                db
+              );
+            }
+          }
+        }
+
+        return updatedRequest;
+      });
     } catch (error: any) {
-      if (error.message.includes('not found')) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      if (error.message?.includes('not found')) {
         throw new AppError(error.message, 404);
       }
+
       throw new AppError(`Error updating leave request status: ${error.message}`, 500);
     }
   }
@@ -62,62 +164,41 @@ class CutiService {
       }
       return { message: 'Leave request deleted successfully' };
     } catch (error: any) {
-      if (error.message === 'Leave request not found') {
+      if (error instanceof AppError) {
         throw error;
       }
       throw new AppError(`Error deleting leave request: ${error.message}`, 500);
     }
   }
 
-  static async getSisaCuti(employeeId: string) {
+  static async getSisaCuti(employeeId: string): Promise<LeaveBalanceSummary> {
     try {
       const approvedLeaves = await PermintaanCutiRepository.findApprovedByEmployeeId(employeeId);
-      // Hanya hitung cuti Tahunan (akomodasi nilai lama dan baru)
-      const annualApprovedLeaves = approvedLeaves.filter((cutiItem: any) => {
-        const type = (cutiItem.leaveType || '').toLowerCase();
-        return type === 'tahunan' || type === 'annual' || type === 'cuti tahunan';
-      });
+      const annualApprovedLeaves = approvedLeaves.filter((cutiItem) => isAnnualLeaveType(cutiItem.leaveType));
 
-      let totalCutiDiambil = 0;
-      annualApprovedLeaves.forEach(cutiItem => {
-        const startDate = new Date(cutiItem.startDate);
-        const endDate = new Date(cutiItem.endDate);
-        const timeDiff = endDate.getTime() - startDate.getTime();
-        const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-        totalCutiDiambil += dayDiff;
-      });
+      const totalCutiDiambil = annualApprovedLeaves.reduce((total, cutiItem) => {
+        const leaveDays = cutiItem.jumlahHari ?? PermintaanCutiRepository.calculateLeaveDuration(cutiItem.startDate, cutiItem.endDate);
+        return total + leaveDays;
+      }, 0);
 
-      // Ambil jatah cuti dari company_settings (bukan hardcoded)
-      // Fallback ke 12 hari sesuai UU 13/2003 Pasal 79 jika belum diatur
       const companySettings = await getCompanySettings();
       const jumlahJatahCuti = companySettings?.annualLeaveQuota || 12;
-
-      // Cuti bersama — idealnya dari tabel terpisah, untuk saat ini dari konfigurasi
-      // Referensi: SKB Menteri tentang Hari Libur Nasional dan Cuti Bersama
-      const cutiBersama = [
-        { id: '1', tanggal: '2026-01-01', deskripsi: 'Tahun Baru 2026' },
-        { id: '2', tanggal: '2026-03-31', deskripsi: 'Hari Raya Idul Fitri' },
-        { id: '3', tanggal: '2026-04-01', deskripsi: 'Cuti Bersama Idul Fitri' },
-        { id: '4', tanggal: '2026-05-01', deskripsi: 'Hari Buruh Internasional' },
-        { id: '5', tanggal: '2026-08-17', deskripsi: 'Hari Kemerdekaan RI' },
-        { id: '6', tanggal: '2026-12-25', deskripsi: 'Hari Natal' },
-        { id: '7', tanggal: '2026-12-26', deskripsi: 'Cuti Bersama Natal' },
-      ];
       const currentYear = new Date().getFullYear();
-      const cutiBersamaTahunIni = cutiBersama.filter(c =>
-        new Date(c.tanggal).getFullYear() === currentYear
+      const cutiBersamaTahunIni = CUTI_BERSAMA.filter((cutiBersama) =>
+        new Date(cutiBersama.tanggal).getFullYear() === currentYear
       ).length;
-
-      const sisaCuti = jumlahJatahCuti - totalCutiDiambil - cutiBersamaTahunIni;
 
       return {
         jatahCuti: jumlahJatahCuti,
         cutiDiambil: totalCutiDiambil,
         cutiBersama: cutiBersamaTahunIni,
-        sisaCuti: sisaCuti,
-        sumberJatah: companySettings ? 'company_settings' : 'default_uu13_2003',
+        sisaCuti: jumlahJatahCuti - totalCutiDiambil - cutiBersamaTahunIni,
+        sumberJatah: companySettings ? 'company_settings' : 'default_uu13_2003'
       };
     } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
       throw new AppError(`Error calculating remaining leave: ${error.message}`, 500);
     }
   }

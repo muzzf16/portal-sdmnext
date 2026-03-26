@@ -1,8 +1,8 @@
-import api from './api';
-import ApiService from './apiService';
+import {
+  getPermintaanCuti,
+  getSisaCuti as getLeaveBalance
+} from '../../features/03-cuti/api/cutiApi';
 
-// Minimal local LeaveRequest interface to match the properties used in this module.
-// This avoids relying on a non-existent export from ../types/types.
 export interface LeaveRequest {
   id?: string | number;
   employeeId?: string;
@@ -11,41 +11,26 @@ export interface LeaveRequest {
   [key: string]: any;
 }
 
-// Create an instance of ApiService for leave operations
-const leaveApi = new ApiService<LeaveRequest>('/leave-requests');
-
-// Export the standardized methods
-export const getLeaveRequests = () => leaveApi.list();
+export const getLeaveRequests = async () => {
+  const response = await getPermintaanCuti();
+  return {
+    success: true,
+    data: response.data
+  };
+};
 
 export const getPendingLeaveRequestsCount = async () => {
-  try {
-    const response: any = await leaveApi.list();
-    console.log('Leave API response:', response); // Debug log
-    
-    // Handle both old and new response formats
-    const leaveData = Array.isArray(response.data) ? response.data : response.data?.data || [];
-    console.log('Leave data:', leaveData); // Debug log
-    
-    return leaveData.filter((request: LeaveRequest) => 
-      request.status_pengajuan === 'menunggu' || request.status === 'menunggu'
-    ).length;
-  } catch (error) {
-    console.error('Error in getPendingLeaveRequestsCount:', error);
-    throw error;
-  }
+  const response = await getPermintaanCuti({ status: 'menunggu' });
+  return response.data.length;
 };
 
 export const getEmployeeApprovedLeaveCount = async (employeeId: string) => {
-  try {
-    const response = await leaveApi.list({ employeeId });
-    return response.data.filter(request => request.status_pengajuan === 'disetujui').length;
-  } catch (error) {
-    console.error('Error in getEmployeeApprovedLeaveCount:', error);
-    throw error;
-  }
+  const response = await getPermintaanCuti({ employeeId, status: 'disetujui' });
+  return response.data.length;
 };
 
-// Export the instance in case other methods are needed
-export default leaveApi;
+export default {
+  list: getLeaveRequests
+};
 
-export const getSisaCuti = (employeeId: string) => api.get(`/leave-requests/sisa-cuti/${employeeId}`);
+export const getSisaCuti = (employeeId: string) => getLeaveBalance(employeeId);

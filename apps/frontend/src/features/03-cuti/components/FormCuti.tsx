@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Cuti } from '../types';
-import { ajukanPermintaanCuti } from '../api/cutiApi';
+import { useSubmitLeaveRequest } from '../hooks/useLeaveQuery';
 import { useToast } from '@/app/providers/ToastContext';
 
 // Correctly type the form data based on the Cuti type
@@ -12,6 +12,7 @@ const FormCuti: React.FC = () => {
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<CutiFormData>();
   const { user } = useAuth();
   const { addToast } = useToast();
+  const submitLeaveRequest = useSubmitLeaveRequest();
   const [file, setFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +46,7 @@ const FormCuti: React.FC = () => {
     }
 
     try {
-      await ajukanPermintaanCuti(formData);
+      await submitLeaveRequest.mutateAsync(formData);
       addToast('Permintaan cuti berhasil dikirim', 'success');
       reset();
       setFile(null);
@@ -123,10 +124,10 @@ const FormCuti: React.FC = () => {
         <div className="pt-4">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || submitLeaveRequest.isPending}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed dark:disabled:bg-neutral-600"
           >
-            {isSubmitting ? 'Mengirim...' : 'Kirim Permintaan'}
+            {isSubmitting || submitLeaveRequest.isPending ? 'Mengirim...' : 'Kirim Permintaan'}
           </button>
         </div>
       </form>

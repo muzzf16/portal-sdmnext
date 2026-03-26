@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Badge } from '@/shared/components/ui';
 import { usePegawaiList } from '../../01-pegawai/hooks/usePegawaiQuery'; // Mengambil data pegawai dari modul pegawai
 import { useCuti } from '../hooks/useCuti'; // Mengambil data cuti yang sudah disetujui
+import { normalizeLeaveStatusLabel } from '../hooks/useLeaveQuery';
 
 interface CutiBersama {
   id: string;
@@ -33,7 +34,7 @@ const PerhitunganSisaCuti: React.FC = () => {
     if (pegawaiList && cuti) {
       // Filter cuti yang sudah disetujui (case-insensitive) dan hanya jenis Tahunan
       const approvedLeaves = cuti.filter(c => {
-        const statusOk = (c.status || '').toLowerCase() === 'disetujui';
+        const statusOk = normalizeLeaveStatusLabel(c.status).value === 'disetujui';
         const type = (c.leaveType || '').toLowerCase();
         const isAnnual = type === 'tahunan' || type === 'annual' || type === 'cuti tahunan';
         return statusOk && isAnnual;

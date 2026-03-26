@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCutiSaya } from '../hooks/useCutiSaya';
+import { normalizeLeaveStatusLabel } from '../hooks/useLeaveQuery';
 import { Table, Badge } from '@/shared/components/ui';
 
 const DaftarCutiSaya: React.FC = () => {
@@ -14,24 +15,23 @@ const DaftarCutiSaya: React.FC = () => {
     <div className="mt-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar Pengajuan Cuti Saya</h2>
       <Table headers={tableHeaders}>
-        {cuti.map(l => (
-          <tr key={l.id}>
+        {cuti.map(l => {
+          const statusMeta = normalizeLeaveStatusLabel(l.status);
+
+          return (
+            <tr key={l.id}>
             <td className="py-4 px-6">{l.leaveType}</td>
             <td className="py-4 px-6">{l.startDate}</td>
             <td className="py-4 px-6">{l.endDate}</td>
             <td className="py-4 px-6">{l.reason}</td>
             <td className="py-4 px-6">
-              <Badge 
-                variant={
-                  l.status === 'Disetujui' ? 'success' : 
-                  l.status === 'Ditolak' ? 'danger' : 'warning'
-                }
-              >
-                {l.status}
+              <Badge variant={statusMeta.badge}>
+                {statusMeta.label}
               </Badge>
             </td>
-          </tr>
-        ))}
+            </tr>
+          );
+        })}
       </Table>
     </div>
   );

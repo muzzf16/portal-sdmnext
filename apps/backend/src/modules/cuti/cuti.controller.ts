@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 class CutiController {
   static async getAllPermintaanCuti(req: Request, res: Response, next: NextFunction) {
     try {
-      const query = req.query;
+      const query = req.query as Record<string, unknown>;
       const leaveRequests = await CutiService.getAllPermintaanCuti(query);
       res.status(200).json(leaveRequests);
     } catch (error) {

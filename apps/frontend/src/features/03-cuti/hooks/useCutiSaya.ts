@@ -1,39 +1,12 @@
-import { useState, useEffect } from 'react';
-import { getPermintaanCutiSaya } from '../api/cutiApi';
-import { Cuti } from '../types';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useMyLeaveRequests } from './useLeaveQuery';
 
 export const useCutiSaya = () => {
-  const [cuti, setCuti] = useState<Cuti[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
+  const query = useMyLeaveRequests();
 
-  useEffect(() => {
-    const fetchCutiSaya = async () => {
-      if (!user) {
-        setError(new Error('User not authenticated'));
-        setLoading(false);
-        return;
-      }
-      
-      if (!user.employeeId) {
-        setError(new Error('Employee ID not found'));
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        const response = await getPermintaanCutiSaya(user.employeeId.toString());
-        setCuti(response.data);
-      } catch (err) {
-        setError(err as Error);
-      }
-      setLoading(false);
-    };
-
-    fetchCutiSaya();
-  }, [user]);
-
-  return { cuti, loading, error, setCuti };
+  return {
+    cuti: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error instanceof Error ? query.error : null,
+    refetch: query.refetch
+  };
 };

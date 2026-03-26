@@ -1,12 +1,13 @@
 import React from 'react';
 import { useCuti } from '../hooks/useCuti';
-import { perbaruiStatusPermintaanCuti } from '../api/cutiApi';
+import { normalizeLeaveStatusLabel, useUpdateLeaveRequestStatus } from '../hooks/useLeaveQuery';
 import { Table, Badge, Button } from '@/shared/components/ui';
 
 import { useToast } from '@/app/providers/ToastContext';
 
 const DaftarCuti: React.FC = () => {
-  const { cuti, loading, error, setCuti } = useCuti();
+  const { cuti, loading, error } = useCuti();
+  const updateStatusMutation = useUpdateLeaveRequestStatus();
   const { addToast } = useToast();
 
   const handleUpdateStatus = async (id: string, status: string) => {
@@ -21,9 +22,11 @@ const DaftarCuti: React.FC = () => {
 
     if (window.confirm(`Apakah Anda yakin ingin ${confirmAction === 'approve' ? 'menyetujui' : 'menolak'} permohonan cuti ini?`)) {
       try {
-        await perbaruiStatusPermintaanCuti(id, status, reason);
-        // Optimistically update the UI
-        setCuti(cuti.map(l => l.id === id ? { ...l, status } : l));
+        await updateStatusMutation.mutateAsync({
+          id,
+          status: status as 'disetujui' | 'ditolak',
+          rejectionReason: reason
+        });
         addToast(`Permintaan cuti berhasil di ${status === 'disetujui' ? 'setujui' : 'tolak'}.`, 'success');
       } catch (error) {
         console.error("Gagal memperbarui status cuti", error);
@@ -40,28 +43,27 @@ const DaftarCuti: React.FC = () => {
   return (
     <div className="mt-6">
       <Table headers={tableHeaders}>
-        {cuti.map(l => (
-          <tr key={l.id}>
+        {cuti.map(l => {
+          const statusMeta = normalizeLeaveStatusLabel(l.status);
+
+          return (
+            <tr key={l.id}>
             <td className="py-4 px-6">{l.employeeName}</td>
             <td className="py-4 px-6">{l.leaveType}</td>
             <td className="py-4 px-6">{l.startDate}</td>
             <td className="py-4 px-6">{l.endDate}</td>
             <td className="py-4 px-6">
-              <Badge 
-                variant={
-                  l.status === 'disetujui' ? 'success' : 
-                  l.status === 'ditolak' ? 'danger' : 'warning'
-                }
-              >
-                {l.status}
+              <Badge variant={statusMeta.badge}>
+                {statusMeta.label}
               </Badge>
             </td>
             <td className="py-4 px-6">
-              {l.status === 'menunggu' && (
+              {statusMeta.value === 'menunggu' && (
                 <div className="flex space-x-2">
                   <Button 
                     variant="success" 
                     size="sm"
+                    disabled={updateStatusMutation.isPending}
                     onClick={() => handleUpdateStatus(l.id, 'disetujui')}
                   >
                     Setujui
@@ -69,6 +71,7 @@ const DaftarCuti: React.FC = () => {
                   <Button 
                     variant="danger" 
                     size="sm"
+                    disabled={updateStatusMutation.isPending}
                     onClick={() => handleUpdateStatus(l.id, 'ditolak')}
                   >
                     Tolak
@@ -76,8 +79,9 @@ const DaftarCuti: React.FC = () => {
                 </div>
               )}
             </td>
-          </tr>
-        ))}
+            </tr>
+          );
+        })}
       </Table>
     </div>
   );
