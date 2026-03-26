@@ -136,4 +136,6 @@ export interface AdminWlaSummary {
   total_aktivitas: number;
   total_durasi_menit: number;
   jumlah_log: number;
+  pending_log_count: number;
+  approved_log_count: number;
 }

@@ -9,6 +9,13 @@ import { useCompanySettings } from '../../../shared/contexts/CompanySettingsCont
 import clsx from 'clsx';
 import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
 
+type DirectorEmployee = {
+    name?: string;
+    nama_lengkap?: string;
+    position?: string;
+    jabatan?: string;
+};
+
 const getPositionWeight = (job: string) => {
     const j = (job || '').toLowerCase();
     if (j.includes('direktur utama')) return 100;
@@ -60,13 +67,15 @@ const AdminWlaSummaryPage: React.FC = () => {
         const fetchDirectors = async () => {
             try {
                 const res = await getEmployees();
-                const employees = (res.data || res || []) as any[];
+                const employees = (res.data || res || []) as DirectorEmployee[];
                 const dirUtama = employees.find((e) => e.position?.toLowerCase() === 'direktur utama' || e.jabatan?.toLowerCase() === 'direktur utama');
                 const dirYmfk = employees.find((e) => e.position?.toLowerCase() === 'direktur ymfk' || e.jabatan?.toLowerCase() === 'direktur ymfk');
+                const getDirectorName = (employee?: DirectorEmployee) =>
+                    employee?.name || employee?.nama_lengkap || 'Nama Lengkap & Tandatangan';
 
                 setDirectorNames({
-                    direkturUtama: dirUtama ? (dirUtama.name || dirUtama.nama_lengkap) : 'Nama Lengkap & Tandatangan',
-                    direkturYmfk: dirYmfk ? (dirYmfk.name || dirYmfk.nama_lengkap) : 'Nama Lengkap & Tandatangan'
+                    direkturUtama: getDirectorName(dirUtama),
+                    direkturYmfk: getDirectorName(dirYmfk)
                 });
             } catch (err) {
                 console.error("Gagal mengambil data direktur:", err);
@@ -316,6 +325,9 @@ const AdminWlaSummaryPage: React.FC = () => {
                                         const isExpanded = expandedEmployee === key;
                                         const logs = detailLogs[key] || [];
                                         const isDetailLoading = detailLoading[key];
+                                        const hasPendingLogs = Number(s.pending_log_count || 0) > 0;
+                                        const hasApprovedLogs = Number(s.approved_log_count || 0) > 0;
+                                        const actionLabel = hasPendingLogs || !hasApprovedLogs ? 'Lihat & Approve' : 'Sudah di Approve';
 
                                         return (
                                             <React.Fragment key={s.id_pegawai || idx}>
@@ -367,7 +379,7 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                                 className="text-indigo-600 hover:text-indigo-900 flex items-center mx-auto text-xs font-medium"
                                                             >
                                                                 {isExpanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
-                                                                {isExpanded ? 'Tutup' : 'Lihat & Approve'}
+                                                                {isExpanded ? 'Tutup' : actionLabel}
                                                             </button>
                                                         )}
                                                     </td>

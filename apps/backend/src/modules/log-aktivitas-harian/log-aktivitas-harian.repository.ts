@@ -77,17 +77,23 @@ export default class LogAktivitasHarianRepository {
     static async getAllByDateRange(startDate: string, endDate: string, supervisorId?: string) {
         const db = await openDb();
 
-        let supervisorJoin = '';
-        let supervisorWhere = `WHERE p.isActive = 1 OR p.statusKaryawan = 'aktif'`;
+        let subordinateFilter = '';
         const params: any[] = [startDate, endDate];
 
         if (supervisorId) {
-            const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', supervisorId);
-            if (!supervisor || !supervisor.jabatan_id) return [];
-
-            supervisorJoin = 'JOIN jabatan j ON p.jabatan_id = j.id';
-            supervisorWhere += ' AND j.parent_id = ?';
-            params.push(supervisor.jabatan_id);
+            // Recursive CTE to find all subordinates (direct and indirect)
+            subordinateFilter = `
+                AND p.id IN (
+                    WITH RECURSIVE subordinates AS (
+                        SELECT id FROM pegawai WHERE atasan_id = ?
+                        UNION ALL
+                        SELECT p.id FROM pegawai p
+                        JOIN subordinates s ON p.atasan_id = s.id
+                    )
+                    SELECT id FROM subordinates
+                )
+            `;
+            params.push(supervisorId);
         }
 
         // Aggregating per employee for the admin dashboard
@@ -97,11 +103,12 @@ export default class LogAktivitasHarianRepository {
                 p.id as id_pegawai, p.name as nama_lengkap, p.nip, p.position as jabatan, p.department as departemen,
                 SUM(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.frekuensi ELSE 0 END) as total_aktivitas,
                 SUM(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.total_durasi_terhitung ELSE 0 END) as total_durasi_menit,
-                COUNT(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.id_log END) as jumlah_log
+                COUNT(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval != 'rejected') THEN l.id_log END) as jumlah_log,
+                COUNT(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval = 'pending') THEN l.id_log END) as pending_log_count,
+                COUNT(CASE WHEN l.id_log IS NOT NULL AND l.status_approval = 'approved' THEN l.id_log END) as approved_log_count
              FROM pegawai p
-             ${supervisorJoin}
              LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal >= ? AND l.tanggal <= ?
-             ${supervisorWhere}
+             WHERE (p.isActive = 1 OR p.statusKaryawan = 'aktif') ${subordinateFilter}
              GROUP BY p.id
              ORDER BY p.department, p.name ASC`,
             ...params
