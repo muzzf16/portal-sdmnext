@@ -328,7 +328,7 @@ class AbsensiService {
   static async parseAndSaveLog(buffer: Buffer): Promise<MachineLogImportResult> {
     try {
       const parsedLogs = parseMachineLogs(buffer);
-      const employees = await PegawaiRepository.findAll({ isActive: true });
+      const employees = (await PegawaiRepository.findAll()).filter((employee: any) => Number(employee.isActive ?? 1) === 1);
       let createdCount = 0;
       let updatedCount = 0;
 
