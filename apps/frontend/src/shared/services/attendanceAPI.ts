@@ -1,78 +1,67 @@
-import ApiService from './apiService';
-import { Absensi } from '../types/types';
+import api from './api';
+import type { Absensi } from '../types/types';
 
-// Create an instance of ApiService for attendance operations
-const attendanceApi = new ApiService<Absensi>('/attendance');
+interface AttendanceFilters {
+  employeeId?: string;
+  startDate?: string;
+  endDate?: string;
+}
 
-// Export the standardized methods
-export const getAttendance = () => attendanceApi.list();
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const listAttendance = async (filters?: AttendanceFilters) => {
+  const response = await api.get<Absensi[]>('/attendance', { params: filters });
+  return response.data;
+};
+
+export const getAttendance = () => listAttendance();
 
 export const getTodayAttendanceCount = async () => {
-  try {
-    const response = await attendanceApi.list();
-    console.log('Attendance API response:', response); // Debug log
-    
-    // Handle both old and new response formats
-    const attendanceData = Array.isArray(response.data) ? response.data : (response.data as any)?.data || [];
-    console.log('Attendance data:', attendanceData); // Debug log
-    
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const uniqueEmployeesToday = new Set<number>();
+  const attendanceData = await listAttendance();
+  const today = formatLocalDate(new Date());
+  const uniqueEmployeesToday = new Set<string>();
 
-    attendanceData.forEach((record: any) => {
-      // Check for both English and Indonesian property names for compatibility
-      const recordDate = record.date || record.tanggal;
-      const clockIn = record.clock_in || record.jam_masuk;
-      
-      if (recordDate === today && clockIn) {
-        uniqueEmployeesToday.add(record.employee_id || record.id_pegawai);
-      }
-    });
-    return uniqueEmployeesToday.size;
-  } catch (error) {
-    console.error('Error in getTodayAttendanceCount:', error);
-    throw error;
-  }
+  attendanceData.forEach((record) => {
+    if (record.date === today && record.clockIn) {
+      uniqueEmployeesToday.add(String(record.employeeId));
+    }
+  });
+
+  return uniqueEmployeesToday.size;
 };
 
 export const getEmployeeAttendanceSummary = async (employeeId: string) => {
-  try {
-    const response = await attendanceApi.list({ employeeId });
-    const totalDays = response.data.length;
-    // Check for both English and Indonesian property names for compatibility
-    const presentDays = response.data.filter((record: any) => 
-      (record.status === 'hadir' || record.status_kehadiran === 'hadir')
-    ).length;
-    return { totalDays, presentDays };
-  } catch (error) {
-    console.error('Error in getEmployeeAttendanceSummary:', error);
-    throw error;
-  }
+  const attendanceData = await listAttendance({ employeeId });
+  const totalDays = attendanceData.length;
+  const presentDays = attendanceData.filter((record) => record.status === 'hadir').length;
+
+  return { totalDays, presentDays };
 };
 
 export const getEmployeeWeeklyAttendance = async (employeeId: string) => {
-  try {
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
-    const monday = new Date(today.setDate(diff));
-    const sunday = new Date(today.setDate(monday.getDate() + 6));
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const monday = new Date(today);
+  monday.setDate(diff);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
 
-    const startDate = monday.toISOString().slice(0, 10);
-    const endDate = sunday.toISOString().slice(0, 10);
-
-    const response = await attendanceApi.list({ 
-      employeeId, 
-      startDate, 
-      endDate 
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error in getEmployeeWeeklyAttendance:', error);
-    throw error;
-  }
+  return listAttendance({
+    employeeId,
+    startDate: formatLocalDate(monday),
+    endDate: formatLocalDate(sunday)
+  });
 };
 
-// Export the instance in case other methods are needed
-export default attendanceApi;
-
+export default {
+  getAttendance,
+  getTodayAttendanceCount,
+  getEmployeeAttendanceSummary,
+  getEmployeeWeeklyAttendance
+};

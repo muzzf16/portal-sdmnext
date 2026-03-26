@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
-import { Absensi } from '../../../shared/types/types';
-import { createAbsensi } from '../api/absensiApi';
+import { useBulkCreateAttendanceRecords } from '../hooks/useAttendanceQuery';
+import type { AbsensiCreatePayload } from '../types';
 
 interface ExcelUploadProps {
   onUploadComplete?: () => void;
@@ -12,30 +10,7 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    mutationFn: (absensiData: Omit<Absensi, 'id'>[]) => {
-      // Process the attendance data - we'll create each record individually for now
-      return Promise.all(absensiData.map(data => createAbsensi({
-        ...data,
-        clockOut: data.clockOut ?? '',
-        workDuration: data.workDuration ?? ''
-      })));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['absensi'] });
-      setLoading(false);
-      setError(null);
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
-    },
-    onError: (err: any) => {
-      setError(err.message || 'Gagal mengunggah data absensi dari Excel');
-      setLoading(false);
-    }
-  });
+  const bulkCreateMutation = useBulkCreateAttendanceRecords();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -54,6 +29,7 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
     setLoading(true);
 
     try {
+      const XLSX = await import('xlsx');
       const data = await readFileAsArrayBuffer(file);
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
@@ -61,7 +37,7 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
       // Validate and transform the data to match the Absensi interface
-      const absensiData = jsonData.map((row: any) => {
+      const absensiData = jsonData.map((row: any): AbsensiCreatePayload => {
         // Validate required fields
         if (!row.employeeId || !row.date) {
           throw new Error('File Excel harus memiliki kolom employeeId dan date');
@@ -72,16 +48,21 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
           employeeId: String(row.employeeId),
           employeeName: String(row.employeeName || ''),
           date: String(row.date),
-          clockIn: String(row.clockIn || ''),
-          clockOut: row.clockOut ? String(row.clockOut) : '',
+          clockIn: row.clockIn ? String(row.clockIn) : null,
+          clockOut: row.clockOut ? String(row.clockOut) : null,
           status: String(row.status || 'hadir'),
-          workDuration: String(row.workDuration || ''),
-          notes: String(row.notes || '')
+          workDuration: row.workDuration ? String(row.workDuration) : null,
+          notes: row.notes ? String(row.notes) : null
         };
       });
 
       // Execute the mutation to save all attendance records
-      mutation.mutate(absensiData);
+      await bulkCreateMutation.mutateAsync(absensiData);
+      setLoading(false);
+      setError(null);
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat membaca file Excel');
       setLoading(false);

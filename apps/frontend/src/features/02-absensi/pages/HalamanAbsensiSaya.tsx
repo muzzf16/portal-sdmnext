@@ -3,10 +3,13 @@ import { useAuth } from '../../../shared/contexts/AuthContext';
 import DaftarAbsensiPegawai from '../components/DaftarAbsensiPegawai';
 import CatatWaktu from '../components/CatatWaktu';
 import { useAbsensiPegawai } from '../hooks/useAbsensiPegawai';
+import { getTodayAttendanceRecord } from '../hooks/useAttendanceQuery';
 
 const HalamanAbsensiSaya: React.FC = () => {
   const { user } = useAuth();
   const { absensi, loading, error, refetch } = useAbsensiPegawai(user?.employeeId || '');
+  const todayAttendance = getTodayAttendanceRecord(absensi);
+  const hasActiveClockIn = !!todayAttendance?.clockIn && !todayAttendance?.clockOut;
 
   return (
     <div className="space-y-6">
@@ -18,7 +21,14 @@ const HalamanAbsensiSaya: React.FC = () => {
       </div>
       {user && user.employeeId && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <CatatWaktu employeeId={user.employeeId} employeeName={user.name} onSuccess={refetch} />
+          <CatatWaktu
+            employeeId={user.employeeId}
+            employeeName={user.name}
+            hasActiveClockIn={hasActiveClockIn}
+            onSuccess={() => {
+              void refetch();
+            }}
+          />
         </div>
       )}
       <DaftarAbsensiPegawai absensi={absensi} loading={loading} error={error} />

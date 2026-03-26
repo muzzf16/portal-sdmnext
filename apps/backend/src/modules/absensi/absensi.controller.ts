@@ -1,12 +1,17 @@
 
 import AbsensiService from './absensi.service';
 import { Request, Response, NextFunction } from 'express';
+import { AbsensiCreatePayload, AbsensiFilters, AbsensiUpdatePayload } from './absensi.model';
 
 class AbsensiController {
   static async getAllAttendanceRecords(req: Request, res: Response, next: NextFunction) {
     try {
-      const query = req.query;
-      const attendanceRecords = await AbsensiService.getAllAttendanceRecords(query);
+      const filters: AbsensiFilters = {
+        employeeId: typeof req.query.employeeId === 'string' ? req.query.employeeId : undefined,
+        startDate: typeof req.query.startDate === 'string' ? req.query.startDate : undefined,
+        endDate: typeof req.query.endDate === 'string' ? req.query.endDate : undefined
+      };
+      const attendanceRecords = await AbsensiService.getAllAttendanceRecords(filters);
       res.status(200).json(attendanceRecords);
     } catch (error) {
       next(error);
@@ -25,8 +30,11 @@ class AbsensiController {
 
   static async clockIn(req: Request, res: Response, next: NextFunction) {
     try {
-      const { employeeId, employeeName } = req.body;
-      const result = await AbsensiService.clockIn(employeeId, employeeName);
+      const authenticatedName = typeof req.user?.name === 'string' ? req.user.name : '';
+      const result = await AbsensiService.clockIn({
+        employeeId: req.body.employeeId || req.user?.employeeId || '',
+        employeeName: req.body.employeeName || authenticatedName
+      });
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -35,7 +43,7 @@ class AbsensiController {
 
   static async clockOut(req: Request, res: Response, next: NextFunction) {
     try {
-      const { employeeId } = req.body;
+      const employeeId = req.body.employeeId || req.user?.employeeId || '';
       const result = await AbsensiService.clockOut(employeeId);
       res.status(200).json(result);
     } catch (error) {
@@ -46,7 +54,11 @@ class AbsensiController {
   static async getAttendanceByEmployeeId(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const attendanceRecords = await AbsensiService.getAttendanceByEmployeeId(id);
+      const filters = {
+        startDate: typeof req.query.startDate === 'string' ? req.query.startDate : undefined,
+        endDate: typeof req.query.endDate === 'string' ? req.query.endDate : undefined
+      };
+      const attendanceRecords = await AbsensiService.getAttendanceByEmployeeId(id, filters);
       res.status(200).json(attendanceRecords);
     } catch (error) {
       next(error);
@@ -55,7 +67,7 @@ class AbsensiController {
 
   static async createAttendanceRecord(req: Request, res: Response, next: NextFunction) {
     try {
-      const attendanceData = req.body;
+      const attendanceData = req.body as AbsensiCreatePayload;
       const newRecord = await AbsensiService.createAttendanceRecord(attendanceData);
       res.status(201).json(newRecord);
     } catch (error) {
@@ -66,7 +78,7 @@ class AbsensiController {
   static async updateAttendanceRecord(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const attendanceData = req.body;
+      const attendanceData = req.body as AbsensiUpdatePayload;
       const updatedRecord = await AbsensiService.updateAttendanceRecord(id, attendanceData);
       res.status(200).json(updatedRecord);
     } catch (error) {

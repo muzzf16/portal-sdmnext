@@ -1,25 +1,12 @@
-import { useState, useEffect } from 'react';
-import { getAbsensi } from '../api/absensiApi';
-import { Absensi } from '../types';
+import { useAttendanceRecords } from './useAttendanceQuery';
 
 export const useAbsensi = () => {
-  const [absensi, setAbsensi] = useState<Absensi[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const query = useAttendanceRecords();
 
-  useEffect(() => {
-    const fetchAbsensi = async () => {
-      try {
-        const { data } = await getAbsensi();
-        setAbsensi(data);
-      } catch (err) {
-        setError(err as Error);
-      }
-      setLoading(false);
-    };
-
-    fetchAbsensi();
-  }, []);
-
-  return { absensi, loading, error, setAbsensi };
+  return {
+    absensi: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error instanceof Error ? query.error : null,
+    refetch: query.refetch
+  };
 };

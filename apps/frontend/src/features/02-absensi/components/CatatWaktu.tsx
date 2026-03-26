@@ -1,44 +1,48 @@
 import React, { useState } from 'react';
-import { clockIn, clockOut } from '../api/absensiApi';
+import { useClockInMutation, useClockOutMutation } from '../hooks/useAttendanceQuery';
 
 interface CatatWaktuProps {
   employeeId: string;
   employeeName: string;
+  hasActiveClockIn: boolean;
   onSuccess: () => void;
 }
 
-const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName, onSuccess }) => {
-  const [isClockedIn, setIsClockedIn] = useState(false);
-  const [loading, setLoading] = useState(false);
+const CatatWaktu: React.FC<CatatWaktuProps> = ({ employeeId, employeeName, hasActiveClockIn, onSuccess }) => {
+  const [error, setError] = useState<string | null>(null);
+  const clockInMutation = useClockInMutation();
+  const clockOutMutation = useClockOutMutation();
+  const loading = clockInMutation.isPending || clockOutMutation.isPending;
 
   const handleClockIn = async () => {
-    setLoading(true);
+    setError(null);
     try {
-      await clockIn(employeeId, employeeName);
-      setIsClockedIn(true);
+      await clockInMutation.mutateAsync({ employeeId, employeeName });
       onSuccess();
-    } catch (error) {
-      // Handle error
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Gagal mencatat jam masuk');
     }
-    setLoading(false);
   };
 
   const handleClockOut = async () => {
-    setLoading(true);
+    setError(null);
     try {
-      await clockOut(employeeId);
-      setIsClockedIn(false);
+      await clockOutMutation.mutateAsync(employeeId);
       onSuccess();
-    } catch (error) {
-      // Handle error
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Gagal mencatat jam keluar');
     }
-    setLoading(false);
   };
 
   return (
     <div className="mt-8">
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       {
-        isClockedIn ? (
+        hasActiveClockIn ? (
           <button
             onClick={handleClockOut}
             disabled={loading}

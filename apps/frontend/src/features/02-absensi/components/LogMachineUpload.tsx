@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { uploadLogMesin } from '../api/absensiApi';
+import { useUploadMachineLogMutation } from '../hooks/useAttendanceQuery';
 
 interface LogMachineUploadProps {
     onUploadComplete?: () => void;
@@ -11,30 +10,7 @@ const LogMachineUpload: React.FC<LogMachineUploadProps> = ({ onUploadComplete })
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const queryClient = useQueryClient();
-
-    const mutation = useMutation({
-        mutationFn: (fileToUpload: File) => uploadLogMesin(fileToUpload),
-        onSuccess: (data: any) => {
-            queryClient.invalidateQueries({ queryKey: ['absensi'] });
-            setLoading(false);
-            setError(null);
-            setSuccess(`Berhasil mengunggah log. Dibuat: ${data.created || 0}, Diperbarui: ${data.updated || 0}`);
-            setFile(null); // Reset input if possible
-
-            // Clear success notification after 5s
-            setTimeout(() => setSuccess(null), 5000);
-
-            if (onUploadComplete) {
-                onUploadComplete();
-            }
-        },
-        onError: (err: any) => {
-            setError(err.message || 'Gagal mengunggah file log mesin');
-            setLoading(false);
-            setSuccess(null);
-        }
-    });
+    const uploadMutation = useUploadMachineLogMutation();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -45,13 +21,28 @@ const LogMachineUpload: React.FC<LogMachineUploadProps> = ({ onUploadComplete })
         }
     };
 
-    const handleUpload = () => {
+    const handleUpload = async () => {
         if (!file) {
             setError('Silakan pilih file log (.txt) terlebih dahulu');
             return;
         }
         setLoading(true);
-        mutation.mutate(file);
+        try {
+            const data = await uploadMutation.mutateAsync(file);
+            setLoading(false);
+            setError(null);
+            setSuccess(`Berhasil mengunggah log. Dibuat: ${data.created || 0}, Diperbarui: ${data.updated || 0}`);
+            setFile(null);
+            setTimeout(() => setSuccess(null), 5000);
+
+            if (onUploadComplete) {
+                onUploadComplete();
+            }
+        } catch (err: any) {
+            setError(err?.response?.data?.message || err?.message || 'Gagal mengunggah file log mesin');
+            setLoading(false);
+            setSuccess(null);
+        }
     };
 
     return (
