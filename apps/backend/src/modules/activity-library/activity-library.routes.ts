@@ -10,7 +10,7 @@ router.get('/', ActivityLibraryController.getAll);
 router.get('/positions', ActivityLibraryController.getPositions);
 router.get('/position/:position', ActivityLibraryController.getByPosition);
 router.get('/:id', ActivityLibraryController.getById);
-router.post('/', ActivityLibraryController.create);
+router.post('/', restrictTo('admin', 'pimpinan'), ActivityLibraryController.create);
 router.put('/:id', restrictTo('admin', 'pimpinan'), ActivityLibraryController.update);
 router.delete('/:id', restrictTo('admin', 'pimpinan'), ActivityLibraryController.delete);
 
