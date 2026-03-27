@@ -1,28 +1,40 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { List, Clock, Save, Activity as ActivityIcon } from 'lucide-react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { useToast } from '@/app/providers/ToastContext';
-import { getMyLogAktivitasWla, createBulkLogAktivitasWla } from '../api/logAktivitasHarianApi';
-import { getTasksByEmployee, updateTaskStatus } from '../api/taskApi';
-import { getActivityLibrary } from '../api/activityLibraryApi';
 import { LogAktivitasHarian, ActivityLibraryItem } from '../types';
 import { AssignedTask } from '../../../shared/types/types';
 import clsx from 'clsx';
-import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
+import {
+    useActivityLibraryList,
+    useCreateBulkWlaMutation,
+    useEmployeeTasks,
+    useMyWlaLogs,
+    useUpdateTaskStatusMutation
+} from '../hooks/usePerformanceManagementQuery';
 
 const LogAktivitasWlaPage: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
-    const [myLogs, setMyLogs] = useState<LogAktivitasHarian[]>([]);
-    const [library, setLibrary] = useState<ActivityLibraryItem[]>([]);
-    const [assignedTasks, setAssignedTasks] = useState<AssignedTask[]>([]);
-    const [loadingLogs, setLoadingLogs] = useState(false);
-    const [loadingLibrary, setLoadingLibrary] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const employeeId = user?.employeeId || user?.id;
+    const userPosition = user?.employeeDetails?.position || (user as any)?.position || undefined;
+    const myLogsQuery = useMyWlaLogs(selectedDate, employeeId ? String(employeeId) : undefined);
+    const libraryQuery = useActivityLibraryList(userPosition ? { position: userPosition } : undefined);
+    const assignedTasksQuery = useEmployeeTasks(employeeId ? String(employeeId) : undefined, 'pending');
+    const createBulkWlaMutation = useCreateBulkWlaMutation();
+    const updateTaskStatusMutation = useUpdateTaskStatusMutation();
+    const myLogs = (myLogsQuery.data ?? []) as LogAktivitasHarian[];
+    const library = (libraryQuery.data ?? []) as ActivityLibraryItem[];
+    const assignedTasks = (assignedTasksQuery.data ?? []) as AssignedTask[];
+    const loadingLogs = myLogsQuery.isLoading;
+    const loadingLibrary = libraryQuery.isLoading;
+    const error = (myLogsQuery.error as Error | null)?.message
+        || (libraryQuery.error as Error | null)?.message
+        || null;
 
     // Map of activity ID to { frekuensi, catatan, files, target }
     const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, files?: File[], target?: string }>>({});
@@ -36,67 +48,6 @@ const LogAktivitasWlaPage: React.FC = () => {
         catatan: '',
         files: [] as File[]
     });
-
-    const fetchMyLogs = async () => {
-        if (!user?.employeeId && !user?.id) return;
-        setLoadingLogs(true);
-        setError(null);
-        try {
-            const employeeId = user?.employeeId || user?.id;
-            const res = await getMyLogAktivitasWla(selectedDate, employeeId ? Number(employeeId) : undefined);
-            const fetchedData = res?.data?.data || [];
-            setMyLogs(Array.isArray(fetchedData) ? fetchedData : []);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Gagal memuat data log harian WLA.');
-            setMyLogs([]);
-        } finally {
-            setLoadingLogs(false);
-        }
-    };
-
-    const fetchLibrary = async () => {
-        setLoadingLibrary(true);
-        try {
-            // Fetch only activities relevant to the employee's position
-            const userPosition = user?.employeeDetails?.position || (user as any)?.position || undefined;
-            const res = await getActivityLibrary(userPosition ? { position: userPosition } : {});
-            const fetchedData = res?.data?.data || [];
-
-            setLibrary(Array.isArray(fetchedData) ? fetchedData : []);
-        } catch (err) {
-            console.error(err);
-            setError('Gagal memuat daftar Norma Waktu.');
-        } finally {
-            setLoadingLibrary(false);
-        }
-    };
-
-    const fetchTasks = async () => {
-        if (!user?.employeeId && !user?.id) return;
-        try {
-            const res = await getTasksByEmployee(user?.employeeId || user?.id as string, 'pending');
-            const fetchedData = res?.data?.data || [];
-            setAssignedTasks(Array.isArray(fetchedData) ? fetchedData : []);
-        } catch (err) {
-            console.error("Gagal memuat tugas", err);
-        }
-    };
-
-    useEffect(() => {
-        fetchMyLogs();
-        fetchTasks();
-    }, [user, selectedDate]);
-
-    useEffect(() => {
-        fetchLibrary();
-    }, []);
-
-    // Hot reload: refresh data when related domains change
-    useOnRefresh('activity-library', () => fetchLibrary());
-    useOnRefresh('task', () => fetchTasks());
-    useOnRefresh('wla-status', () => fetchMyLogs());
-
-
 
     // Pre-fill form inputs whenever myLogs changes (e.g. initial load or after changing date)
     useEffect(() => {
@@ -164,14 +115,12 @@ const LogAktivitasWlaPage: React.FC = () => {
 
         setSubmitting(true);
         try {
-            await createBulkLogAktivitasWla({
+            await createBulkWlaMutation.mutateAsync({
                 id_pegawai: String(employeeId),
                 tanggal: selectedDate,
                 logs: payloadLogs
             });
             addToast(`Berhasil! ${payloadLogs.length} aktivitas berhasil disimpan.`, "success");
-            fetchMyLogs();
-            emitRefresh('wla-entry');
         } catch (err: any) {
             addToast(err.response?.data?.message || 'Gagal menyimpan log massal.', "error");
         } finally {
@@ -189,7 +138,7 @@ const LogAktivitasWlaPage: React.FC = () => {
         setSubmitting(true);
         try {
             // 1. Buat log harian
-            await createBulkLogAktivitasWla({
+            await createBulkWlaMutation.mutateAsync({
                 id_pegawai: String(employeeId),
                 tanggal: selectedDate,
                 logs: [{
@@ -201,14 +150,10 @@ const LogAktivitasWlaPage: React.FC = () => {
             });
 
             // 2. Tandai tugas selesai
-            await updateTaskStatus(activeTask.id, 'completed');
+            await updateTaskStatusMutation.mutateAsync({ id: activeTask.id, status: 'completed' });
 
             addToast('Tugas diselesaikan dan masuk log aktivitas!', 'success');
             setOpenTaskModal(false);
-            fetchTasks();
-            fetchMyLogs();
-            emitRefresh('wla-entry');
-            emitRefresh('task');
         } catch (err: any) {
             addToast(err.response?.data?.message || 'Gagal menyelesaikan tugas.', 'error');
         } finally {

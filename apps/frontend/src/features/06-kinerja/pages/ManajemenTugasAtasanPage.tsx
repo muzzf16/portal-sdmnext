@@ -1,51 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { getTasksBySupervisor, createTask, deleteTask, updateTaskStatus } from '../api/taskApi';
 import { AssignedTask } from '../../../shared/types/types';
 import { useToast } from '../../../app/providers/ToastContext';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { emitRefresh } from '@/shared/hooks/useDataRefresh';
-import { getSubordinates, JabatanEmployee } from '../../01-pegawai/api/jabatanApi';
+import { JabatanEmployee } from '../../01-pegawai/api/jabatanApi';
+import {
+    useCreateTaskMutation,
+    useDeleteTaskMutation,
+    useSubordinates,
+    useSupervisorTasks,
+    useUpdateTaskStatusMutation
+} from '../hooks/usePerformanceManagementQuery';
 
 const ManajemenTugasAtasanPage: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
 
-    const [subordinates, setSubordinates] = useState<JabatanEmployee[]>([]);
-    const [tasks, setTasks] = useState<AssignedTask[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const supervisorId = user?.employeeId;
+    const subordinatesQuery = useSubordinates(supervisorId);
+    const tasksQuery = useSupervisorTasks(supervisorId);
+    const createTaskMutation = useCreateTaskMutation();
+    const deleteTaskMutation = useDeleteTaskMutation();
+    const updateTaskStatusMutation = useUpdateTaskStatusMutation();
+    const subordinates = (subordinatesQuery.data ?? []) as JabatanEmployee[];
+    const tasks = (tasksQuery.data ?? []) as AssignedTask[];
+    const isLoading = subordinatesQuery.isLoading || tasksQuery.isLoading;
 
     // Form state
     const [selectedEmployee, setSelectedEmployee] = useState('');
     const [taskName, setTaskName] = useState('');
     const [description, setDescription] = useState('');
-
-    useEffect(() => {
-        if (user?.employeeId) {
-            fetchData(user.employeeId);
-        }
-    }, [user?.employeeId]);
-
-    const fetchData = async (supervisorId: string) => {
-        setIsLoading(true);
-        try {
-            const subs = await getSubordinates(supervisorId, true);
-            setSubordinates(Array.isArray(subs) ? subs : []);
-
-            // Fetch tasks assigned by this supervisor
-            const taskRes = await getTasksBySupervisor(supervisorId);
-            if (taskRes.data?.data) {
-                setTasks(taskRes.data.data);
-            }
-        } catch (error) {
-            console.error(error);
-            addToast('Gagal memuat data', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleCreateTask = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +39,7 @@ const ManajemenTugasAtasanPage: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            await createTask({
+            await createTaskMutation.mutateAsync({
                 supervisor_id: user.employeeId,
                 employee_id: selectedEmployee,
                 task_name: taskName,
@@ -65,10 +51,6 @@ const ManajemenTugasAtasanPage: React.FC = () => {
             setTaskName('');
             setDescription('');
             setSelectedEmployee('');
-
-            // Refresh table
-            fetchData(user.employeeId);
-            emitRefresh('task');
         } catch (error) {
             console.error(error);
             addToast('Gagal membuat tugas', 'error');
@@ -80,10 +62,8 @@ const ManajemenTugasAtasanPage: React.FC = () => {
     const handleDeleteTask = async (id: string) => {
         if (!window.confirm('Hapus tugas ini?')) return;
         try {
-            await deleteTask(id);
+            await deleteTaskMutation.mutateAsync(id);
             addToast('Tugas dihapus', 'success');
-            if (user?.employeeId) fetchData(user.employeeId);
-            emitRefresh('task');
         } catch (error) {
             console.error(error);
             addToast('Gagal menghapus tugas', 'error');
@@ -93,10 +73,8 @@ const ManajemenTugasAtasanPage: React.FC = () => {
     const handleApproveTask = async (id: string) => {
         if (!window.confirm('Setujui tugas ini?')) return;
         try {
-            await updateTaskStatus(id, 'approved');
+            await updateTaskStatusMutation.mutateAsync({ id, status: 'approved' });
             addToast('Tugas disetujui', 'success');
-            if (user?.employeeId) fetchData(user.employeeId);
-            emitRefresh('task');
         } catch (error) {
             console.error(error);
             addToast('Gagal menyetujui tugas', 'error');

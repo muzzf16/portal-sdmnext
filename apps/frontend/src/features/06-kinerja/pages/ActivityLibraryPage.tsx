@@ -1,21 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityLibraryItem } from '../types';
-import { getJabatanList, Jabatan } from '../../01-pegawai/api/jabatanApi';
-import { getActivityLibrary, getActivityPositions, createActivity, updateActivity, deleteActivity } from '../api/activityLibraryApi';
+import { Jabatan } from '../../01-pegawai/api/jabatanApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { emitRefresh } from '@/shared/hooks/useDataRefresh';
+import {
+    useActivityLibraryList,
+    useActivityPositions,
+    useCreateActivityMutation,
+    useDeleteActivityMutation,
+    useJabatanListQuery,
+    useUpdateActivityMutation
+} from '../hooks/usePerformanceManagementQuery';
 
 const ActivityLibraryPage: React.FC = () => {
-    const [activities, setActivities] = useState<ActivityLibraryItem[]>([]);
-    const [jabatanList, setJabatanList] = useState<Jabatan[]>([]);
-    const [positions, setPositions] = useState<string[]>([]);
     const [filterPosition, setFilterPosition] = useState('');
-    const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingItem, setEditingItem] = useState<ActivityLibraryItem | null>(null);
     const [expandedPositions, setExpandedPositions] = useState<Record<string, boolean>>({});
     const { addToast } = useToast();
+    const activityFilters = useMemo(
+        () => (filterPosition ? { position: filterPosition } : undefined),
+        [filterPosition]
+    );
+    const activityQuery = useActivityLibraryList(activityFilters);
+    const positionsQuery = useActivityPositions();
+    const jabatanQuery = useJabatanListQuery();
+    const createActivityMutation = useCreateActivityMutation();
+    const updateActivityMutation = useUpdateActivityMutation();
+    const deleteActivityMutation = useDeleteActivityMutation();
+    const activities = activityQuery.data ?? [];
+    const jabatanList = (jabatanQuery.data ?? []) as Jabatan[];
+    const positions = useMemo(
+        () => ((positionsQuery.data ?? []).filter((p) => p !== 'Semua Jabatan')),
+        [positionsQuery.data]
+    );
+    const loading = activityQuery.isLoading || positionsQuery.isLoading || jabatanQuery.isLoading;
 
     // Form state
     const [form, setForm] = useState<{
@@ -23,42 +42,6 @@ const ActivityLibraryPage: React.FC = () => {
     }>({
         position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: ''
     });
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const filters = filterPosition ? { position: filterPosition } : undefined;
-            const res = await getActivityLibrary(filters);
-            console.log("Activity Library Response Data:", res.data?.data);
-            if (res.data?.data?.length > 0) {
-                console.log("First item keys:", Object.keys(res.data.data[0]));
-                console.log("First item id:", res.data.data[0].id, "type:", typeof res.data.data[0].id);
-                const nullItems = res.data.data.filter((a: any) => !a.id);
-                if (nullItems.length > 0) console.warn(`WARNING: ${nullItems.length} items have null/undefined id!`);
-            }
-            setActivities(res.data?.data || []);
-        } catch (err) {
-            console.error(err);
-        }
-        setLoading(false);
-    };
-
-    const fetchPositions = async () => {
-        try {
-            const [res, jabatanRes] = await Promise.all([
-                getActivityPositions(),
-                getJabatanList()
-            ]);
-
-            setPositions((res.data?.data || []).filter((p: string) => p !== 'Semua Jabatan'));
-            setJabatanList(jabatanRes || []);
-        } catch (err) {
-            console.error('Failed to fetch data:', err);
-        }
-    };
-
-    useEffect(() => { fetchData(); }, [filterPosition]);
-    useEffect(() => { fetchPositions(); }, []);
 
     const resetForm = () => {
         setForm({ position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: '' });
@@ -78,17 +61,22 @@ const ActivityLibraryPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload = { ...form, durationMinutes: Number(form.durationMinutes) };
+            const payload = {
+                position: form.position,
+                department: form.department,
+                activityName: form.activityName,
+                durationMinutes: Number(form.durationMinutes),
+                outputUnit: form.outputUnit,
+                category: form.category
+            };
             if (editingItem) {
-                await updateActivity(editingItem.id, payload);
+                await updateActivityMutation.mutateAsync({ id: editingItem.id, data: payload });
                 addToast('Aktivitas berhasil diupdate', 'success');
             } else {
-                await createActivity(payload as any);
+                await createActivityMutation.mutateAsync(payload);
                 addToast('Aktivitas berhasil ditambahkan', 'success');
             }
             resetForm();
-            fetchData();
-            emitRefresh('activity-library');
         } catch (err) {
             addToast('Gagal menyimpan aktivitas', 'error');
         }
@@ -97,10 +85,8 @@ const ActivityLibraryPage: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (!confirm('Hapus aktivitas ini?')) return;
         try {
-            await deleteActivity(id);
+            await deleteActivityMutation.mutateAsync(id);
             addToast('Aktivitas berhasil dihapus', 'success');
-            fetchData();
-            emitRefresh('activity-library');
         } catch (err: any) {
             addToast(err.response?.data?.message || 'Gagal menghapus aktivitas', 'error');
         }

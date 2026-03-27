@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { getPenilaianKinerjaByEmployeeId, submitSelfAssessment } from '../api/kinerjaApi';
 import { getKpiTargets } from '../api/kpiApi';
 import { Kinerja, KpiTarget } from '../types';
 import DetailKinerja from '../components/DetailKinerja';
 import { Target, Award, ChevronDown, ChevronUp, ClipboardCheck, Save, Send, BarChart3 } from 'lucide-react';
 import { useToast } from '@/app/providers/ToastContext';
+import {
+  useEmployeePerformanceReviews,
+  useSubmitSelfAssessmentMutation
+} from '../hooks/usePerformanceManagementQuery';
 
 interface SelfAssessmentKpiItem {
   kpiId: string;
@@ -32,6 +36,9 @@ const HalamanKinerjaSaya: React.FC = () => {
   const [saAreas, setSaAreas] = useState('');
   const [saSubmitting, setSaSubmitting] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const employeeId = user?.employeeId;
+  const performanceReviewsQuery = useEmployeePerformanceReviews(employeeId);
+  const submitSelfAssessmentMutation = useSubmitSelfAssessmentMutation();
 
   // Period options
   const periodOptions = useMemo(() => {
@@ -49,61 +56,63 @@ const HalamanKinerjaSaya: React.FC = () => {
     return options;
   }, []);
 
-  // Fetch performance reviews
   useEffect(() => {
-    const fetchPerformance = async () => {
-      if (!user || !user.employeeId) return;
-      try {
-        setLoading(true);
-        const response = await getPenilaianKinerjaByEmployeeId(user.employeeId);
-        const kinerjaList = response.data.data || [];
-        setAllPerformances(kinerjaList);
-        if (kinerjaList.length > 0) {
-          const latest = kinerjaList[0];
-          setLatestPerformance(latest);
-          // Initialize self-assessment from existing data
-          if ((latest as any).selfAssessmentKpis && Array.isArray((latest as any).selfAssessmentKpis)) {
-            setSaKpis((latest as any).selfAssessmentKpis);
-          }
-          if ((latest as any).selfAssessmentStrengths) setSaStrengths((latest as any).selfAssessmentStrengths);
-          if ((latest as any).selfAssessmentAreas) setSaAreas((latest as any).selfAssessmentAreas);
-        }
-        setLoading(false);
-      } catch (err) {
-        setError('Gagal memuat data kinerja');
-        setLoading(false);
+    if (!employeeId) {
+      return;
+    }
+
+    const kinerjaList = (performanceReviewsQuery.data ?? []) as Kinerja[];
+    setAllPerformances(kinerjaList);
+    setLoading(performanceReviewsQuery.isLoading);
+    setError(performanceReviewsQuery.error ? 'Gagal memuat data kinerja' : null);
+
+    if (kinerjaList.length > 0) {
+      const latest = kinerjaList[0];
+      setLatestPerformance(latest);
+      if ((latest as any).selfAssessmentKpis && Array.isArray((latest as any).selfAssessmentKpis)) {
+        setSaKpis((latest as any).selfAssessmentKpis);
       }
-    };
-    fetchPerformance();
-  }, [user]);
+      if ((latest as any).selfAssessmentStrengths) setSaStrengths((latest as any).selfAssessmentStrengths);
+      if ((latest as any).selfAssessmentAreas) setSaAreas((latest as any).selfAssessmentAreas);
+    } else {
+      setLatestPerformance(null);
+    }
+  }, [employeeId, performanceReviewsQuery.data, performanceReviewsQuery.error, performanceReviewsQuery.isLoading]);
 
   // Fetch KPI targets
-  useEffect(() => {
-    const fetchKpis = async () => {
-      if (!user || !user.employeeId) return;
-      try {
-        setKpiLoading(true);
-        const filters: any = { employeeId: user.employeeId };
-        if (selectedPeriod) filters.period = selectedPeriod;
-        const res = await getKpiTargets(filters);
-        const kpiList = res.data?.data || [];
-        setKpis(kpiList);
-        // Auto-initialize self-assessment KPIs if empty and not yet submitted
-        if (saKpis.length === 0 && kpiList.length > 0 && (latestPerformance as any)?.selfAssessmentStatus !== 'submitted') {
-          setSaKpis(kpiList.map((k: KpiTarget) => ({
-            kpiId: k.id || '',
-            metric: k.kpiName,
-            selfScore: 0,
-            reason: '',
-          })));
-        }
-      } catch (err) {
-        console.error('Gagal memuat KPI:', err);
+  const kpiTargetsQuery = useQuery({
+    queryKey: ['performance', 'my-kpis', employeeId ?? 'anonymous', selectedPeriod || 'all'],
+    queryFn: async () => {
+      if (!employeeId) {
+        return [];
       }
-      setKpiLoading(false);
-    };
-    fetchKpis();
-  }, [user, selectedPeriod]);
+
+      const filters: Record<string, string> = { employeeId };
+      if (selectedPeriod) {
+        filters.period = selectedPeriod;
+      }
+
+      const res = await getKpiTargets(filters);
+      return (res.data?.data || []) as KpiTarget[];
+    },
+    enabled: !!employeeId,
+    staleTime: 30 * 1000
+  });
+
+  useEffect(() => {
+    const kpiList = kpiTargetsQuery.data ?? [];
+    setKpis(kpiList);
+    setKpiLoading(kpiTargetsQuery.isLoading);
+
+    if (saKpis.length === 0 && kpiList.length > 0 && (latestPerformance as any)?.selfAssessmentStatus !== 'submitted') {
+      setSaKpis(kpiList.map((k: KpiTarget) => ({
+        kpiId: k.id || '',
+        metric: k.kpiName,
+        selfScore: 0,
+        reason: '',
+      })));
+    }
+  }, [kpiTargetsQuery.data, kpiTargetsQuery.isLoading, latestPerformance, saKpis.length]);
 
   // KPI summary calculations
   const totalWeight = kpis.reduce((sum, k) => sum + (k.weight || 0), 0);
@@ -146,11 +155,14 @@ const HalamanKinerjaSaya: React.FC = () => {
     if (!latestPerformance) return;
     try {
       setSaSubmitting(true);
-      const response = await submitSelfAssessment(latestPerformance.id, {
-        selfAssessmentKpis: saKpis,
-        selfAssessmentStrengths: saStrengths,
-        selfAssessmentAreas: saAreas,
-        selfAssessmentStatus: status,
+      const response = await submitSelfAssessmentMutation.mutateAsync({
+        id: latestPerformance.id,
+        data: {
+          selfAssessmentKpis: saKpis,
+          selfAssessmentStrengths: saStrengths,
+          selfAssessmentAreas: saAreas,
+          selfAssessmentStatus: status,
+        }
       });
       const updatedData = response.data?.data || response.data;
       setLatestPerformance({ ...latestPerformance, ...updatedData });

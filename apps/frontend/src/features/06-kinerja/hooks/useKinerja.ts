@@ -1,25 +1,11 @@
-import { useState, useEffect } from 'react';
-import { getPenilaianKinerjaById } from '../api/kinerjaApi';
-import { Kinerja } from '../types';
+import { usePerformanceReview } from './usePerformanceManagementQuery';
 
 export const useKinerja = (id: string) => {
-  const [kinerja, setKinerja] = useState<Kinerja | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const reviewQuery = usePerformanceReview(id);
 
-  useEffect(() => {
-    const fetchKinerja = async () => {
-      try {
-        const { data } = await getPenilaianKinerjaById(id);
-        setKinerja(data.data);
-      } catch (err) {
-        setError(err as Error);
-      }
-      setLoading(false);
-    };
-
-    fetchKinerja();
-  }, [id]);
-
-  return { kinerja, loading, error };
+  return {
+    kinerja: reviewQuery.data ?? null,
+    loading: reviewQuery.isLoading,
+    error: (reviewQuery.error as Error | null) ?? null
+  };
 };

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDaftarKinerja } from '../hooks/useDaftarKinerja';
-import { transitionStatus } from '../api/kinerjaApi';
 import { Table, Badge } from '@/shared/components/ui';
 import { Kinerja, ReviewStatus } from '../types';
+import { useTransitionPerformanceReviewMutation } from '../hooks/usePerformanceManagementQuery';
 
 // Status → Badge variant/color mapping
 const STATUS_CONFIG: Record<string, { variant: 'success' | 'secondary' | 'warning' | 'info' | 'danger'; label: string }> = {
@@ -25,6 +25,7 @@ const NEXT_ACTIONS: Record<string, { target: ReviewStatus; label: string; needsD
 
 const DaftarKinerja: React.FC = () => {
   const { daftarKinerja, loading, error, refetch } = useDaftarKinerja();
+  const transitionMutation = useTransitionPerformanceReviewMutation();
   const [deadlineModal, setDeadlineModal] = useState<{ id: string; target: ReviewStatus } | null>(null);
   const [deadline, setDeadline] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -33,7 +34,7 @@ const DaftarKinerja: React.FC = () => {
     if (!confirm(`Ubah status ke "${targetStatus}"?`)) return;
     setActionLoading(id);
     try {
-      await transitionStatus(id, targetStatus, saDeadline);
+      await transitionMutation.mutateAsync({ id, targetStatus, selfAssessmentDeadline: saDeadline });
       refetch();
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Gagal mengubah status');

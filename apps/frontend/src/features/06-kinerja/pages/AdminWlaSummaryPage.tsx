@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
-import { getAdminLogAktivitasSummaryWla, getAdminDetailLogsWla, updateLogAktivitasStatusWla } from '../api/logAktivitasHarianApi';
 import { getEmployees } from '../../../shared/services/employeeAPI';
 import { AdminWlaSummary } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
-import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
+import {
+    fetchAdminWlaDetailLogs,
+    PERFORMANCE_QUERY_KEYS,
+    useAdminWlaSummary,
+    useUpdateWlaStatusMutation
+} from '../hooks/usePerformanceManagementQuery';
 
 type DirectorEmployee = {
     name?: string;
@@ -27,9 +32,6 @@ const getPositionWeight = (job: string) => {
 };
 
 const AdminWlaSummaryPage: React.FC = () => {
-    const [summaries, setSummaries] = useState<AdminWlaSummary[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [startDate, setStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -42,23 +44,14 @@ const AdminWlaSummaryPage: React.FC = () => {
         direkturYmfk: 'Nama Lengkap & Tandatangan'
     });
     const { settings: companySettings } = useCompanySettings();
-
-    const fetchSummary = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await getAdminLogAktivitasSummaryWla(undefined, startDate, endDate);
-            const fetchedData = res?.data?.data || [];
-            setSummaries(Array.isArray(fetchedData) ? fetchedData : []);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Gagal memuat rekap admin WLA.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const queryClient = useQueryClient();
+    const adminSummaryQuery = useAdminWlaSummary(startDate, endDate);
+    const updateWlaStatusMutation = useUpdateWlaStatusMutation();
+    const summaries = (adminSummaryQuery.data ?? []) as AdminWlaSummary[];
+    const loading = adminSummaryQuery.isLoading || adminSummaryQuery.isFetching;
+    const error = (adminSummaryQuery.error as Error | null)?.message ?? null;
 
     useEffect(() => {
-        fetchSummary();
         setExpandedEmployee(null);
         setDetailLogs({});
     }, [startDate, endDate]);
@@ -83,9 +76,6 @@ const AdminWlaSummaryPage: React.FC = () => {
         };
         fetchDirectors();
     }, []);
-
-    // Hot reload: refresh summary when new WLA entries are saved
-    useOnRefresh('wla-entry', () => fetchSummary());
 
     const EFFECTIVE_WORKING_MINUTES = 480;
 
@@ -174,8 +164,11 @@ const AdminWlaSummaryPage: React.FC = () => {
         if (!detailLogs[key]) {
             setDetailLoading(prev => ({ ...prev, [key]: true }));
             try {
-                const res = await getAdminDetailLogsWla(key, undefined, startDate, endDate);
-                setDetailLogs(prev => ({ ...prev, [key]: res?.data?.data || [] }));
+                const logs = await queryClient.fetchQuery({
+                    queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(key, startDate, endDate),
+                    queryFn: () => fetchAdminWlaDetailLogs(key, startDate, endDate)
+                });
+                setDetailLogs(prev => ({ ...prev, [key]: logs }));
             } catch {
                 setDetailLogs(prev => ({ ...prev, [key]: [] }));
             } finally {
@@ -187,13 +180,12 @@ const AdminWlaSummaryPage: React.FC = () => {
     const handleUpdateStatus = async (logId: number, status: 'approved' | 'rejected', employeeKey: string) => {
         setUpdatingId(logId);
         try {
-            await updateLogAktivitasStatusWla(logId, status);
-            // Refresh detail logs for the employee
-            const res = await getAdminDetailLogsWla(employeeKey, undefined, startDate, endDate);
-            setDetailLogs(prev => ({ ...prev, [employeeKey]: res?.data?.data || [] }));
-            // Also refresh the summary row so duration/FTE updates automatically
-            await fetchSummary();
-            emitRefresh('wla-status');
+            await updateWlaStatusMutation.mutateAsync({ id: logId, status });
+            const logs = await queryClient.fetchQuery({
+                queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(employeeKey, startDate, endDate),
+                queryFn: () => fetchAdminWlaDetailLogs(employeeKey, startDate, endDate)
+            });
+            setDetailLogs(prev => ({ ...prev, [employeeKey]: logs }));
         } catch (err) {
             alert('Gagal mengubah status log.');
         } finally {

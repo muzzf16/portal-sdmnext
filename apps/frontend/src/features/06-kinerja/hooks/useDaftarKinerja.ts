@@ -1,31 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getPenilaianKinerja } from '../api/kinerjaApi';
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePerformanceReviewList, PERFORMANCE_QUERY_KEYS } from './usePerformanceManagementQuery';
 import { Kinerja } from '../types';
 
 export const useDaftarKinerja = () => {
-  const [daftarKinerja, setDaftarKinerja] = useState<Kinerja[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const queryClient = useQueryClient();
+  const reviewListQuery = usePerformanceReviewList();
+  const daftarKinerja = (reviewListQuery.data ?? []) as Kinerja[];
 
   const refetch = useCallback(() => {
-    setRefreshKey(k => k + 1);
-  }, []);
+    queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.performanceReview.all });
+  }, [queryClient]);
 
-  useEffect(() => {
-    const fetchKinerja = async () => {
-      setLoading(true);
-      try {
-        const { data } = await getPenilaianKinerja();
-        setDaftarKinerja(data.data || []);
-      } catch (err) {
-        setError(err as Error);
-      }
-      setLoading(false);
-    };
-
-    fetchKinerja();
-  }, [refreshKey]);
-
-  return { daftarKinerja, loading, error, setDaftarKinerja, refetch };
+  return {
+    daftarKinerja,
+    loading: reviewListQuery.isLoading,
+    error: (reviewListQuery.error as Error | null) ?? null,
+    setDaftarKinerja: () => undefined,
+    refetch
+  };
 };
