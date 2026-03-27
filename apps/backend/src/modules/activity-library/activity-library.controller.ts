@@ -1,12 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 import ActivityLibraryService from './activity-library.service';
+import {
+    ActivityLibraryFilters,
+    CreateActivityLibraryPayload,
+    UpdateActivityLibraryPayload,
+} from './activity-library.types';
 
 export default class ActivityLibraryController {
 
     static async getAll(req: Request, res: Response, next: NextFunction) {
         try {
             const { position, department, category } = req.query;
-            const filters = {
+            const filters: ActivityLibraryFilters = {
                 position: position as string | undefined,
                 department: department as string | undefined,
                 category: category as string | undefined,
@@ -49,7 +54,8 @@ export default class ActivityLibraryController {
 
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = await ActivityLibraryService.create(req.body);
+            const payload = req.body as CreateActivityLibraryPayload;
+            const data = await ActivityLibraryService.create(payload);
             res.status(201).json({ success: true, data });
         } catch (error) {
             next(error);
@@ -59,7 +65,8 @@ export default class ActivityLibraryController {
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
-            const data = await ActivityLibraryService.update(id, req.body);
+            const payload = req.body as UpdateActivityLibraryPayload;
+            const data = await ActivityLibraryService.update(id, payload);
             res.status(200).json({ success: true, data });
         } catch (error) {
             next(error);

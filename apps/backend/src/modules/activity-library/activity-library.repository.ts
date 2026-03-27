@@ -1,11 +1,16 @@
 import { openDb } from '../../config/db';
+import {
+    ActivityLibraryFilters,
+    ActivityLibraryItem,
+    CreateActivityLibraryPayload,
+} from './activity-library.types';
 
 export const ActivityLibraryRepository = {
 
-    async findAll(filters?: { position?: string; department?: string; category?: string }) {
+    async findAll(filters?: ActivityLibraryFilters): Promise<ActivityLibraryItem[]> {
         const db = await openDb();
         let query = 'SELECT * FROM activity_library';
-        const params: any[] = [];
+        const params: Array<string | number> = [];
         const conditions: string[] = [];
 
         if (filters?.position) {
@@ -29,7 +34,7 @@ export const ActivityLibraryRepository = {
         return db.all(query, ...params);
     },
 
-    async findByPosition(position: string) {
+    async findByPosition(position: string): Promise<ActivityLibraryItem[]> {
         const db = await openDb();
         return db.all(
             'SELECT * FROM activity_library WHERE LOWER(position) = LOWER(?) OR LOWER(position) = \'semua jabatan\' ORDER BY activityName ASC',
@@ -37,17 +42,19 @@ export const ActivityLibraryRepository = {
         );
     },
 
-    async findById(id: string) {
+    async findById(id: string): Promise<ActivityLibraryItem | null> {
         const db = await openDb();
-        return db.get('SELECT * FROM activity_library WHERE id = ?', id);
+        const row = await db.get<ActivityLibraryItem>('SELECT * FROM activity_library WHERE id = ?', id);
+        return row || null;
     },
 
-    async getPositions() {
+    async getPositions(): Promise<string[]> {
         const db = await openDb();
-        return db.all('SELECT DISTINCT position FROM activity_library ORDER BY position ASC');
+        const rows = await db.all('SELECT DISTINCT position FROM activity_library ORDER BY position ASC') as Array<{ position: string }>;
+        return rows.map((row) => row.position);
     },
 
-    async create(data: any) {
+    async create(data: CreateActivityLibraryPayload): Promise<ActivityLibraryItem | null> {
         const db = await openDb();
         const id = data.id || `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const now = new Date().toISOString();
@@ -61,7 +68,7 @@ export const ActivityLibraryRepository = {
         return this.findById(id);
     },
 
-    async update(id: string, data: any) {
+    async update(id: string, data: CreateActivityLibraryPayload): Promise<ActivityLibraryItem | null> {
         const db = await openDb();
         const result = await db.run(
             `UPDATE activity_library SET position = ?, department = ?, activityName = ?, 
