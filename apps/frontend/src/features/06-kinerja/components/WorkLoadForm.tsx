@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { WorkLoadAnalysis, WorkLoadItem, ActivityLibraryItem } from '../types';
 import { saveWorkloadAnalysis, getWorkloadAnalysis } from '../api/workloadApi';
@@ -7,7 +8,7 @@ import { getActivityByPosition, createActivity } from '../api/activityLibraryApi
 import { getPegawaiById } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { emitRefresh } from '@/shared/hooks/useDataRefresh';
+import { PERFORMANCE_QUERY_KEYS } from '../hooks/usePerformanceManagementQuery';
 
 // Constants for calculation
 const DAYS_IN_YEAR = 264;
@@ -43,6 +44,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
     const { addToast } = useToast();
     const { user } = useAuth();
+    const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [libraryActivities, setLibraryActivities] = useState<ActivityLibraryItem[]>([]);
 
@@ -144,10 +146,13 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
         };
         try {
             await saveWorkloadAnalysis(payload);
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.workload.all }),
+                queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.kpi.all })
+            ]);
             addToast('Laporan kerja berhasil disimpan', 'success');
             if (onSuccess) onSuccess();
             if (onSaved) onSaved();
-            emitRefresh('workload');
         } catch (error) {
             console.error(error);
             addToast('Gagal menyimpan laporan kerja', 'error');
@@ -174,9 +179,9 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
 
             const res = await createActivity(payload as any);
             const createdActivity = res.data?.data;
+            await queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.activityLibrary.all });
 
             addToast('Aktivitas berhasil ditambahkan ke library', 'success');
-            emitRefresh('activity-library');
 
             // Add to local library state
             if (createdActivity) {

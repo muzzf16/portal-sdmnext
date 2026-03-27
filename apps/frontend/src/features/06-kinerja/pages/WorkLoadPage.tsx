@@ -1,11 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import WorkLoadForm from '../components/WorkLoadForm';
-import { getWorkloadAnalysis } from '../api/workloadApi';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { Pegawai } from '../../01-pegawai/types';
-import { useOnRefresh } from '@/shared/hooks/useDataRefresh';
+import { useSelectablePerformanceEmployees, useWorkloadAnalysis } from '../hooks/usePerformanceManagementQuery';
 
 interface WorkLoadPageProps {
     employeeId?: string;
@@ -14,68 +12,30 @@ interface WorkLoadPageProps {
 const WorkLoadPage: React.FC<WorkLoadPageProps> = ({ employeeId }) => {
     const { user } = useAuth();
     const [year, setYear] = useState(new Date().getFullYear());
-    const [fteData, setFteData] = useState<{
-        ftePercentage?: number;
-        fteStatus?: 'Overload' | 'Normal' | 'Underload';
-        hoursPerDay?: number;
-        totalYearlyMinutes?: number;
-    } | null>(null);
 
     // State for admin selection
-    const [employees, setEmployees] = useState<Pegawai[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-    const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
 
     const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
     // Determine target employee ID: prop > selected (admin) > user's linked employee
     const targetEmployeeId = employeeId || selectedEmployeeId || user?.employeeId || '';
-
-
-    // Fetch employees for admin
-    useEffect(() => {
-        if (isAdmin && !employeeId) {
-            setIsLoadingEmployees(true);
-            getPegawai()
-                .then(res => {
-                    const data = Array.isArray(res) ? res : (res.data || []);
-                    setEmployees(data);
-                })
-                .catch(err => console.error("Failed to fetch employees", err))
-                .finally(() => setIsLoadingEmployees(false));
+    const employeesQuery = useSelectablePerformanceEmployees(
+        isAdmin && !employeeId ? 'admin' : user?.role,
+        user?.employeeId,
+        user?.name
+    );
+    const workloadQuery = useWorkloadAnalysis(targetEmployeeId || undefined, year);
+    const employees = useMemo(() => ((employeesQuery.data ?? []) as Pegawai[]), [employeesQuery.data]);
+    const isLoadingEmployees = isAdmin && !employeeId ? employeesQuery.isLoading : false;
+    const fteData = workloadQuery.data
+        ? {
+            ftePercentage: workloadQuery.data.ftePercentage,
+            fteStatus: workloadQuery.data.fteStatus,
+            hoursPerDay: workloadQuery.data.hoursPerDay,
+            totalYearlyMinutes: workloadQuery.data.totalYearlyMinutes,
         }
-    }, [isAdmin, employeeId]);
-
-
-    // Fetch FTE data
-    const fetchFte = async () => {
-        if (!targetEmployeeId) {
-            setFteData(null);
-            return;
-        }
-        try {
-            const res = await getWorkloadAnalysis(targetEmployeeId, year);
-            if (res.data?.data) {
-                setFteData({
-                    ftePercentage: res.data.data.ftePercentage,
-                    fteStatus: res.data.data.fteStatus,
-                    hoursPerDay: res.data.data.hoursPerDay,
-                    totalYearlyMinutes: res.data.data.totalYearlyMinutes,
-                });
-            } else {
-                setFteData(null);
-            }
-        } catch (err) {
-            setFteData(null);
-        }
-    };
-
-    useEffect(() => {
-        fetchFte();
-    }, [targetEmployeeId, year]);
-
-    // Hot reload: refresh FTE if activity library changes
-    useOnRefresh('activity-library', () => fetchFte());
+        : null;
 
     const getFteStatusColor = (status?: string) => {
         switch (status) {
@@ -214,10 +174,7 @@ const WorkLoadPage: React.FC<WorkLoadPageProps> = ({ employeeId }) => {
                         employeeId={targetEmployeeId}
                         year={year}
                         onSaved={() => {
-                            // Refresh FTE after saving
-                            setTimeout(() => {
-                                fetchFte();
-                            }, 500);
+                            void workloadQuery.refetch();
                         }}
                     />
                 </div>

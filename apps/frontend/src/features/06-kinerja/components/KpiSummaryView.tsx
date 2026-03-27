@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Download, Search, Target } from 'lucide-react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { getKpiSummary } from '../api/kpiApi';
 import { KpiSummaryRow } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
-import { useOnRefresh } from '@/shared/hooks/useDataRefresh';
+import { useKpiSummary } from '../hooks/usePerformanceManagementQuery';
 
 interface KpiSummaryViewProps {
     isActive: boolean;
@@ -36,54 +35,18 @@ const getStatusBadge = (status: KpiSummaryRow['statusSummary']) => {
 };
 
 const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
-    const [summaries, setSummaries] = useState<KpiSummaryRow[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [startDate, setStartDate] = useState<string>(getTodayString());
     const [endDate, setEndDate] = useState<string>(getTodayString());
     const { settings: companySettings } = useCompanySettings();
-
-    const fetchSummary = async () => {
-        if (!isActive) {
-            return;
-        }
-
-        if (!startDate || !endDate) {
-            setSummaries([]);
-            setError('Pilih rentang tanggal terlebih dahulu.');
-            return;
-        }
-
-        if (startDate > endDate) {
-            setSummaries([]);
-            setError('Tanggal akhir harus sama atau setelah tanggal mulai.');
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const res = await getKpiSummary({ startDate, endDate });
-            const rows = res.data?.data || [];
-            setSummaries(Array.isArray(rows) ? rows : []);
-        } catch (err: any) {
-            setError(err?.response?.data?.message || 'Gagal memuat rekap KPI.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        void fetchSummary();
-    }, [isActive, startDate, endDate]);
-
-    useOnRefresh('kpi', () => {
-        if (isActive) {
-            void fetchSummary();
-        }
-    });
+    const summaryQuery = useKpiSummary(startDate, endDate, isActive && !!startDate && !!endDate && startDate <= endDate);
+    const summaries = (summaryQuery.data ?? []) as KpiSummaryRow[];
+    const loading = summaryQuery.isLoading || summaryQuery.isFetching;
+    const error = !startDate || !endDate
+        ? 'Pilih rentang tanggal terlebih dahulu.'
+        : startDate > endDate
+            ? 'Tanggal akhir harus sama atau setelah tanggal mulai.'
+            : ((summaryQuery.error as Error | null)?.message ?? null);
 
     const filteredSummaries = useMemo(() => {
         const normalizedSearch = searchQuery.toLowerCase();

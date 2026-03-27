@@ -1,21 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { KpiTarget } from '../types';
-import { getKpiTargets, createKpiTarget, updateActualValue, deleteKpiTarget, generateKpiFromAbk, updateKpiTarget, syncKpiFromWla, getKpiTemplates, applyKpiTemplates } from '../api/kpiApi';
-import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Download, RefreshCw, Paperclip, X, FileText } from 'lucide-react';
-import { emitRefresh, useOnRefresh } from '@/shared/hooks/useDataRefresh';
 import KpiSummaryView from '../components/KpiSummaryView';
+import {
+    useApplyKpiTemplateMutation,
+    useCreateKpiMutation,
+    useDeleteKpiMutation,
+    useGenerateKpiFromAbkMutation,
+    useKpiTargetList,
+    useKpiTemplates,
+    useRebalanceKpiMutation,
+    useSelectablePerformanceEmployees,
+    useSyncKpiFromWlaMutation,
+    useUpdateKpiActualMutation,
+    useUpdateKpiMutation
+} from '../hooks/usePerformanceManagementQuery';
 
 const KpiTargetPage: React.FC = () => {
     const { user } = useAuth();
     const role = user?.role || 'employee'; // default to lowest privilege
     const [searchParams, setSearchParams] = useSearchParams();
-    const [kpis, setKpis] = useState<KpiTarget[]>([]);
-    const [employees, setEmployees] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedEmployee, setSelectedEmployee] = useState('');
     const [selectedPeriod, setSelectedPeriod] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -31,11 +38,36 @@ const KpiTargetPage: React.FC = () => {
     // Template modal state
     const [templateModal, setTemplateModal] = useState(false);
     const [templateDept, setTemplateDept] = useState('');
-    const [templateDepts, setTemplateDepts] = useState<string[]>([]);
-    const [templates, setTemplates] = useState<any[]>([]);
-    const [templateLoading, setTemplateLoading] = useState(false);
     const canViewSummary = role === 'admin' || role === 'supervisor';
     const currentKpiView = canViewSummary && searchParams.get('kpiView') === 'summary' ? 'summary' : 'manage';
+    const employeesQuery = useSelectablePerformanceEmployees(role, user?.employeeId, user?.name);
+    const employees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
+    const kpiListFilters = useMemo(() => {
+        const employeeFilter = role === 'employee' && user?.employeeId
+            ? user.employeeId
+            : selectedEmployee || undefined;
+
+        return {
+            employeeId: employeeFilter,
+            period: selectedPeriod || undefined,
+            role
+        };
+    }, [role, selectedEmployee, selectedPeriod, user?.employeeId]);
+    const kpiListQuery = useKpiTargetList(kpiListFilters, currentKpiView === 'manage');
+    const createKpiMutation = useCreateKpiMutation();
+    const updateKpiMutation = useUpdateKpiMutation();
+    const updateKpiActualMutation = useUpdateKpiActualMutation();
+    const deleteKpiMutation = useDeleteKpiMutation();
+    const generateKpiMutation = useGenerateKpiFromAbkMutation();
+    const syncKpiMutation = useSyncKpiFromWlaMutation();
+    const rebalanceKpiMutation = useRebalanceKpiMutation();
+    const kpiTemplateQuery = useKpiTemplates(templateModal);
+    const applyKpiTemplateMutation = useApplyKpiTemplateMutation();
+    const kpis = (kpiListQuery.data ?? []) as KpiTarget[];
+    const loading = kpiListQuery.isLoading || kpiListQuery.isFetching;
+    const templates = kpiTemplateQuery.data?.templates || [];
+    const templateDepts = kpiTemplateQuery.data?.departments || [];
+    const templateLoading = kpiTemplateQuery.isLoading || kpiTemplateQuery.isFetching;
 
     // Form state
     const [form, setForm] = useState({
@@ -81,75 +113,31 @@ const KpiTargetPage: React.FC = () => {
         setSearchParams(nextParams, { replace: true });
     };
 
-    const fetchKpis = async () => {
-        setLoading(true);
-        try {
-            const filters: any = {};
-            // If employee, force filter to own ID
-            if (role === 'employee' && user?.employeeId) {
-                filters.employeeId = user.employeeId;
-            } else if (selectedEmployee) {
-                filters.employeeId = selectedEmployee;
-            }
-
-            if (selectedPeriod) filters.period = selectedPeriod;
-            const res = await getKpiTargets(filters);
-            setKpis(res.data?.data || []);
-        } catch (err) {
-            console.error(err);
+    useEffect(() => {
+        if (role === 'employee' && user?.employeeId) {
+            setSelectedEmployee(user.employeeId);
         }
-        setLoading(false);
-    };
+    }, [role, user?.employeeId]);
 
     useEffect(() => {
-        const fetchEmployees = async () => {
-            // If employee, just set self
-            if (role === 'employee' && user?.employeeId) {
-                setEmployees([{ id: user.employeeId, name: user.name, nip: user.employeeId }]);
-                setSelectedEmployee(user.employeeId);
-                return;
-            }
-            try {
-                if (role === 'supervisor' && user?.employeeId) {
-                    const res = await import('../../01-pegawai/api/jabatanApi').then(m => m.getSubordinates(String(user.employeeId), true));
-                    if (Array.isArray(res)) setEmployees(res);
-                } else {
-                    const res = await getPegawai();
-                    if (res.data && Array.isArray(res.data)) setEmployees(res.data);
-                }
-            } catch (err) { console.error(err); }
-        };
-        fetchEmployees();
-    }, [role, user]);
-
-    useEffect(() => {
-        if (currentKpiView === 'manage') {
-            void fetchKpis();
+        if (templateModal && !templateDept && templateDepts.length > 0) {
+            setTemplateDept(templateDepts[0]);
         }
-    }, [selectedEmployee, selectedPeriod, currentKpiView]);
-
-    // Hot reload: refresh KPIs when WLA entries or ABK workload changes
-    useOnRefresh(['wla-entry', 'workload', 'kpi'], () => {
-        if (currentKpiView === 'manage') {
-            void fetchKpis();
-        }
-    });
+    }, [templateDept, templateDepts, templateModal]);
 
     const handleCreateKpi = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             if (editingId) {
-                await updateKpiTarget(editingId, form as any);
+                await updateKpiMutation.mutateAsync({ id: editingId, data: form as any });
                 addToast('KPI target berhasil diupdate', 'success');
             } else {
-                await createKpiTarget(form as any);
+                await createKpiMutation.mutateAsync(form as any);
                 addToast('KPI target berhasil dibuat', 'success');
             }
             setShowForm(false);
             setEditingId(null);
             setForm({ employeeId: '', period: '', kpiName: '', targetValue: 0 as number | string, targetUnit: '%', weight: 0 as number | string, notes: '', category: 'outcome' });
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal menyimpan KPI target', 'error');
         }
@@ -180,12 +168,14 @@ const KpiTargetPage: React.FC = () => {
         if (!actualModal.kpi) return;
         setActualSubmitting(true);
         try {
-            await updateActualValue(actualModal.kpi.id, actualInput, evidenceFile || undefined);
+            await updateKpiActualMutation.mutateAsync({
+                id: actualModal.kpi.id,
+                actualValue: actualInput,
+                evidenceFile: evidenceFile || undefined
+            });
             addToast('Realisasi berhasil diupdate — skor dihitung otomatis', 'success');
             setActualModal({ open: false, kpi: null });
             setEvidenceFile(null);
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err) {
             addToast('Gagal update realisasi', 'error');
         }
@@ -195,10 +185,8 @@ const KpiTargetPage: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (!confirm('Hapus KPI target ini?')) return;
         try {
-            await deleteKpiTarget(id);
+            await deleteKpiMutation.mutateAsync(id);
             addToast('KPI target dihapus', 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err) {
             addToast('Gagal menghapus KPI target', 'error');
         }
@@ -215,14 +203,16 @@ const KpiTargetPage: React.FC = () => {
         }
         if (!confirm(`Generate KPI dari ABK untuk periode ${selectedPeriod}?`)) return;
         try {
-            const res = await generateKpiFromAbk(selectedEmployee, new Date().getFullYear(), selectedPeriod);
+            const res = await generateKpiMutation.mutateAsync({
+                employeeId: selectedEmployee,
+                year: new Date().getFullYear(),
+                period: selectedPeriod
+            });
             if (res.data && res.data.success === false) {
                 addToast(res.data.message || 'Gagal generate KPI dari ABK', 'error');
                 return;
             }
             addToast('KPI berhasil digenerate dari data ABK!', 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || err.message || 'Gagal generate KPI dari ABK', 'error');
         }
@@ -238,15 +228,13 @@ const KpiTargetPage: React.FC = () => {
             return;
         }
         try {
-            const res = await syncKpiFromWla(selectedEmployee, selectedPeriod);
+            const res = await syncKpiMutation.mutateAsync({ employeeId: selectedEmployee, period: selectedPeriod });
             if (res.data && res.data.success === false) {
                 addToast(res.data.message || 'Gagal sync realisasi dari WLA', 'error');
                 return;
             }
             const data = res.data?.data || res.data;
             addToast(`Berhasil sync ${data.synced || 0} KPI dari rekap WLA (${data.startDate} s/d ${data.endDate})`, 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || err.message || 'Gagal sync realisasi dari WLA', 'error');
         }
@@ -263,18 +251,6 @@ const KpiTargetPage: React.FC = () => {
             return;
         }
         setTemplateModal(true);
-        setTemplateLoading(true);
-        try {
-            const res = await getKpiTemplates();
-            setTemplates(res.data?.data || []);
-            setTemplateDepts(res.data?.departments || []);
-            if (!templateDept && res.data?.departments?.length > 0) {
-                setTemplateDept(res.data.departments[0]);
-            }
-        } catch (err) {
-            addToast('Gagal memuat template KPI', 'error');
-        }
-        setTemplateLoading(false);
     };
 
     const handleApplyTemplate = async () => {
@@ -284,7 +260,7 @@ const KpiTargetPage: React.FC = () => {
         }
         if (!confirm(`Apply template "${templateDept}" ke pegawai terpilih untuk periode ${selectedPeriod}?`)) return;
         try {
-            const res = await applyKpiTemplates({
+            const res = await applyKpiTemplateMutation.mutateAsync({
                 employeeId: selectedEmployee,
                 period: selectedPeriod,
                 department: templateDept,
@@ -292,8 +268,6 @@ const KpiTargetPage: React.FC = () => {
             const data = res.data?.data || res.data;
             addToast(`Berhasil: ${data.created} KPI dibuat, ${data.skipped} dilewati (sudah ada)`, 'success');
             setTemplateModal(false);
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast(err?.response?.data?.message || 'Gagal apply template', 'error');
         }
@@ -304,8 +278,7 @@ const KpiTargetPage: React.FC = () => {
         if (!confirm('Normalisasi akan mendistribusikan bobot menjadi tepat 100% secara proporsional. Lanjutkan?')) return;
         
         try {
-            const { rebalanceKpiWeights } = await import('../api/kpiApi');
-            const res = await rebalanceKpiWeights(selectedEmployee, selectedPeriod);
+            const res = await rebalanceKpiMutation.mutateAsync({ employeeId: selectedEmployee, period: selectedPeriod });
             
             if (res.data && res.data.success === false) {
                  // Business error, missing category
@@ -314,14 +287,12 @@ const KpiTargetPage: React.FC = () => {
             }
             
             addToast(res.data?.message || 'Bobot berhasil dinormalkan', 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
              addToast(err?.response?.data?.message || err.message || 'Gagal normalisasi bobot', 'error');
         }
     };
 
-    const filteredTemplates = templates.filter(t => t.department === templateDept);
+    const filteredTemplates = templates.filter((t: any) => t.department === templateDept);
 
     const getScoreColor = (score: number) => {
         if (score >= 4) return 'text-green-600 bg-green-50';
@@ -366,10 +337,8 @@ const KpiTargetPage: React.FC = () => {
     // Approval workflow handlers (Gap 4)
     const handleSubmitForApproval = async (kpi: KpiTarget) => {
         try {
-            await updateKpiTarget(kpi.id, { status: 'waiting_approval' } as any);
+            await updateKpiMutation.mutateAsync({ id: kpi.id, data: { status: 'waiting_approval' } as any });
             addToast(`KPI "${kpi.kpiName}" diajukan untuk persetujuan`, 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast('Gagal mengajukan KPI', 'error');
         }
@@ -377,10 +346,8 @@ const KpiTargetPage: React.FC = () => {
 
     const handleApproveKpi = async (kpi: KpiTarget) => {
         try {
-            await updateKpiTarget(kpi.id, { status: 'active' } as any);
+            await updateKpiMutation.mutateAsync({ id: kpi.id, data: { status: 'active' } as any });
             addToast(`KPI "${kpi.kpiName}" disetujui dan aktif`, 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast('Gagal menyetujui KPI', 'error');
         }
@@ -388,10 +355,8 @@ const KpiTargetPage: React.FC = () => {
 
     const handleCompleteKpi = async (kpi: KpiTarget) => {
         try {
-            await updateKpiTarget(kpi.id, { status: 'completed' } as any);
+            await updateKpiMutation.mutateAsync({ id: kpi.id, data: { status: 'completed' } as any });
             addToast(`KPI "${kpi.kpiName}" ditandai selesai`, 'success');
-            fetchKpis();
-            emitRefresh('kpi');
         } catch (err: any) {
             addToast('Gagal menyelesaikan KPI', 'error');
         }
@@ -796,7 +761,7 @@ const KpiTargetPage: React.FC = () => {
                             <>
                                 {/* Department tabs */}
                                 <div className="px-6 pt-4 flex gap-2 flex-wrap">
-                                    {templateDepts.map(dept => (
+                                    {templateDepts.map((dept: string) => (
                                         <button key={dept} onClick={() => setTemplateDept(dept)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${templateDept === dept
                                                 ? 'bg-purple-600 text-white'

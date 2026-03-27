@@ -15,6 +15,19 @@ import {
   createBulkLogAktivitasWla
 } from '../api/logAktivitasHarianApi';
 import {
+  applyKpiTemplates,
+  createKpiTarget,
+  deleteKpiTarget,
+  generateKpiFromAbk,
+  getKpiSummary,
+  getKpiTargets,
+  getKpiTemplates,
+  rebalanceKpiWeights,
+  syncKpiFromWla,
+  updateActualValue,
+  updateKpiTarget
+} from '../api/kpiApi';
+import {
   getPenilaianKinerja,
   getPenilaianKinerjaByEmployeeId,
   getPenilaianKinerjaById,
@@ -22,15 +35,20 @@ import {
   transitionStatus
 } from '../api/kinerjaApi';
 import { createTask, deleteTask, getTasksByEmployee, getTasksBySupervisor, updateTaskStatus } from '../api/taskApi';
+import { getPegawai } from '../../01-pegawai/api/employeeApi';
+import { getWorkloadAnalysis } from '../api/workloadApi';
 import type {
   ActivityLibraryItem,
   AdminWlaSummary,
   Kinerja,
+  KpiSummaryRow,
+  KpiTarget,
   LogAktivitasHarian,
   ReviewStatus,
   SelfAssessmentKpi
 } from '../types';
 import type { AssignedTask } from '../../../shared/types/types';
+import type { Pegawai } from '../../01-pegawai/types';
 
 type ActivityFilters = { position?: string; department?: string; category?: string };
 
@@ -39,6 +57,10 @@ export const PERFORMANCE_QUERY_KEYS = {
     all: ['performance', 'activity-library'] as const,
     list: (filters?: ActivityFilters) => [...PERFORMANCE_QUERY_KEYS.activityLibrary.all, 'list', filters ?? {}] as const,
     positions: () => [...PERFORMANCE_QUERY_KEYS.activityLibrary.all, 'positions'] as const
+  },
+  employee: {
+    all: ['performance', 'employee'] as const,
+    selectable: (role?: string, employeeId?: string) => [...PERFORMANCE_QUERY_KEYS.employee.all, 'selectable', role ?? 'guest', employeeId ?? 'anonymous'] as const
   },
   task: {
     all: ['performance', 'task'] as const,
@@ -54,6 +76,18 @@ export const PERFORMANCE_QUERY_KEYS = {
       [...PERFORMANCE_QUERY_KEYS.wla.all, 'admin-summary', startDate ?? 'start', endDate ?? 'end'] as const,
     adminDetail: (employeeId?: string, startDate?: string, endDate?: string) =>
       [...PERFORMANCE_QUERY_KEYS.wla.all, 'admin-detail', employeeId ?? 'anonymous', startDate ?? 'start', endDate ?? 'end'] as const
+  },
+  workload: {
+    all: ['performance', 'workload'] as const,
+    analysis: (employeeId?: string, year?: number) => [...PERFORMANCE_QUERY_KEYS.workload.all, 'analysis', employeeId ?? 'anonymous', year ?? 'unknown'] as const
+  },
+  kpi: {
+    all: ['performance', 'kpi'] as const,
+    list: (filters?: { employeeId?: string; period?: string; role?: string }) =>
+      [...PERFORMANCE_QUERY_KEYS.kpi.all, 'list', filters ?? {}] as const,
+    summary: (startDate?: string, endDate?: string) =>
+      [...PERFORMANCE_QUERY_KEYS.kpi.all, 'summary', startDate ?? 'start', endDate ?? 'end'] as const,
+    templates: () => [...PERFORMANCE_QUERY_KEYS.kpi.all, 'templates'] as const
   },
   performanceReview: {
     all: ['performance', 'review'] as const,
@@ -100,6 +134,24 @@ export const useJabatanListQuery = () =>
     queryKey: ['jabatan', 'list'],
     queryFn: getJabatanList,
     staleTime: 5 * 60 * 1000
+  });
+
+export const useSelectablePerformanceEmployees = (role?: string, employeeId?: string, employeeName?: string) =>
+  useQuery({
+    queryKey: PERFORMANCE_QUERY_KEYS.employee.selectable(role, employeeId),
+    queryFn: async () => {
+      if (role === 'employee' && employeeId) {
+        return [{ id: employeeId, name: employeeName || employeeId, nip: employeeId }] as Array<Partial<Pegawai>>;
+      }
+
+      if (role === 'supervisor' && employeeId) {
+        return getSubordinates(String(employeeId), true);
+      }
+
+      const response = await getPegawai();
+      return response.data || [];
+    },
+    staleTime: 60 * 1000
   });
 
 export const useCreateActivityMutation = () => {
@@ -239,6 +291,156 @@ export const useAdminWlaSummary = (startDate: string, endDate: string) =>
     enabled: !!startDate && !!endDate,
     staleTime: 15 * 1000
   });
+
+export const useWorkloadAnalysis = (employeeId?: string, year?: number) =>
+  useQuery({
+    queryKey: PERFORMANCE_QUERY_KEYS.workload.analysis(employeeId, year),
+    queryFn: async () => {
+      if (!employeeId || !year) {
+        return null;
+      }
+
+      const response = await getWorkloadAnalysis(employeeId, year);
+      return response.data?.data || null;
+    },
+    enabled: !!employeeId && !!year,
+    staleTime: 30 * 1000
+  });
+
+export const useKpiTargetList = (filters: { employeeId?: string; period?: string; role?: string }, enabled = true) =>
+  useQuery({
+    queryKey: PERFORMANCE_QUERY_KEYS.kpi.list(filters),
+    queryFn: async () => {
+      const response = await getKpiTargets({
+        employeeId: filters.employeeId,
+        period: filters.period
+      });
+      return (response.data?.data || []) as KpiTarget[];
+    },
+    enabled,
+    staleTime: 15 * 1000
+  });
+
+export const useKpiSummary = (startDate: string, endDate: string, enabled = true) =>
+  useQuery({
+    queryKey: PERFORMANCE_QUERY_KEYS.kpi.summary(startDate, endDate),
+    queryFn: async () => {
+      const response = await getKpiSummary({ startDate, endDate });
+      return (response.data?.data || []) as KpiSummaryRow[];
+    },
+    enabled: enabled && !!startDate && !!endDate,
+    staleTime: 15 * 1000
+  });
+
+export const useKpiTemplates = (enabled = true) =>
+  useQuery({
+    queryKey: PERFORMANCE_QUERY_KEYS.kpi.templates(),
+    queryFn: async () => {
+      const response = await getKpiTemplates();
+      return {
+        templates: response.data?.data || [],
+        departments: response.data?.departments || []
+      };
+    },
+    enabled,
+    staleTime: 60 * 1000
+  });
+
+const invalidateKpiQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.kpi.all });
+};
+
+export const useCreateKpiMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createKpiTarget,
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useUpdateKpiMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<KpiTarget> }) => updateKpiTarget(id, data),
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useDeleteKpiMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteKpiTarget,
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useUpdateKpiActualMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, actualValue, evidenceFile }: { id: string; actualValue: number; evidenceFile?: File }) =>
+      updateActualValue(id, actualValue, evidenceFile),
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useGenerateKpiFromAbkMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ employeeId, year, period }: { employeeId: string; year: number; period: string }) =>
+      generateKpiFromAbk(employeeId, year, period),
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useSyncKpiFromWlaMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ employeeId, period }: { employeeId: string; period: string }) =>
+      syncKpiFromWla(employeeId, period),
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useRebalanceKpiMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ employeeId, period }: { employeeId: string; period: string }) =>
+      rebalanceKpiWeights(employeeId, period),
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
+
+export const useApplyKpiTemplateMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: applyKpiTemplates,
+    onSuccess: () => {
+      invalidateKpiQueries(queryClient);
+    }
+  });
+};
 
 export const fetchAdminWlaDetailLogs = async (employeeId: string, startDate: string, endDate: string) => {
   const response = await getAdminDetailLogsWla(employeeId, undefined, startDate, endDate);
