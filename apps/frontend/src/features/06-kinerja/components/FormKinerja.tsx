@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { Kinerja } from '../types';
-import { buatPenilaianKinerja } from '../api/kinerjaApi';
+import { Kinerja, PerformanceReviewKpi } from '../types';
+import { buatPenilaianKinerja, CreateKinerjaPayload } from '../api/kinerjaApi';
 import { getKpiTargets } from '../api/kpiApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
+
+type ReviewKpiRow = Omit<PerformanceReviewKpi, 'id'> & { id: string; fromKpiTarget: boolean };
 
 const FormKinerja: React.FC = () => {
   const { user } = useAuth();
   const { register, handleSubmit, formState: { errors }, setValue, watch, getValues } = useForm<Omit<Kinerja, 'id' | 'overallScore' | 'status' | 'createdAt'>>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [kpiRows, setKpiRows] = useState<{ id: any; name: string; score: number; weight: number; targetValue: number; actualValue: number; targetUnit: string; fromKpiTarget: boolean }[]>([{ id: Date.now(), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
+  const [kpiRows, setKpiRows] = useState<ReviewKpiRow[]>([{ id: String(Date.now()), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
 
   // Auto-fill reviewer name and penilaiId (NIP) from user session + employee API
   React.useEffect(() => {
@@ -82,8 +84,8 @@ const FormKinerja: React.FC = () => {
           console.log('Fetched KPIs for auto-fill:', targetKpis);
 
           if (Array.isArray(targetKpis) && targetKpis.length > 0) {
-            const mappedKpis = targetKpis.map(kpi => ({
-              id: kpi.id || Date.now() + Math.random(),
+            const mappedKpis: ReviewKpiRow[] = targetKpis.map(kpi => ({
+              id: String(kpi.id || `${Date.now()}-${Math.random()}`),
               name: kpi.kpiName || '',
               score: kpi.score || 0,
               weight: kpi.weight || 0,
@@ -94,7 +96,7 @@ const FormKinerja: React.FC = () => {
             }));
             setKpiRows(mappedKpis);
           } else {
-            setKpiRows([{ id: Date.now(), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
+            setKpiRows([{ id: String(Date.now()), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
           }
         } catch (err) {
           console.error('Failed to auto-fetch KPIs:', err);
@@ -105,21 +107,28 @@ const FormKinerja: React.FC = () => {
   }, [selectedEmployeeId, selectedPeriod]);
 
   // Function to prepare data for submission with KPIs
-  const prepareSubmissionData = (formData: Omit<Kinerja, 'id' | 'overallScore' | 'status' | 'createdAt'>, status: string) => {
-    // Merge form data with KPI data and include status
+  const prepareSubmissionData = (
+    formData: Omit<Kinerja, 'id' | 'overallScore' | 'status' | 'createdAt'>,
+    status: CreateKinerjaPayload['status']
+  ): CreateKinerjaPayload => {
+    const reviewDate = formData.reviewDate || new Date().toISOString().split('T')[0];
+    const defaultDeadline = new Date(reviewDate);
+    defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+
     return {
       ...formData,
-      kpis: kpiRows,
-      status // 'Draft' or 'Completed'
+      kpis: kpiRows.map(({ fromKpiTarget, ...kpi }) => kpi),
+      status,
+      selfAssessmentDeadline: status === 'Awaiting SA' ? defaultDeadline.toISOString().split('T')[0] : undefined
     };
   };
 
   const onSubmit = async (data: Omit<Kinerja, 'id' | 'overallScore' | 'status' | 'createdAt'>) => {
-    const submissionData = prepareSubmissionData(data, 'Completed');
+    const submissionData = prepareSubmissionData(data, 'Awaiting SA');
     setIsSubmitting(true);
     try {
       await buatPenilaianKinerja(submissionData);
-      alert('Penilaian kinerja berhasil dikirim!');
+      alert('Penilaian kinerja berhasil dibuat dan dikirim ke pegawai untuk self-assessment.');
       // Optionally, clear form or close modal
     } catch (error) {
       alert('Gagal membuat penilaian kinerja.');
@@ -145,18 +154,18 @@ const FormKinerja: React.FC = () => {
 
   // Function to add a new KPI row
   const addKpiRow = () => {
-    setKpiRows([...kpiRows, { id: Date.now(), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
+    setKpiRows([...kpiRows, { id: String(Date.now()), name: '', score: 0, weight: 0, targetValue: 0, actualValue: 0, targetUnit: '', fromKpiTarget: false }]);
   };
 
   // Function to remove a KPI row
-  const removeKpiRow = (id: number) => {
+  const removeKpiRow = (id: string) => {
     if (kpiRows.length > 1) {
       setKpiRows(kpiRows.filter(row => row.id !== id));
     }
   };
 
   // Function to update KPI row data
-  const updateKpiRow = (id: number, field: string, value: string | number) => {
+  const updateKpiRow = (id: string, field: keyof Omit<ReviewKpiRow, 'id' | 'fromKpiTarget'>, value: string | number) => {
     setKpiRows(kpiRows.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
