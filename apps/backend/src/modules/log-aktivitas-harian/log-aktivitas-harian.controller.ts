@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import LogAktivitasHarianService from './log-aktivitas-harian.service';
+import {
+    CreateBulkLogAktivitasPayload,
+    CreateLogAktivitasPayload,
+    LogApprovalStatus,
+} from './log-aktivitas-harian.types';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -13,18 +18,17 @@ export default class LogAktivitasHarianController {
             // Or rely on body payload
             const id_pegawai = req.user?.employeeId || req.user?.id || req.body.id_pegawai;
 
-            const data = await LogAktivitasHarianService.createLog({
+            const payload: CreateLogAktivitasPayload = {
                 id_pegawai: Number(id_pegawai),
                 tanggal: req.body.tanggal,
                 id_activity_library: Number(req.body.id_activity_library),
                 frekuensi: Number(req.body.frekuensi || 1),
                 catatan: req.body.catatan
-            });
+            };
+
+            const data = await LogAktivitasHarianService.createLog(payload);
             return res.status(201).json({ success: true, data });
         } catch (error: any) {
-            if (error.message && error.message.includes('required')) {
-                return res.status(400).json({ success: false, message: error.message });
-            }
             return next(error);
         }
     }
@@ -70,16 +74,15 @@ export default class LogAktivitasHarianController {
                 });
             }
 
-            const data = await LogAktivitasHarianService.createBulkLogs(
+            const payload: CreateBulkLogAktivitasPayload = {
                 id_pegawai,
                 tanggal,
-                logs
-            );
+                logs,
+            };
+
+            const data = await LogAktivitasHarianService.createBulkLogs(payload);
             return res.status(201).json({ success: true, data });
         } catch (error: any) {
-            if (error.message && error.message.includes('required')) {
-                return res.status(400).json({ success: false, message: error.message });
-            }
             return next(error);
         }
     }
@@ -167,7 +170,7 @@ export default class LogAktivitasHarianController {
     static async updateStatus(req: AuthRequest, res: Response, next: NextFunction) {
         try {
             const id_log = req.params.id;
-            const { status } = req.body; // 'approved' | 'rejected'
+            const { status } = req.body as { status: LogApprovalStatus };
 
             if (!['approved', 'rejected'].includes(status)) {
                 return res.status(400).json({ success: false, message: 'Invalid status' });

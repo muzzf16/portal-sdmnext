@@ -1,4 +1,5 @@
 import api from '../../../shared/services/api';
+import { AdminWlaSummary, LogAktivitasHarian } from '../types';
 
 export interface LogAktivitasWlaPayload {
     id_pegawai?: number;
@@ -31,20 +32,20 @@ export const createBulkLogAktivitasWla = (data: { id_pegawai?: string | number, 
         }
     });
 
-    return api.post('/log-aktivitas-harian/bulk', formData);
+    return api.post<{ success: boolean; data: { message: string; changes?: number } }>('/log-aktivitas-harian/bulk', formData);
 };
 
 export const getMyLogAktivitasWla = (tanggal: string, id_pegawai?: number) =>
-    api.get('/log-aktivitas-harian/my-logs', { params: { tanggal, id_pegawai } });
+    api.get<{ success: boolean; data: LogAktivitasHarian[] }>('/log-aktivitas-harian/my-logs', { params: { tanggal, id_pegawai } });
 
 export const getLogAktivitasSummaryWla = (startDate: string, endDate: string, id_pegawai?: number) =>
     api.get('/log-aktivitas-harian/summary', { params: { startDate, endDate, id_pegawai } });
 
 export const getAdminLogAktivitasSummaryWla = (tanggal?: string, startDate?: string, endDate?: string) =>
-    api.get('/log-aktivitas-harian/admin/summary', { params: { tanggal, startDate, endDate } });
+    api.get<{ success: boolean; data: AdminWlaSummary[] }>('/log-aktivitas-harian/admin/summary', { params: { tanggal, startDate, endDate } });
 
 export const getAdminDetailLogsWla = (id_pegawai: string, tanggal?: string, startDate?: string, endDate?: string) =>
-    api.get('/log-aktivitas-harian/admin/logs', { params: { tanggal, startDate, endDate, id_pegawai } });
+    api.get<{ success: boolean; data: LogAktivitasHarian[] }>('/log-aktivitas-harian/admin/logs', { params: { tanggal, startDate, endDate, id_pegawai } });
 
 export const updateLogAktivitasStatusWla = (id: number | string, status: 'approved' | 'rejected') =>
     api.put(`/log-aktivitas-harian/${id}/status`, { status });

@@ -1,8 +1,15 @@
 import { openDb } from '../../config/db';
+import {
+    AdminWlaSummaryRow,
+    CreateLogAktivitasPayload,
+    LogAktivitasHarianItem,
+    LogAktivitasSummary,
+    LogApprovalStatus,
+} from './log-aktivitas-harian.types';
 
 export default class LogAktivitasHarianRepository {
 
-    static async create(payload: { id_pegawai: string | number, tanggal: string, id_activity_library: string | number, frekuensi: number, total_durasi_terhitung: number, catatan?: string }) {
+    static async create(payload: CreateLogAktivitasPayload & { total_durasi_terhitung: number }): Promise<{ id_log: number } & CreateLogAktivitasPayload & { total_durasi_terhitung: number }> {
         const db = await openDb();
         const result = await db.run(
             `INSERT INTO log_aktivitas_harian 
@@ -15,10 +22,14 @@ export default class LogAktivitasHarianRepository {
             payload.total_durasi_terhitung,
             payload.catatan || null
         );
-        return { id_log: result.lastID, ...payload };
+        return { id_log: Number(result.lastID || 0), ...payload };
     }
 
-    static async createBulk(id_pegawai: string | number, tanggal: string, logs: { id_pegawai: string | number, tanggal: string, id_activity_library: string | number, frekuensi: number, total_durasi_terhitung: number, catatan?: string, lampiran?: string }[]) {
+    static async createBulk(
+        id_pegawai: string | number,
+        tanggal: string,
+        logs: Array<CreateLogAktivitasPayload & { total_durasi_terhitung: number }>
+    ): Promise<{ message: string; changes: number | undefined }> {
         const db = await openDb();
 
         // Delete existing logs to prevent duplicates
@@ -48,7 +59,7 @@ export default class LogAktivitasHarianRepository {
         return { message: `${logs.length} logs inserted successfully`, changes: result.changes };
     }
 
-    static async getByPegawaiAndDateRange(id_pegawai: string | number, startDate: string, endDate: string) {
+    static async getByPegawaiAndDateRange(id_pegawai: string | number, startDate: string, endDate: string): Promise<LogAktivitasHarianItem[]> {
         const db = await openDb();
         return db.all(
             `SELECT l.*, a.activityName, a.durationMinutes, a.outputUnit, a.category 
@@ -59,26 +70,27 @@ export default class LogAktivitasHarianRepository {
             id_pegawai,
             startDate,
             endDate
-        );
+        ) as Promise<LogAktivitasHarianItem[]>;
     }
 
-    static async getSummaryByPegawai(id_pegawai: string | number, startDate: string, endDate: string) {
+    static async getSummaryByPegawai(id_pegawai: string | number, startDate: string, endDate: string): Promise<LogAktivitasSummary> {
         const db = await openDb();
-        return db.get(
+        const row = await db.get(
             `SELECT 
                 SUM(frekuensi) as total_aktivitas,
                 SUM(total_durasi_terhitung) as total_durasi_menit
              FROM log_aktivitas_harian
              WHERE id_pegawai = ? AND tanggal >= ? AND tanggal <= ? AND status_approval IN ('pending', 'approved')`,
             id_pegawai, startDate, endDate
-        );
+        ) as LogAktivitasSummary | undefined;
+        return row || { total_aktivitas: 0, total_durasi_menit: 0 };
     }
 
-    static async getAllByDateRange(startDate: string, endDate: string, supervisorId?: string) {
+    static async getAllByDateRange(startDate: string, endDate: string, supervisorId?: string): Promise<AdminWlaSummaryRow[]> {
         const db = await openDb();
 
         let subordinateFilter = '';
-        const params: any[] = [startDate, endDate];
+        const params: string[] = [startDate, endDate];
 
         if (supervisorId) {
             // Recursive CTE to find all subordinates (direct and indirect)
@@ -112,10 +124,10 @@ export default class LogAktivitasHarianRepository {
              GROUP BY p.id
              ORDER BY p.department, p.name ASC`,
             ...params
-        );
+        ) as Promise<AdminWlaSummaryRow[]>;
     }
 
-    static async updateStatus(id_log: number, status: 'approved' | 'rejected') {
+    static async updateStatus(id_log: number, status: Extract<LogApprovalStatus, 'approved' | 'rejected'>) {
         const db = await openDb();
         await db.run(
             `UPDATE log_aktivitas_harian SET status_approval = ?, updated_at = CURRENT_TIMESTAMP WHERE id_log = ?`,
