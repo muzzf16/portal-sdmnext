@@ -1,5 +1,5 @@
 import api from '../../../shared/services/api';
-import { KpiTarget } from '../types';
+import { KpiSummaryRow, KpiTarget } from '../types';
 
 export const getKpiTargets = (filters?: { employeeId?: string; period?: string; status?: string }) => {
     const params = new URLSearchParams();
@@ -7,7 +7,7 @@ export const getKpiTargets = (filters?: { employeeId?: string; period?: string; 
     if (filters?.period) params.append('period', filters.period);
     if (filters?.status) params.append('status', filters.status);
     const qs = params.toString();
-    return api.get(`/kpi-targets${qs ? `?${qs}` : ''}`);
+    return api.get<{ success: boolean; data: KpiTarget[] }>(`/kpi-targets${qs ? `?${qs}` : ''}`);
 };
 
 export const getKpiSummary = (filters: { employeeId?: string; period?: string; startDate?: string; endDate?: string }) => {
@@ -16,14 +16,14 @@ export const getKpiSummary = (filters: { employeeId?: string; period?: string; s
     if (filters.period) params.append('period', filters.period);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
-    return api.get(`/kpi-targets/summary?${params.toString()}`);
+    return api.get<{ success: boolean; data: KpiSummaryRow[] }>(`/kpi-targets/summary?${params.toString()}`);
 };
 
 export const getKpiByEmployeeId = (employeeId: string) =>
-    api.get(`/kpi-targets/employee/${employeeId}`);
+    api.get<{ success: boolean; data: KpiTarget[] }>(`/kpi-targets/employee/${employeeId}`);
 
 export const getKpiById = (id: string) =>
-    api.get(`/kpi-targets/${id}`);
+    api.get<{ success: boolean; data: KpiTarget }>(`/kpi-targets/${id}`);
 
 export const createKpiTarget = (data: Omit<KpiTarget, 'id' | 'score' | 'created_at' | 'updated_at'>) =>
     api.post('/kpi-targets', data);

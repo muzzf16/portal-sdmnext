@@ -84,7 +84,7 @@ const FormKinerja: React.FC = () => {
           if (Array.isArray(targetKpis) && targetKpis.length > 0) {
             const mappedKpis = targetKpis.map(kpi => ({
               id: kpi.id || Date.now() + Math.random(),
-              name: kpi.kpiName || kpi.name || '',
+              name: kpi.kpiName || '',
               score: kpi.score || 0,
               weight: kpi.weight || 0,
               targetValue: kpi.targetValue || 0,

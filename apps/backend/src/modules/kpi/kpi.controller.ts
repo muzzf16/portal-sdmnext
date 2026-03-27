@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import KpiService from './kpi.service';
+import {
+    CreateKpiPayload,
+    KpiFilters,
+    KpiSummaryFilters,
+    UpdateKpiPayload,
+} from './kpi.types';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -10,7 +16,7 @@ export default class KpiController {
     static async getAll(req: Request, res: Response, next: NextFunction) {
         try {
             const { employeeId, period, status } = req.query;
-            const filters = {
+            const filters: KpiFilters = {
                 employeeId: employeeId as string | undefined,
                 period: period as string | undefined,
                 status: status as string | undefined,
@@ -31,12 +37,14 @@ export default class KpiController {
                 supervisorId = String(req.user?.employeeId || req.user?.id);
             }
 
-            const data = await KpiService.getSummary({
+            const filters: KpiSummaryFilters = {
                 employeeId: employeeId as string | undefined,
                 period: period as string | undefined,
                 startDate: startDate as string | undefined,
                 endDate: endDate as string | undefined,
-            }, supervisorId);
+            };
+
+            const data = await KpiService.getSummary(filters, supervisorId);
 
             return res.status(200).json({ success: true, data });
         } catch (error) {
@@ -77,7 +85,8 @@ export default class KpiController {
 
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = await KpiService.create(req.body);
+            const payload = req.body as CreateKpiPayload;
+            const data = await KpiService.create(payload);
             return res.status(201).json({ success: true, data });
         } catch (error) {
             return next(error);
@@ -87,7 +96,8 @@ export default class KpiController {
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
-            const data = await KpiService.update(id, req.body);
+            const payload = req.body as UpdateKpiPayload;
+            const data = await KpiService.update(id, payload);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return next(error);

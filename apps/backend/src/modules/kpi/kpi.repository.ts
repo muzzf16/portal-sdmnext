@@ -1,11 +1,20 @@
 import { openDb } from '../../config/db';
+import {
+    CreateKpiPayload,
+    KpiFilters,
+    KpiSummaryEmployee,
+    KpiSummaryEmployeeScope,
+    KpiSummaryRecord,
+    KpiTarget,
+    UpdateKpiPayload,
+} from './kpi.types';
 
 export const KpiRepository = {
 
-    async findAll(filters?: { employeeId?: string; period?: string; status?: string }) {
+    async findAll(filters?: KpiFilters): Promise<KpiTarget[]> {
         const db = await openDb();
         let query = 'SELECT * FROM kpi_targets';
-        const params: any[] = [];
+        const params: string[] = [];
         const conditions: string[] = [];
 
         if (filters?.employeeId) {
@@ -26,33 +35,34 @@ export const KpiRepository = {
         }
         query += ' ORDER BY created_at DESC';
 
-        return db.all(query, ...params);
+        return db.all(query, ...params) as Promise<KpiTarget[]>;
     },
 
-    async findByEmployeeId(employeeId: string) {
+    async findByEmployeeId(employeeId: string): Promise<KpiTarget[]> {
         const db = await openDb();
         return db.all(
             'SELECT * FROM kpi_targets WHERE employeeId = ? ORDER BY period DESC, kpiName ASC',
             employeeId
-        );
+        ) as Promise<KpiTarget[]>;
     },
 
-    async findByEmployeePeriod(employeeId: string, period: string) {
+    async findByEmployeePeriod(employeeId: string, period: string): Promise<KpiTarget[]> {
         const db = await openDb();
         return db.all(
             'SELECT * FROM kpi_targets WHERE employeeId = ? AND period = ? ORDER BY kpiName ASC',
             employeeId, period
-        );
+        ) as Promise<KpiTarget[]>;
     },
 
-    async findById(id: string) {
+    async findById(id: string): Promise<KpiTarget | null> {
         const db = await openDb();
-        return db.get('SELECT * FROM kpi_targets WHERE id = ?', id);
+        const row = await db.get('SELECT * FROM kpi_targets WHERE id = ?', id) as KpiTarget | undefined;
+        return row || null;
     },
 
-    async findSummaryEmployees(filters?: { employeeId?: string; employeeIds?: string[] }) {
+    async findSummaryEmployees(filters?: KpiSummaryEmployeeScope): Promise<KpiSummaryEmployee[]> {
         const db = await openDb();
-        const params: any[] = [];
+        const params: string[] = [];
         const conditions = [`(p.isActive = 1 OR p.statusKaryawan = 'aktif')`];
 
         if (filters?.employeeId) {
@@ -77,12 +87,12 @@ export const KpiRepository = {
              WHERE ${conditions.join(' AND ')}
              ORDER BY p.department ASC, p.name ASC`,
             ...params
-        );
+        ) as Promise<KpiSummaryEmployee[]>;
     },
 
-    async findSummaryRecords(filters?: { employeeId?: string; employeeIds?: string[]; period?: string }) {
+    async findSummaryRecords(filters?: KpiSummaryEmployeeScope & { period?: string }): Promise<KpiSummaryRecord[]> {
         const db = await openDb();
-        const params: any[] = [];
+        const params: string[] = [];
         const conditions: string[] = [];
 
         if (filters?.employeeId) {
@@ -120,7 +130,7 @@ export const KpiRepository = {
              ${whereClause}
              ORDER BY p.name ASC, k.period DESC, k.kpiName ASC`,
             ...params
-        );
+        ) as Promise<KpiSummaryRecord[]>;
     },
 
     async findSummary(filters: { period: string; employeeId?: string; employeeIds?: string[] }) {
@@ -165,7 +175,7 @@ export const KpiRepository = {
         );
     },
 
-    async create(data: any) {
+    async create(data: CreateKpiPayload): Promise<KpiTarget | null> {
         const db = await openDb();
         const id = data.id || `kpi-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const now = new Date().toISOString();
@@ -183,15 +193,27 @@ export const KpiRepository = {
         return this.findById(id);
     },
 
-    async update(id: string, data: any) {
+    async update(id: string, data: UpdateKpiPayload): Promise<KpiTarget | null> {
         const db = await openDb();
         const now = new Date().toISOString();
 
         // Build dynamic update
         const fields: string[] = [];
-        const values: any[] = [];
+        const values: Array<string | number | null> = [];
 
-        const allowedFields = ['kpiName', 'targetValue', 'targetUnit', 'weight', 'actualValue', 'score', 'status', 'source', 'category', 'abkActivityId', 'notes'];
+        const allowedFields: Array<keyof UpdateKpiPayload> = [
+            'kpiName',
+            'targetValue',
+            'targetUnit',
+            'weight',
+            'actualValue',
+            'score',
+            'status',
+            'source',
+            'category',
+            'abkActivityId',
+            'notes',
+        ];
 
         for (const field of allowedFields) {
             if (data[field] !== undefined) {
