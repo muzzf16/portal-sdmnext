@@ -1,18 +1,58 @@
 
-// src/modules/kinerja/penilaianKinerja.repository.ts
 import { openDb } from '../../config/db';
+import { PenilaianKinerja, SelfAssessmentKpi } from './penilaianKinerja.model';
+import {
+  CreatePerformanceReviewPayload,
+  PerformanceReviewKpiSnapshot,
+  SubmitSelfAssessmentPayload,
+  UpdatePerformanceReviewPayload
+} from './kinerja.types';
 
-// Helper to parse JSON fields from DB results
-const parseJsonFields = (rows: any[]) => {
-  return rows.map(row => ({
+type ReviewRow = Omit<PenilaianKinerja, 'kpis' | 'selfAssessmentKpis'> & {
+  kpis: string | null;
+  selfAssessmentKpis: string | null;
+};
+
+const parseJsonField = <T>(value: string | null | undefined, fallback: T): T => {
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+const mapRow = (row: ReviewRow | undefined | null): PenilaianKinerja | null => {
+  if (!row) {
+    return null;
+  }
+
+  return {
     ...row,
-    kpis: row.kpis ? JSON.parse(row.kpis) : [],
-    selfAssessmentKpis: row.selfAssessmentKpis ? JSON.parse(row.selfAssessmentKpis) : null,
-  }));
+    kpis: parseJsonField<PerformanceReviewKpiSnapshot[]>(row.kpis, []),
+    selfAssessmentKpis: parseJsonField<SelfAssessmentKpi[] | null>(row.selfAssessmentKpis, null)
+  };
+};
+
+const mapRows = (rows: ReviewRow[]) => rows.map((row) => mapRow(row)).filter(Boolean) as PenilaianKinerja[];
+
+const calculateOverallScore = (kpis: PerformanceReviewKpiSnapshot[]) => {
+  if (!kpis.length) {
+    return 0;
+  }
+
+  const totalWeight = kpis.reduce((sum, kpi) => sum + (kpi.weight || 0), 0);
+  const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
+  const weightedScore = kpis.reduce((sum, kpi) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
+
+  return parseFloat((weightedScore / effectiveWeight).toFixed(2));
 };
 
 export const PenilaianKinerjaRepository = {
-  async findAll(supervisorId?: string) {
+  async findAll(supervisorId?: string): Promise<PenilaianKinerja[]> {
     const db = await openDb();
 
     if (supervisorId) {
@@ -25,47 +65,34 @@ export const PenilaianKinerjaRepository = {
         JOIN pegawai p ON pk.employeeId = p.id
         JOIN jabatan j ON p.jabatan_id = j.id
         WHERE j.parent_id = ?
-      `, supervisor.jabatan_id);
-      return parseJsonFields(rows);
+      `, supervisor.jabatan_id) as ReviewRow[];
+      return mapRows(rows);
     }
 
-    const rows = await db.all('SELECT * FROM penilaian_kinerja');
-    return parseJsonFields(rows);
+    const rows = await db.all('SELECT * FROM penilaian_kinerja') as ReviewRow[];
+    return mapRows(rows);
   },
 
-  async findById(id: string) {
+  async findById(id: string): Promise<PenilaianKinerja | null> {
     const db = await openDb();
-    const row = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id);
-    if (!row) return null;
-    return parseJsonFields([row])[0];
+    const row = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id) as ReviewRow | undefined;
+    return mapRow(row);
   },
 
-  async findByEmployeeId(employeeId: string) {
+  async findByEmployeeId(employeeId: string): Promise<PenilaianKinerja[]> {
     const db = await openDb();
-    const rows = await db.all('SELECT * FROM penilaian_kinerja WHERE employeeId = ?', employeeId);
-    return parseJsonFields(rows);
+    const rows = await db.all('SELECT * FROM penilaian_kinerja WHERE employeeId = ? ORDER BY createdAt DESC', employeeId) as ReviewRow[];
+    return mapRows(rows);
   },
 
-  async create(data: any) {
+  async create(data: CreatePerformanceReviewPayload): Promise<PenilaianKinerja> {
     const db = await openDb();
-    // Calculate overall score based on KPIs
     const kpis = data.kpis || [];
-    let overallScore = 0; // Default to 0 if no KPIs
-
-    if (kpis.length > 0) {
-      const totalWeight = kpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 0), 0);
-      // Avoid division by zero - if totalWeight is 0, use the count of KPIs as the denominator
-      const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
-      const weightedScore = kpis.reduce((sum: number, kpi: any) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
-
-      overallScore = parseFloat((weightedScore / effectiveWeight).toFixed(2));
-    }
-
-    // Get employee name if not provided
+    const overallScore = calculateOverallScore(kpis);
     let employeeName = data.employeeName || '';
+
     if (!employeeName && data.employeeId) {
-      const employeeDb = await openDb();
-      const employee = await employeeDb.get('SELECT name FROM pegawai WHERE id = ?', data.employeeId);
+      const employee = await db.get('SELECT name FROM pegawai WHERE id = ?', data.employeeId);
       employeeName = employee ? employee.name : '';
     }
 
@@ -83,51 +110,39 @@ export const PenilaianKinerjaRepository = {
       areasForImprovement: data.areasForImprovement,
       employeeFeedback: data.employeeFeedback,
       kpis: JSON.stringify(kpis),
-      penilaiId: data.penilaiId || null, // Store as null if not provided
+      penilaiId: data.penilaiId || null,
+      selfAssessmentDeadline: data.selfAssessmentDeadline || null,
       createdAt: new Date().toISOString()
     };
 
     await db.run(
-      'INSERT INTO penilaian_kinerja (id, employeeId, employeeName, period, reviewerName, reviewDate, overallScore, status, strengths, areasForImprovement, employeeFeedback, kpis, penilaiId, createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO penilaian_kinerja (id, employeeId, employeeName, period, reviewerName, reviewDate, overallScore, status, strengths, areasForImprovement, employeeFeedback, kpis, penilaiId, selfAssessmentDeadline, createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       Object.values(reviewData)
     );
 
-    const newRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', newId);
-    return parseJsonFields([newRow])[0];
+    const newRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', newId) as ReviewRow | undefined;
+    return mapRow(newRow)!;
   },
 
-  async update(id: string, data: any) {
+  async update(id: string, data: UpdatePerformanceReviewPayload): Promise<PenilaianKinerja> {
     const db = await openDb();
-    // Calculate overall score based on KPIs
     const kpis = data.kpis || [];
-    let overallScore = 0; // Default to 0 if no KPIs
-
-    if (kpis.length > 0) {
-      const totalWeight = kpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 0), 0);
-      // Avoid division by zero - if totalWeight is 0, use the count of KPIs as the denominator
-      const effectiveWeight = totalWeight > 0 ? totalWeight : kpis.length;
-      const weightedScore = kpis.reduce((sum: number, kpi: any) => sum + ((kpi.score || 0) * (kpi.weight || 0)), 0);
-
-      overallScore = parseFloat((weightedScore / effectiveWeight).toFixed(2));
-    }
-
+    const overallScore = calculateOverallScore(kpis);
     const reviewData = {
       ...data,
       overallScore,
       kpis: JSON.stringify(kpis),
-      status: data.status || 'Draft'  // Ensure status is set even if not provided
+      status: data.status || 'Draft'
     };
 
-    delete reviewData.id; // Prevent updating the primary key
-
-    const setClause = Object.keys(reviewData).map(key => `${key} = ?`).join(', ');
+    const setClause = Object.keys(reviewData).map((key) => `${key} = ?`).join(', ');
     const values = [...Object.values(reviewData), id];
 
     const result = await db.run(`UPDATE penilaian_kinerja SET ${setClause} WHERE id = ?`, values);
     if (result.changes === 0) throw new Error('Performance review not found');
 
-    const updatedRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id);
-    return parseJsonFields([updatedRow])[0];
+    const updatedRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id) as ReviewRow | undefined;
+    return mapRow(updatedRow)!;
   },
 
   async updateFeedback(id: string, feedback: string) {
@@ -137,7 +152,25 @@ export const PenilaianKinerjaRepository = {
       feedback, id
     );
     if (result.changes === 0) throw new Error('Review not found');
-    return { message: 'Feedback submitted' };
+    return this.findById(id);
+  },
+
+  async updateStatus(id: string, status: PenilaianKinerja['status'], selfAssessmentDeadline?: string | null) {
+    const db = await openDb();
+    const result = await db.run(
+      `UPDATE penilaian_kinerja
+       SET status = ?, selfAssessmentDeadline = COALESCE(?, selfAssessmentDeadline)
+       WHERE id = ?`,
+      status,
+      selfAssessmentDeadline || null,
+      id
+    );
+
+    if (result.changes === 0) {
+      throw new Error('Performance review not found');
+    }
+
+    return this.findById(id);
   },
 
   async delete(id: string) {
@@ -154,27 +187,20 @@ export const PenilaianKinerjaRepository = {
       WHERE status = 'Scheduled'
       AND reviewDate BETWEEN date('now') AND date('now', '+30 days')
       ORDER BY reviewDate ASC
-    `);
-    return parseJsonFields(rows);
+    `) as ReviewRow[];
+    return mapRows(rows);
   },
 
-  // Self-Assessment: submit or save draft
-  async submitSelfAssessment(id: string, data: {
-    selfAssessmentKpis: any[];
-    selfAssessmentStrengths: string;
-    selfAssessmentAreas: string;
-    selfAssessmentStatus: 'draft' | 'submitted';
-  }) {
+  async submitSelfAssessment(id: string, data: SubmitSelfAssessmentPayload) {
     const db = await openDb();
 
-    // G8: Calculate self-assessment WEIGHTED score (using KPI weights)
     const saKpis = data.selfAssessmentKpis || [];
     let selfScore = 0;
     if (saKpis.length > 0) {
-      const totalWeight = saKpis.reduce((sum: number, k: any) => sum + (k.weight || 1), 0);
-      const weightedScore = saKpis.reduce((sum: number, k: any) => {
-        const w = k.weight || 1;
-        return sum + ((k.selfScore || 0) * w);
+      const totalWeight = saKpis.reduce((sum: number, kpi: any) => sum + (kpi.weight || 1), 0);
+      const weightedScore = saKpis.reduce((sum: number, kpi: any) => {
+        const w = kpi.weight || 1;
+        return sum + ((kpi.selfScore || 0) * w);
       }, 0);
       selfScore = totalWeight > 0
         ? parseFloat((weightedScore / totalWeight).toFixed(2))
@@ -204,7 +230,7 @@ export const PenilaianKinerjaRepository = {
     );
     if (result.changes === 0) throw new Error('Performance review not found');
 
-    const updatedRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id);
-    return parseJsonFields([updatedRow])[0];
+    const updatedRow = await db.get('SELECT * FROM penilaian_kinerja WHERE id = ?', id) as ReviewRow | undefined;
+    return mapRow(updatedRow)!;
   }
 };

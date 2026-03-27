@@ -1,6 +1,13 @@
 
 import KinerjaService from './kinerja.service';
 import { Request, Response, NextFunction } from 'express';
+import { ReviewStatus } from './penilaianKinerja.model';
+import {
+  CreatePerformanceReviewPayload,
+  SubmitSelfAssessmentPayload,
+  TransitionPerformanceReviewPayload,
+  UpdatePerformanceReviewPayload
+} from './kinerja.types';
 
 class KinerjaController {
   static async getAllPenilaianKinerja(req: Request, res: Response, next: NextFunction) {
@@ -41,7 +48,7 @@ class KinerjaController {
 
   static async createPenilaianKinerja(req: Request, res: Response, next: NextFunction) {
     try {
-      const performanceData = req.body;
+      const performanceData = req.body as CreatePerformanceReviewPayload;
       const newReview = await KinerjaService.createPenilaianKinerja(performanceData);
       res.status(201).json({ success: true, data: newReview });
     } catch (error) {
@@ -53,7 +60,7 @@ class KinerjaController {
   static async updatePenilaianKinerja(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const performanceData = req.body;
+      const performanceData = req.body as UpdatePerformanceReviewPayload;
       const updatedReview = await KinerjaService.updatePenilaianKinerja(id, performanceData);
       res.status(200).json({ success: true, data: updatedReview });
     } catch (error) {
@@ -88,7 +95,12 @@ class KinerjaController {
   static async submitSelfAssessment(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { selfAssessmentKpis, selfAssessmentStrengths, selfAssessmentAreas, selfAssessmentStatus } = req.body;
+      const {
+        selfAssessmentKpis,
+        selfAssessmentStrengths,
+        selfAssessmentAreas,
+        selfAssessmentStatus
+      } = req.body as SubmitSelfAssessmentPayload;
 
       if (!selfAssessmentStatus || !['draft', 'submitted'].includes(selfAssessmentStatus)) {
         return res.status(400).json({ success: false, message: 'selfAssessmentStatus harus "draft" atau "submitted"' });
@@ -109,7 +121,7 @@ class KinerjaController {
   static async transitionStatus(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { targetStatus, selfAssessmentDeadline } = req.body;
+      const { targetStatus, selfAssessmentDeadline } = req.body as TransitionPerformanceReviewPayload;
 
       const validStatuses = ['Draft', 'Awaiting SA', 'SA Submitted', 'In Review', 'Completed', 'Finalized'];
       if (!targetStatus || !validStatuses.includes(targetStatus)) {
@@ -119,15 +131,8 @@ class KinerjaController {
         });
       }
 
-      // Set deadline if provided (when transitioning to "Awaiting SA")
-      if (selfAssessmentDeadline && targetStatus === 'Awaiting SA') {
-        const { openDb } = require('../../config/db');
-        const db = await openDb();
-        await db.run('UPDATE penilaian_kinerja SET selfAssessmentDeadline = ? WHERE id = ?', selfAssessmentDeadline, id);
-      }
-
       const user = (req as any).user;
-      const result = await KinerjaService.transitionStatus(id, targetStatus, user?.id);
+      const result = await KinerjaService.transitionStatus(id, targetStatus as ReviewStatus, user?.id, selfAssessmentDeadline);
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
       return next(error);

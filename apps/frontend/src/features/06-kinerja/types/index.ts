@@ -1,3 +1,25 @@
+export type ReviewStatus = 'Draft' | 'Awaiting SA' | 'SA Submitted' | 'In Review' | 'Completed' | 'Finalized';
+
+export interface PerformanceReviewKpi {
+  id?: string;
+  kpiId?: string;
+  name: string;
+  score: number;
+  weight: number;
+  targetValue?: number;
+  actualValue?: number;
+  targetUnit?: string;
+  notes?: string;
+}
+
+export interface SelfAssessmentKpi {
+  kpiId: string;
+  metric: string;
+  selfScore: number;
+  reason: string;
+  weight?: number;
+}
+
 export interface Kinerja {
   id: string;
   employeeId: string;
@@ -6,13 +28,20 @@ export interface Kinerja {
   reviewerName: string;
   reviewDate: string;
   overallScore: number;
-  status: string;
+  status: ReviewStatus;
   strengths: string;
   areasForImprovement: string;
   employeeFeedback: string;
-  kpis: any[];
+  kpis: PerformanceReviewKpi[];
   penilaiId?: string;
   coachingRecommendation?: string;
+  selfAssessmentScore?: number | null;
+  selfAssessmentKpis?: SelfAssessmentKpi[] | null;
+  selfAssessmentStrengths?: string | null;
+  selfAssessmentAreas?: string | null;
+  selfAssessmentDate?: string | null;
+  selfAssessmentStatus?: 'belum_diisi' | 'draft' | 'submitted';
+  selfAssessmentDeadline?: string | null;
   createdAt?: string;
 }
 

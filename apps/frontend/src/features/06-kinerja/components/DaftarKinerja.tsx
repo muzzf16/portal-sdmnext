@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDaftarKinerja } from '../hooks/useDaftarKinerja';
 import { transitionStatus } from '../api/kinerjaApi';
 import { Table, Badge } from '@/shared/components/ui';
-import { Kinerja } from '../types';
+import { Kinerja, ReviewStatus } from '../types';
 
 // Status → Badge variant/color mapping
 const STATUS_CONFIG: Record<string, { variant: 'success' | 'secondary' | 'warning' | 'info' | 'danger'; label: string }> = {
@@ -16,7 +16,7 @@ const STATUS_CONFIG: Record<string, { variant: 'success' | 'secondary' | 'warnin
 };
 
 // Next valid transition per status (for quick-action buttons)
-const NEXT_ACTIONS: Record<string, { target: string; label: string; needsDeadline?: boolean }[]> = {
+const NEXT_ACTIONS: Record<string, { target: ReviewStatus; label: string; needsDeadline?: boolean }[]> = {
   'Draft': [{ target: 'Awaiting SA', label: 'Kirim ke Pegawai', needsDeadline: true }],
   'SA Submitted': [{ target: 'In Review', label: 'Mulai Review' }],
   'In Review': [{ target: 'Completed', label: 'Selesai Review' }],
@@ -25,11 +25,11 @@ const NEXT_ACTIONS: Record<string, { target: string; label: string; needsDeadlin
 
 const DaftarKinerja: React.FC = () => {
   const { daftarKinerja, loading, error, refetch } = useDaftarKinerja();
-  const [deadlineModal, setDeadlineModal] = useState<{ id: string; target: string } | null>(null);
+  const [deadlineModal, setDeadlineModal] = useState<{ id: string; target: ReviewStatus } | null>(null);
   const [deadline, setDeadline] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const handleTransition = async (id: string, targetStatus: string, saDeadline?: string) => {
+  const handleTransition = async (id: string, targetStatus: ReviewStatus, saDeadline?: string) => {
     if (!confirm(`Ubah status ke "${targetStatus}"?`)) return;
     setActionLoading(id);
     try {
@@ -51,7 +51,7 @@ const DaftarKinerja: React.FC = () => {
   return (
     <div className="mt-6">
       <Table headers={tableHeaders}>
-        {daftarKinerja.map((kinerja: Kinerja & { selfAssessmentDeadline?: string }) => {
+        {daftarKinerja.map((kinerja: Kinerja) => {
           const statusCfg = STATUS_CONFIG[kinerja.status] || { variant: 'secondary' as const, label: kinerja.status };
           const actions = NEXT_ACTIONS[kinerja.status] || [];
 

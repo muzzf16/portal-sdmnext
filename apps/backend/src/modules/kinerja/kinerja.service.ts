@@ -1,9 +1,45 @@
-
-import { PenilaianKinerjaRepository } from './penilaianKinerja.repository';
-import { ReviewStatus, VALID_TRANSITIONS } from './penilaianKinerja.model';
-import { NotifikasiRepository } from '../notifikasi/notifikasi.repository';
-import { AppError } from '../../utils/errors';
 import { openDb } from '../../config/db';
+import { AppError } from '../../utils/errors';
+import { NotifikasiRepository } from '../notifikasi/notifikasi.repository';
+import { PenilaianKinerja, ReviewStatus, VALID_TRANSITIONS } from './penilaianKinerja.model';
+import { PenilaianKinerjaRepository } from './penilaianKinerja.repository';
+import {
+  CreatePerformanceReviewPayload,
+  PerformanceReviewKpiSnapshot,
+  SubmitSelfAssessmentPayload,
+  UpdatePerformanceReviewPayload
+} from './kinerja.types';
+
+const normalizeText = (value?: string | null) => value?.trim() || '';
+
+const normalizeOptionalText = (value?: string | null) => {
+  const normalized = normalizeText(value);
+  return normalized || null;
+};
+
+const normalizeKpiSnapshot = (kpis?: PerformanceReviewKpiSnapshot[]) =>
+  (kpis || []).map((kpi, index) => ({
+    id: kpi.id || kpi.kpiId || `snapshot-${Date.now()}-${index}`,
+    kpiId: kpi.kpiId || kpi.id,
+    name: normalizeText((kpi as any).name || (kpi as any).metric),
+    score: Number(kpi.score || 0),
+    weight: Number(kpi.weight || 0),
+    targetValue: Number(kpi.targetValue || 0),
+    actualValue: Number(kpi.actualValue || 0),
+    targetUnit: normalizeText(kpi.targetUnit),
+    notes: normalizeText(kpi.notes)
+  })).filter((kpi) => Boolean(kpi.name));
+
+const buildDefaultSelfAssessmentDeadline = (reviewDate: string) => {
+  const baseDate = reviewDate ? new Date(reviewDate) : new Date();
+  if (Number.isNaN(baseDate.getTime())) {
+    throw new AppError('Tanggal review tidak valid', 400);
+  }
+
+  const deadline = new Date(baseDate);
+  deadline.setDate(deadline.getDate() + 7);
+  return deadline.toISOString().split('T')[0];
+};
 
 class KinerjaService {
   static async getAllPenilaianKinerja(supervisorId?: string) {
@@ -20,6 +56,7 @@ class KinerjaService {
       if (!review) {
         throw new AppError('Performance review not found', 404);
       }
+
       return review;
     } catch (error: any) {
       if (error instanceof AppError) throw error;
@@ -35,30 +72,76 @@ class KinerjaService {
     }
   }
 
-  static async createPenilaianKinerja(reviewData: any) {
+  static async createPenilaianKinerja(reviewData: CreatePerformanceReviewPayload) {
     try {
-      // Ensure initial status is Draft
-      reviewData.status = reviewData.status || 'Draft';
-      const result = await PenilaianKinerjaRepository.create(reviewData);
+      const payload = {
+        employeeId: normalizeText(reviewData.employeeId),
+        employeeName: normalizeText(reviewData.employeeName),
+        period: normalizeText(reviewData.period),
+        reviewerName: normalizeText(reviewData.reviewerName),
+        reviewDate: normalizeText(reviewData.reviewDate),
+        status: (reviewData.status || 'Draft') as ReviewStatus,
+        strengths: normalizeText(reviewData.strengths),
+        areasForImprovement: normalizeText(reviewData.areasForImprovement),
+        employeeFeedback: normalizeText(reviewData.employeeFeedback),
+        penilaiId: normalizeOptionalText(reviewData.penilaiId),
+        selfAssessmentDeadline: normalizeOptionalText(reviewData.selfAssessmentDeadline),
+        kpis: normalizeKpiSnapshot(reviewData.kpis)
+      };
+
+      if (!payload.employeeId || !payload.period || !payload.reviewerName || !payload.reviewDate) {
+        throw new AppError('employeeId, period, reviewerName, dan reviewDate wajib diisi', 400);
+      }
+
+      if (payload.status === 'Awaiting SA' && !payload.selfAssessmentDeadline) {
+        payload.selfAssessmentDeadline = buildDefaultSelfAssessmentDeadline(payload.reviewDate);
+      }
+
+      const result = await PenilaianKinerjaRepository.create(payload);
+
+      if (payload.status === 'Awaiting SA') {
+        await this.triggerNotification(result, 'Draft', 'Awaiting SA');
+      }
+
       return result;
     } catch (error: any) {
+      if (error instanceof AppError) throw error;
       throw new AppError(`Error creating performance review: ${error.message}`, 500);
     }
   }
 
-  static async updatePenilaianKinerja(id: string, reviewData: any) {
+  static async updatePenilaianKinerja(id: string, reviewData: UpdatePerformanceReviewPayload) {
     try {
       const existing = await PenilaianKinerjaRepository.findById(id);
-      if (!existing) throw new AppError('Performance review not found', 404);
-
-      // Block updates on finalized reviews
-      if (existing.status === 'Finalized') {
-        throw new AppError('Penilaian sudah final — tidak bisa diubah', 400);
+      if (!existing) {
+        throw new AppError('Performance review not found', 404);
       }
 
-      const updatedReview = await PenilaianKinerjaRepository.update(id, reviewData);
-      if (!updatedReview) throw new AppError('Performance review not found', 404);
-      return updatedReview;
+      if (existing.status === 'Finalized') {
+        throw new AppError('Penilaian sudah final dan tidak bisa diubah', 400);
+      }
+
+      const payload: UpdatePerformanceReviewPayload = {
+        employeeName: normalizeText(reviewData.employeeName) || existing.employeeName,
+        period: normalizeText(reviewData.period) || existing.period,
+        reviewerName: normalizeText(reviewData.reviewerName) || existing.reviewerName,
+        reviewDate: normalizeText(reviewData.reviewDate) || existing.reviewDate,
+        status: (reviewData.status || existing.status) as ReviewStatus,
+        strengths: reviewData.strengths !== undefined ? normalizeText(reviewData.strengths) : existing.strengths,
+        areasForImprovement: reviewData.areasForImprovement !== undefined
+          ? normalizeText(reviewData.areasForImprovement)
+          : existing.areasForImprovement,
+        employeeFeedback: reviewData.employeeFeedback !== undefined
+          ? normalizeText(reviewData.employeeFeedback)
+          : existing.employeeFeedback,
+        penilaiId: reviewData.penilaiId !== undefined ? normalizeOptionalText(reviewData.penilaiId) : existing.penilaiId,
+        selfAssessmentDeadline: reviewData.selfAssessmentDeadline !== undefined
+          ? normalizeOptionalText(reviewData.selfAssessmentDeadline)
+          : existing.selfAssessmentDeadline,
+        kpis: reviewData.kpis ? normalizeKpiSnapshot(reviewData.kpis) : existing.kpis
+      };
+
+      return await PenilaianKinerjaRepository.update(id, payload);
     } catch (error: any) {
       if (error instanceof AppError) throw error;
       throw new AppError(`Error updating performance review: ${error.message}`, 500);
@@ -67,11 +150,23 @@ class KinerjaService {
 
   static async addFeedbackKinerja(id: string, feedback: string) {
     try {
-      return await PenilaianKinerjaRepository.updateFeedback(id, feedback);
-    } catch (error: any) {
-      if (error.message === 'Review not found') {
+      const review = await PenilaianKinerjaRepository.findById(id);
+      if (!review) {
         throw new AppError('Review not found', 404);
       }
+
+      if (review.status === 'Finalized') {
+        throw new AppError('Penilaian sudah final dan feedback tidak bisa diubah', 400);
+      }
+
+      const updated = await PenilaianKinerjaRepository.updateFeedback(id, normalizeText(feedback));
+      if (!updated) {
+        throw new AppError('Review not found', 404);
+      }
+
+      return updated;
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
       throw new AppError(`Error adding performance review feedback: ${error.message}`, 500);
     }
   }
@@ -81,7 +176,6 @@ class KinerjaService {
       const existing = await PenilaianKinerjaRepository.findById(id);
       if (!existing) throw new AppError('Performance review not found', 404);
 
-      // Only allow deletion of Draft reviews
       if (existing.status !== 'Draft') {
         throw new AppError('Hanya penilaian berstatus Draft yang bisa dihapus', 400);
       }
@@ -95,34 +189,39 @@ class KinerjaService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  G1: STATUS LIFECYCLE TRANSITION
-  // ═══════════════════════════════════════════════════════════
-  static async transitionStatus(id: string, targetStatus: ReviewStatus, userId?: string) {
+  static async transitionStatus(id: string, targetStatus: ReviewStatus, userId?: string, selfAssessmentDeadline?: string | null) {
     try {
       const review = await PenilaianKinerjaRepository.findById(id);
-      if (!review) throw new AppError('Performance review not found', 404);
+      if (!review) {
+        throw new AppError('Performance review not found', 404);
+      }
 
       const currentStatus = review.status as ReviewStatus;
       const allowedTransitions = VALID_TRANSITIONS[currentStatus];
 
       if (!allowedTransitions || !allowedTransitions.includes(targetStatus)) {
         throw new AppError(
-          `Transisi tidak valid: "${currentStatus}" → "${targetStatus}". ` +
-          `Status yang diizinkan: ${(allowedTransitions || []).join(', ') || 'tidak ada'}`,
+          `Transisi tidak valid: "${currentStatus}" ke "${targetStatus}". Status yang diizinkan: ${(allowedTransitions || []).join(', ') || 'tidak ada'}`,
           400
         );
       }
 
-      // G3: Validate deadline when transitioning to "Awaiting SA"
-      // Deadline must be set via reviewData.selfAssessmentDeadline
-      const db = await openDb();
-      await db.run('UPDATE penilaian_kinerja SET status = ? WHERE id = ?', targetStatus, id);
+      const normalizedDeadline = normalizeOptionalText(selfAssessmentDeadline);
+      const deadlineForUpdate = targetStatus === 'Awaiting SA'
+        ? (normalizedDeadline || review.selfAssessmentDeadline || buildDefaultSelfAssessmentDeadline(review.reviewDate))
+        : normalizedDeadline;
 
-      // G2: NOTIFICATION TRIGGERS
-      await this.triggerNotification(review, currentStatus, targetStatus);
+      const updatedRow = await PenilaianKinerjaRepository.updateStatus(id, targetStatus, deadlineForUpdate);
+      if (!updatedRow) {
+        throw new AppError('Performance review not found', 404);
+      }
 
-      const updatedRow = await PenilaianKinerjaRepository.findById(id);
+      await this.triggerNotification(
+        { ...updatedRow, transitionedBy: userId || null },
+        currentStatus,
+        targetStatus
+      );
+
       return updatedRow;
     } catch (error: any) {
       if (error instanceof AppError) throw error;
@@ -130,111 +229,90 @@ class KinerjaService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  G2: NOTIFICATION TRIGGERS
-  // ═══════════════════════════════════════════════════════════
   private static async triggerNotification(
-    review: any,
-    fromStatus: ReviewStatus,
+    review: PenilaianKinerja & { transitionedBy?: string | null },
+    _fromStatus: ReviewStatus,
     toStatus: ReviewStatus
   ) {
     try {
-      const employeeNip = review.employeeId;
+      const employeeId = review.employeeId;
+      let supervisorId: string | null = null;
 
-      // Find employee's supervisor NIP (via jabatan parent)
-      let supervisorNip: string | null = null;
       try {
         const db = await openDb();
         const supervisor = await db.get(`
-          SELECT p2.nip 
+          SELECT p2.id
           FROM pegawai p1
           JOIN jabatan j1 ON p1.jabatan_id = j1.id
           JOIN jabatan j2 ON j1.parent_id = j2.id
           JOIN pegawai p2 ON p2.jabatan_id = j2.id
-          WHERE p1.nip = ?
+          WHERE p1.id = ?
           LIMIT 1
-        `, employeeNip);
-        supervisorNip = supervisor?.nip || null;
-      } catch { /* supervisor lookup failed, skip */ }
+        `, employeeId);
+
+        supervisorId = supervisor?.id || null;
+      } catch {
+        supervisorId = null;
+      }
 
       switch (toStatus) {
         case 'Awaiting SA':
-          // Notif ke pegawai: "Anda memiliki penilaian kinerja baru"
           await NotifikasiRepository.create({
-            employee_id: employeeNip,
-            message: `📋 Penilaian kinerja periode ${review.period} sudah dibuat. Silakan isi self-assessment sebelum ${review.selfAssessmentDeadline ? new Date(review.selfAssessmentDeadline).toLocaleDateString('id-ID') : 'batas waktu'}.`,
+            employee_id: employeeId,
+            message: `Penilaian kinerja periode ${review.period} sudah dibuat. Silakan isi self-assessment sebelum ${review.selfAssessmentDeadline ? new Date(review.selfAssessmentDeadline).toLocaleDateString('id-ID') : 'batas waktu'}.`,
             type: 'kinerja',
             related_entity: 'penilaian_kinerja',
-            related_entity_id: review.id,
+            related_entity_id: review.id
           });
           break;
-
         case 'SA Submitted':
-          // Notif ke atasan: "Self-assessment dari {nama} sudah dikirim"
-          if (supervisorNip) {
+          if (supervisorId) {
             await NotifikasiRepository.create({
-              employee_id: supervisorNip,
-              message: `✅ Self-assessment dari ${review.employeeName} (periode ${review.period}) sudah dikirim. Silakan review.`,
+              employee_id: supervisorId,
+              message: `Self-assessment dari ${review.employeeName} untuk periode ${review.period} sudah dikirim.`,
               type: 'kinerja',
               related_entity: 'penilaian_kinerja',
-              related_entity_id: review.id,
+              related_entity_id: review.id
             });
           }
           break;
-
         case 'Completed':
-          // Notif ke pegawai: "Review kinerja Anda sudah selesai"
           await NotifikasiRepository.create({
-            employee_id: employeeNip,
-            message: `🏆 Penilaian kinerja Anda periode ${review.period} sudah direview oleh atasan. Skor: ${review.overallScore || '-'}. Silakan lihat hasilnya.`,
+            employee_id: employeeId,
+            message: `Penilaian kinerja periode ${review.period} sudah direview. Skor saat ini: ${review.overallScore || '-'}.`,
             type: 'kinerja',
             related_entity: 'penilaian_kinerja',
-            related_entity_id: review.id,
+            related_entity_id: review.id
           });
           break;
-
         case 'Finalized':
-          // Notif ke pegawai: "Penilaian sudah final"
           await NotifikasiRepository.create({
-            employee_id: employeeNip,
-            message: `📌 Penilaian kinerja periode ${review.period} sudah ditetapkan sebagai final.`,
+            employee_id: employeeId,
+            message: `Penilaian kinerja periode ${review.period} sudah ditetapkan sebagai final.`,
             type: 'kinerja',
             related_entity: 'penilaian_kinerja',
-            related_entity_id: review.id,
+            related_entity_id: review.id
           });
           break;
       }
     } catch (error) {
-      // Notification failure should not block the transition
       console.error('Notification trigger error:', error);
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  SELF-ASSESSMENT (with G3 deadline enforcement + G8 weighted score)
-  // ═══════════════════════════════════════════════════════════
-  static async submitSelfAssessment(id: string, data: {
-    selfAssessmentKpis: any[];
-    selfAssessmentStrengths: string;
-    selfAssessmentAreas: string;
-    selfAssessmentStatus: 'draft' | 'submitted';
-  }) {
+  static async submitSelfAssessment(id: string, data: SubmitSelfAssessmentPayload) {
     try {
       const review = await PenilaianKinerjaRepository.findById(id);
       if (!review) throw new AppError('Performance review not found', 404);
 
-      // G1: Validate status — SA only allowed in 'Awaiting SA' or 'Draft' status
-      const allowedStatuses = ['Awaiting SA', 'Draft', 'SA Submitted'];
       if (review.status === 'Finalized' || review.status === 'Completed') {
-        throw new AppError('Penilaian sudah selesai — self-assessment tidak bisa diubah', 400);
+        throw new AppError('Penilaian sudah selesai dan self-assessment tidak bisa diubah', 400);
       }
 
-      // If already submitted, prevent re-submission (but allow draft saves)
       if (review.selfAssessmentStatus === 'submitted' && data.selfAssessmentStatus === 'submitted') {
         throw new AppError('Self-assessment sudah dikirim sebelumnya', 400);
       }
 
-      // G3: Deadline enforcement
       if (data.selfAssessmentStatus === 'submitted' && review.selfAssessmentDeadline) {
         const deadline = new Date(review.selfAssessmentDeadline);
         const now = new Date();
@@ -246,22 +324,22 @@ class KinerjaService {
         }
       }
 
-      const result = await PenilaianKinerjaRepository.submitSelfAssessment(id, data);
+      await PenilaianKinerjaRepository.submitSelfAssessment(id, data);
 
-      // G1: Auto-transition status when submitted
       if (data.selfAssessmentStatus === 'submitted') {
-        const db = await openDb();
-        await db.run("UPDATE penilaian_kinerja SET status = 'SA Submitted' WHERE id = ?", id);
-
-        // G2: Trigger notification to supervisor
-        await this.triggerNotification(
-          { ...review, ...result },
-          review.status as ReviewStatus,
-          'SA Submitted'
-        );
+        await PenilaianKinerjaRepository.updateStatus(id, 'SA Submitted');
       }
 
-      return await PenilaianKinerjaRepository.findById(id);
+      const updatedReview = await PenilaianKinerjaRepository.findById(id);
+      if (!updatedReview) {
+        throw new AppError('Performance review not found', 404);
+      }
+
+      if (data.selfAssessmentStatus === 'submitted') {
+        await this.triggerNotification(updatedReview, review.status as ReviewStatus, 'SA Submitted');
+      }
+
+      return updatedReview;
     } catch (error: any) {
       if (error instanceof AppError) throw error;
       throw new AppError(`Error submitting self-assessment: ${error.message}`, 500);

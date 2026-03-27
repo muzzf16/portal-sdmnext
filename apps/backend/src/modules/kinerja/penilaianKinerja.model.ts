@@ -2,13 +2,15 @@
 // src/modules/kinerja/penilaianKinerja.model.ts
 
 export interface Kpi {
-  id: string;
-  metric: string;
-  target: string;
-  result: string;
+  id?: string;
+  kpiId?: string;
+  name: string;
   weight: number;
   score: number;
-  notes: string;
+  targetValue?: number;
+  actualValue?: number;
+  targetUnit?: string;
+  notes?: string;
 }
 
 export interface SelfAssessmentKpi {
