@@ -27,6 +27,7 @@ import taskRoutes from '../modules/task/task.routes';
 import integrationRoutes from '../modules/integration/integration.routes';
 import auditLogRoutes from '../modules/audit-log/audit-log.routes';
 import changelogRoutes from '../modules/changelog/changelog.routes';
+import performanceCycleRoutes from '../modules/performance-management/orchestration/performance-cycle.routes';
 
 const router = Router();
 
@@ -57,5 +58,6 @@ router.use('/tasks', taskRoutes);
 router.use('/integrations', integrationRoutes);
 router.use('/audit-logs', auditLogRoutes);
 router.use('/changelog', changelogRoutes);
+router.use('/performance-cycle', performanceCycleRoutes);
 router.use('/', uploadRoutes);
 export default router;
