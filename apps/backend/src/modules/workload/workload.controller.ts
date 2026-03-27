@@ -1,6 +1,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import WorkloadService from './workload.service';
+import { SaveWorkloadAnalysisPayload } from './workload.types';
 
 export default class WorkloadController {
 
@@ -39,8 +40,34 @@ export default class WorkloadController {
 
     static async saveAnalysis(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = req.body;
+            const data = req.body as SaveWorkloadAnalysisPayload;
             const result = await WorkloadService.saveAnalysis(data);
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
+    static async submitAnalysis(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id } = req.params;
+            const result = await WorkloadService.submitAnalysis(id);
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
+    static async approveAnalysis(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id } = req.params;
+            const result = await WorkloadService.approveAnalysis(id);
             return res.status(200).json({
                 success: true,
                 data: result

@@ -208,7 +208,7 @@ const WorkLoadForm: React.FC<WorkLoadFormProps> = ({ employeeId, year, initialDa
     const BebanKerjaHarian = (totalMinutes / DAYS_IN_YEAR / 60).toFixed(2); // Jam per hari
 
     const formStatus = watch('status');
-    const isReadOnly = formStatus === 'submitted';
+    const isReadOnly = formStatus === 'submitted' || formStatus === 'approved';
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

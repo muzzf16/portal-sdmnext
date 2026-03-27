@@ -1,18 +1,25 @@
 
 import { openDb } from '../../config/db';
+import {
+    SaveWorkloadAnalysisPayload,
+    UpdateWorkloadHeaderPayload,
+    WorkloadAnalysis,
+    WorkloadItem,
+} from './workload.types';
 
 export const WorkloadRepository = {
     // --- Header Operations ---
 
-    async findAnalysisByEmployeeYear(employeeId: string, year: number) {
+    async findAnalysisByEmployeeYear(employeeId: string, year: number): Promise<WorkloadAnalysis | null> {
         const db = await openDb();
-        return db.get(
+        const analysis = await db.get(
             'SELECT * FROM analisis_beban_kerja WHERE employeeId = ? AND year = ?',
             employeeId, year
         );
+        return (analysis as WorkloadAnalysis | undefined) || null;
     },
 
-    async createAnalysis(data: any) {
+    async createAnalysis(data: SaveWorkloadAnalysisPayload & { id?: string; totalYearlyMinutes: number; status: WorkloadAnalysis['status'] }): Promise<WorkloadAnalysis | null> {
         const db = await openDb();
         const id = data.id || `abk-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const now = new Date().toISOString();
@@ -26,16 +33,16 @@ export const WorkloadRepository = {
         return this.findAnalysisById(id);
     },
 
-    async findAnalysisById(id: string) {
+    async findAnalysisById(id: string): Promise<WorkloadAnalysis | null> {
         const db = await openDb();
-        const analysis = await db.get('SELECT * FROM analisis_beban_kerja WHERE id = ?', id);
+        const analysis = await db.get('SELECT * FROM analisis_beban_kerja WHERE id = ?', id) as WorkloadAnalysis | undefined;
         if (analysis) {
-            analysis.items = await db.all('SELECT * FROM detail_beban_kerja WHERE analysisId = ?', id);
+            analysis.items = await db.all('SELECT * FROM detail_beban_kerja WHERE analysisId = ?', id) as WorkloadItem[];
         }
-        return analysis;
+        return analysis || null;
     },
 
-    async updateAnalysisHeader(id: string, data: any) {
+    async updateAnalysisHeader(id: string, data: UpdateWorkloadHeaderPayload): Promise<WorkloadAnalysis | null> {
         const db = await openDb();
         const now = new Date().toISOString();
         await db.run(
@@ -47,14 +54,24 @@ export const WorkloadRepository = {
         return this.findAnalysisById(id);
     },
 
+    async updateAnalysisStatus(id: string, status: WorkloadAnalysis['status']): Promise<WorkloadAnalysis | null> {
+        const db = await openDb();
+        const now = new Date().toISOString();
+        await db.run(
+            `UPDATE analisis_beban_kerja SET status = ?, updated_at = ? WHERE id = ?`,
+            status, now, id
+        );
+        return this.findAnalysisById(id);
+    },
+
     // --- Item Operations ---
 
-    async clearItems(analysisId: string) {
+    async clearItems(analysisId: string): Promise<void> {
         const db = await openDb();
         await db.run('DELETE FROM detail_beban_kerja WHERE analysisId = ?', analysisId);
     },
 
-    async createItem(item: any) {
+    async createItem(item: WorkloadItem): Promise<void> {
         const db = await openDb();
         const id = item.id || `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
