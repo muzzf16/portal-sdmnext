@@ -1,7 +1,8 @@
 import { openDb } from '../../config/db';
+import { CreateTaskPayload, TaskItem, TaskStatus } from './task.types';
 
 export const TaskRepository = {
-    async create(data: any) {
+    async create(data: CreateTaskPayload): Promise<TaskItem | null> {
         const db = await openDb();
         const id = data.id || `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const now = new Date().toISOString();
@@ -14,9 +15,9 @@ export const TaskRepository = {
         return this.findById(id);
     },
 
-    async findById(id: string) {
+    async findById(id: string): Promise<TaskItem | null> {
         const db = await openDb();
-        return db.get(`
+        const row = await db.get(`
             SELECT t.*, 
                    e.name as employee_name, e.position as employee_position,
                    s.name as supervisor_name
@@ -24,10 +25,11 @@ export const TaskRepository = {
             JOIN pegawai e ON t.employee_id = e.id
             JOIN pegawai s ON t.supervisor_id = s.id
             WHERE t.id = ?
-        `, id);
+        `, id) as TaskItem | undefined;
+        return row || null;
     },
 
-    async findBySupervisorId(supervisor_id: string) {
+    async findBySupervisorId(supervisor_id: string): Promise<TaskItem[]> {
         const db = await openDb();
         return db.all(`
             SELECT t.*, 
@@ -36,10 +38,10 @@ export const TaskRepository = {
             JOIN pegawai e ON t.employee_id = e.id
             WHERE t.supervisor_id = ?
             ORDER BY t.created_at DESC
-        `, supervisor_id);
+        `, supervisor_id) as Promise<TaskItem[]>;
     },
 
-    async findByEmployeeId(employee_id: string, status?: string) {
+    async findByEmployeeId(employee_id: string, status?: TaskStatus): Promise<TaskItem[]> {
         const db = await openDb();
         let query = `
             SELECT t.*, 
@@ -48,7 +50,7 @@ export const TaskRepository = {
             JOIN pegawai s ON t.supervisor_id = s.id
             WHERE t.employee_id = ?
         `;
-        const params: any[] = [employee_id];
+        const params: string[] = [employee_id];
 
         if (status) {
             query += ` AND t.status = ?`;
@@ -57,10 +59,10 @@ export const TaskRepository = {
 
         query += ` ORDER BY t.created_at DESC`;
 
-        return db.all(query, ...params);
+        return db.all(query, ...params) as Promise<TaskItem[]>;
     },
 
-    async updateStatus(id: string, status: string) {
+    async updateStatus(id: string, status: TaskStatus): Promise<TaskItem | null> {
         const db = await openDb();
         const now = new Date().toISOString();
         await db.run(

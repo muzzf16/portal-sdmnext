@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { TaskService } from './task.service';
-
+import { CreateTaskPayload, UpdateTaskStatusPayload } from './task.types';
 
 export const TaskController = {
     async create(req: Request, res: Response, next: NextFunction) {
         try {
-            const task = await TaskService.createTask(req.body);
+            const task = await TaskService.createTask(req.body as CreateTaskPayload);
             res.status(201).json({ success: true, message: 'Tugas berhasil dibuat', data: task });
         } catch (error) {
             next(error);
@@ -36,7 +36,7 @@ export const TaskController = {
     async updateStatus(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
-            const { status } = req.body;
+            const { status } = req.body as UpdateTaskStatusPayload;
             const task = await TaskService.updateTaskStatus(id, status);
             res.json({ success: true, message: 'Status tugas berhasil diupdate', data: task });
         } catch (error) {

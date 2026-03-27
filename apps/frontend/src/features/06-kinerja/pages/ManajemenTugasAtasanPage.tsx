@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { getTasksBySupervisor, createTask, deleteTask, updateTaskStatus } from '../api/taskApi';
 import { AssignedTask } from '../../../shared/types/types';
-import { Pegawai } from '../../01-pegawai/types';
 import { useToast } from '../../../app/providers/ToastContext';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { emitRefresh } from '@/shared/hooks/useDataRefresh';
+import { getSubordinates, JabatanEmployee } from '../../01-pegawai/api/jabatanApi';
 
 const ManajemenTugasAtasanPage: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
 
-    const [subordinates, setSubordinates] = useState<Pegawai[]>([]);
+    const [subordinates, setSubordinates] = useState<JabatanEmployee[]>([]);
     const [tasks, setTasks] = useState<AssignedTask[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,13 +31,8 @@ const ManajemenTugasAtasanPage: React.FC = () => {
     const fetchData = async (supervisorId: string) => {
         setIsLoading(true);
         try {
-            // Fetch all employees to filter subordinates
-            // Ideally backend should have a /subordinates endpoint, but we loop here
-            const empRes = await getPegawai();
-            if (empRes.data) {
-                const subs = empRes.data.filter((p: Pegawai) => p.atasan_id === supervisorId);
-                setSubordinates(subs);
-            }
+            const subs = await getSubordinates(supervisorId, true);
+            setSubordinates(Array.isArray(subs) ? subs : []);
 
             // Fetch tasks assigned by this supervisor
             const taskRes = await getTasksBySupervisor(supervisorId);
