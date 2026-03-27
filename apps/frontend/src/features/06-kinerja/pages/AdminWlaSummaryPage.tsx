@@ -393,6 +393,11 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                                 <h4 className="text-sm font-semibold text-indigo-900 mb-3">
                                                                     Detail Log Aktivitas — {s.nama_lengkap} ({startDate} s/d {endDate})
                                                                 </h4>
+                                                                {hasPendingLogs && (
+                                                                    <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+                                                                        Masih ada {s.pending_log_count} log berstatus pending. Log ini belum masuk ke realisasi KPI sampai disetujui supervisor.
+                                                                    </div>
+                                                                )}
                                                                 {isDetailLoading ? (
                                                                     <div className="text-sm text-gray-500 py-4 text-center">Memuat detail...</div>
                                                                 ) : logs.length === 0 ? (

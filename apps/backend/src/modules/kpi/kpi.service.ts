@@ -5,8 +5,196 @@ import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import JabatanService from '../jabatan/jabatan.service';
 import { AppError } from '../../utils/errors';
 import { openDb } from '../../config/db';
+import {
+    CreateKpiPayload,
+    KpiCategory,
+    KpiFilters,
+    KpiSummaryEmployee,
+    KpiSummaryFilters,
+    KpiSummaryRecord,
+    KpiSummaryRow,
+    KpiSummaryStatus,
+    KpiTarget,
+    KpiSyncResultDetail,
+    UpdateKpiPayload,
+} from './kpi.types';
 
 export default class KpiService {
+    private static normalizeText(value: unknown) {
+        return String(value ?? '').trim();
+    }
+
+    private static normalizeNumber(value: unknown, fieldName: string) {
+        const number = Number(value ?? 0);
+        if (!Number.isFinite(number) || number < 0) {
+            throw new AppError(`${fieldName} harus berupa angka 0 atau lebih`, 400);
+        }
+        return number;
+    }
+
+    private static normalizeCategory(value: unknown): KpiCategory {
+        const category = this.normalizeText(value).toLowerCase();
+        if (category === 'strategic' || category === 'outcome') {
+            return category;
+        }
+        return 'process';
+    }
+
+    private static buildSummaryRows(employees: KpiSummaryEmployee[], records: KpiSummaryRecord[]): KpiSummaryRow[] {
+        const grouped = new Map<string, {
+            employeeId: string;
+            employeeName: string;
+            nip: string;
+            department: string;
+            position: string;
+            totalKpi: number;
+            totalWeight: number;
+            weightedScoreAccumulator: number;
+            draftCount: number;
+            waitingApprovalCount: number;
+            activeCount: number;
+            completedCount: number;
+        }>();
+
+        for (const employee of employees) {
+            grouped.set(String(employee.employeeId), {
+                employeeId: String(employee.employeeId),
+                employeeName: employee.employeeName || '',
+                nip: employee.nip || '',
+                department: employee.department || '',
+                position: employee.position || '',
+                totalKpi: 0,
+                totalWeight: 0,
+                weightedScoreAccumulator: 0,
+                draftCount: 0,
+                waitingApprovalCount: 0,
+                activeCount: 0,
+                completedCount: 0,
+            });
+        }
+
+        for (const row of records) {
+            const employeeId = String(row.employeeId);
+            const weight = Number(row.weight || 0);
+            const score = Number(row.score || 0);
+
+            if (!grouped.has(employeeId)) {
+                grouped.set(employeeId, {
+                    employeeId,
+                    employeeName: row.employeeName || '',
+                    nip: row.nip || '',
+                    department: row.department || '',
+                    position: row.position || '',
+                    totalKpi: 0,
+                    totalWeight: 0,
+                    weightedScoreAccumulator: 0,
+                    draftCount: 0,
+                    waitingApprovalCount: 0,
+                    activeCount: 0,
+                    completedCount: 0,
+                });
+            }
+
+            const current = grouped.get(employeeId)!;
+            current.totalKpi += 1;
+            current.totalWeight += weight;
+            current.weightedScoreAccumulator += score * weight;
+
+            if (row.status === 'draft') current.draftCount += 1;
+            else if (row.status === 'waiting_approval') current.waitingApprovalCount += 1;
+            else if (row.status === 'active') current.activeCount += 1;
+            else if (row.status === 'completed') current.completedCount += 1;
+        }
+
+        return Array.from(grouped.values())
+            .map((row) => {
+                let statusSummary: KpiSummaryStatus = 'active';
+
+                if (row.totalKpi === 0) {
+                    statusSummary = 'empty';
+                } else if (row.completedCount === row.totalKpi) {
+                    statusSummary = 'completed';
+                } else if (row.waitingApprovalCount > 0) {
+                    statusSummary = 'waiting_approval';
+                } else if (row.draftCount > 0) {
+                    statusSummary = 'draft';
+                }
+
+                return {
+                    employeeId: row.employeeId,
+                    employeeName: row.employeeName,
+                    nip: row.nip,
+                    department: row.department,
+                    position: row.position,
+                    totalKpi: row.totalKpi,
+                    totalWeight: row.totalWeight,
+                    weightedScore: row.totalWeight > 0 ? row.weightedScoreAccumulator / row.totalWeight : 0,
+                    draftCount: row.draftCount,
+                    waitingApprovalCount: row.waitingApprovalCount,
+                    activeCount: row.activeCount,
+                    completedCount: row.completedCount,
+                    statusSummary,
+                };
+            })
+            .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+    }
+
+    private static async ensureActivityLibraryLink(kpi: KpiTarget) {
+        const db = await openDb();
+        const allActivities = await db.all('SELECT id, activityName FROM activity_library') as Array<{ id: string; activityName: string }>;
+
+        let activityId = kpi.abkActivityId || null;
+
+        if (!activityId) {
+            const cleanName = kpi.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
+
+            let match = allActivities.find(
+                (activity) => (activity.activityName || '').toLowerCase() === cleanName.toLowerCase()
+            );
+
+            if (!match) {
+                match = allActivities.find(
+                    (activity) => (activity.activityName || '').toLowerCase().includes(cleanName.toLowerCase())
+                        || cleanName.toLowerCase().includes((activity.activityName || '').toLowerCase())
+                );
+            }
+
+            if (match) {
+                activityId = match.id;
+                await db.run(
+                    'UPDATE kpi_targets SET abkActivityId = ?, updated_at = ? WHERE id = ?',
+                    activityId, new Date().toISOString(), kpi.id
+                );
+            }
+        }
+
+        if (!activityId) {
+            const cleanName = kpi.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
+            const newId = `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const now = new Date().toISOString();
+
+            await db.run(
+                `INSERT INTO activity_library (id, position, department, activityName, durationMinutes, outputUnit, category, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                newId,
+                'Semua Jabatan',
+                '',
+                cleanName,
+                60,
+                kpi.targetUnit === 'jumlah' ? 'Kali' : (kpi.targetUnit || 'Selesai'),
+                'Tugas Khusus KPI',
+                now
+            );
+            activityId = newId;
+
+            await db.run(
+                'UPDATE kpi_targets SET abkActivityId = ?, updated_at = ? WHERE id = ?',
+                activityId, now, kpi.id
+            );
+        }
+
+        return activityId;
+    }
 
     /**
      * Auto-scoring: compare actualValue vs targetValue → score 1-5
@@ -38,7 +226,7 @@ export default class KpiService {
         return 1;
     }
 
-    static async getAll(filters?: { employeeId?: string; period?: string; status?: string }) {
+    static async getAll(filters?: KpiFilters) {
         try {
             return await KpiRepository.findAll(filters);
         } catch (error: any) {
@@ -62,7 +250,7 @@ export default class KpiService {
         }
     }
 
-    static async getSummary(filters: { employeeId?: string; period?: string; startDate?: string; endDate?: string }, supervisorId?: string) {
+    static async getSummary(filters: KpiSummaryFilters, supervisorId?: string) {
         const hasPeriod = Boolean(filters.period);
         const hasDateRange = Boolean(filters.startDate && filters.endDate);
 
@@ -98,92 +286,10 @@ export default class KpiService {
             });
 
             const filteredRows = hasDateRange
-                ? rows.filter((row: any) => this.periodOverlapsDateRange(row.period, filters.startDate!, filters.endDate!))
+                ? rows.filter((row) => this.periodOverlapsDateRange(row.period, filters.startDate!, filters.endDate!))
                 : rows;
 
-            const grouped = new Map<string, any>();
-
-            for (const employee of employees) {
-                grouped.set(String(employee.employeeId), {
-                    employeeId: String(employee.employeeId),
-                    employeeName: employee.employeeName || '',
-                    nip: employee.nip || '',
-                    department: employee.department || '',
-                    position: employee.position || '',
-                    totalKpi: 0,
-                    totalWeight: 0,
-                    weightedScoreAccumulator: 0,
-                    draftCount: 0,
-                    waitingApprovalCount: 0,
-                    activeCount: 0,
-                    completedCount: 0,
-                });
-            }
-
-            for (const row of filteredRows) {
-                const employeeId = String(row.employeeId);
-                const weight = Number(row.weight || 0);
-                const score = Number(row.score || 0);
-
-                if (!grouped.has(employeeId)) {
-                    grouped.set(employeeId, {
-                        employeeId,
-                        employeeName: row.employeeName || '',
-                        nip: row.nip || '',
-                        department: row.department || '',
-                        position: row.position || '',
-                        totalKpi: 0,
-                        totalWeight: 0,
-                        weightedScoreAccumulator: 0,
-                        draftCount: 0,
-                        waitingApprovalCount: 0,
-                        activeCount: 0,
-                        completedCount: 0,
-                    });
-                }
-
-                const current = grouped.get(employeeId);
-                current.totalKpi += 1;
-                current.totalWeight += weight;
-                current.weightedScoreAccumulator += score * weight;
-
-                if (row.status === 'draft') current.draftCount += 1;
-                else if (row.status === 'waiting_approval') current.waitingApprovalCount += 1;
-                else if (row.status === 'active') current.activeCount += 1;
-                else if (row.status === 'completed') current.completedCount += 1;
-            }
-
-            return Array.from(grouped.values())
-                .map((row: any) => {
-                    let statusSummary: 'empty' | 'draft' | 'waiting_approval' | 'active' | 'completed' = 'active';
-
-                    if (row.totalKpi === 0) {
-                        statusSummary = 'empty';
-                    } else if (row.completedCount === row.totalKpi) {
-                        statusSummary = 'completed';
-                    } else if (row.waitingApprovalCount > 0) {
-                        statusSummary = 'waiting_approval';
-                    } else if (row.draftCount > 0) {
-                        statusSummary = 'draft';
-                    }
-
-                    return {
-                        employeeId: row.employeeId,
-                        employeeName: row.employeeName,
-                        nip: row.nip,
-                        department: row.department,
-                        position: row.position,
-                        totalKpi: row.totalKpi,
-                        totalWeight: row.totalWeight,
-                        weightedScore: row.totalWeight > 0 ? row.weightedScoreAccumulator / row.totalWeight : 0,
-                        draftCount: row.draftCount,
-                        waitingApprovalCount: row.waitingApprovalCount,
-                        activeCount: row.activeCount,
-                        completedCount: row.completedCount,
-                        statusSummary,
-                    };
-                })
-                .sort((a: any, b: any) => a.employeeName.localeCompare(b.employeeName));
+            return this.buildSummaryRows(employees, filteredRows);
         } catch (error: any) {
             if (error instanceof AppError) throw error;
             throw new AppError(`Error retrieving KPI summary: ${error.message}`, 500);
@@ -196,21 +302,38 @@ export default class KpiService {
         return item;
     }
 
-    static async create(data: any) {
-        if (!data.employeeId || !data.kpiName || !data.period) {
+    static async create(data: CreateKpiPayload) {
+        const payload: CreateKpiPayload = {
+            ...data,
+            employeeId: this.normalizeText(data.employeeId),
+            period: this.normalizeText(data.period),
+            kpiName: this.normalizeText(data.kpiName),
+            targetValue: this.normalizeNumber(data.targetValue, 'targetValue'),
+            targetUnit: this.normalizeText(data.targetUnit) || '%',
+            weight: this.normalizeNumber(data.weight, 'weight'),
+            actualValue: this.normalizeNumber(data.actualValue, 'actualValue'),
+            status: data.status || 'active',
+            source: data.source || 'manual',
+            category: this.normalizeCategory(data.category),
+            notes: this.normalizeText(data.notes),
+            abkActivityId: this.normalizeText(data.abkActivityId) || null,
+            score: Number(data.score || 0),
+        };
+
+        if (!payload.employeeId || !payload.kpiName || !payload.period) {
             throw new AppError('employeeId, kpiName, and period are required', 400);
         }
 
         // Auto-score if actualValue provided
-        if (data.actualValue && data.targetValue) {
-            data.score = this.calculateScore(data.targetValue, data.actualValue, data.targetUnit || '');
+        if (payload.actualValue && payload.targetValue) {
+            payload.score = this.calculateScore(payload.targetValue, payload.actualValue, payload.targetUnit || '');
         }
 
         try {
             // Check if source is manual (default) and abkActivityId is missing
-            if ((!data.source || data.source === 'manual') && !data.abkActivityId) {
+            if ((!payload.source || payload.source === 'manual') && !payload.abkActivityId) {
                 const db = await openDb();
-                const cleanName = data.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
+                const cleanName = payload.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
                 let match = await db.get('SELECT id FROM activity_library WHERE LOWER(activityName) = LOWER(?) LIMIT 1', cleanName);
 
                 if (!match) {
@@ -219,21 +342,21 @@ export default class KpiService {
                     await db.run(
                         `INSERT INTO activity_library (id, position, department, activityName, durationMinutes, outputUnit, category, created_at)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                        activityId, 'Semua Jabatan', '', cleanName, 60, data.targetUnit === 'jumlah' ? 'Kali' : (data.targetUnit || 'Selesai'), 'Tugas Khusus KPI', now
+                        activityId, 'Semua Jabatan', '', cleanName, 60, payload.targetUnit === 'jumlah' ? 'Kali' : (payload.targetUnit || 'Selesai'), 'Tugas Khusus KPI', now
                     );
-                    data.abkActivityId = activityId;
+                    payload.abkActivityId = activityId;
                 } else {
-                    data.abkActivityId = match.id;
+                    payload.abkActivityId = match.id;
                 }
             }
 
-            return await KpiRepository.create(data);
+            return await KpiRepository.create(payload);
         } catch (error: any) {
             throw new AppError(`Error creating KPI target: ${error.message}`, 500);
         }
     }
 
-    static async update(id: string, data: any) {
+    static async update(id: string, data: UpdateKpiPayload) {
         // Auto-score if actualValue provided
         if (data.actualValue !== undefined && data.targetValue !== undefined) {
             data.score = this.calculateScore(data.targetValue, data.actualValue, data.targetUnit || '');
@@ -422,66 +545,12 @@ export default class KpiService {
             }
 
             const db = await openDb();
-
-            // Preload all activities from activity_library for name-based matching
-            const allActivities = await db.all('SELECT id, activityName FROM activity_library');
-
-            const results: any[] = [];
+            const results: KpiSyncResultDetail[] = [];
 
             for (const kpi of kpis) {
-                let activityId = kpi.abkActivityId;
+                const activityId = await this.ensureActivityLibraryLink(kpi);
 
-                // If abkActivityId is null, try to find matching activity by name
-                if (!activityId) {
-                    // KPI names are typically "Penyelesaian {activityName}"
-                    const cleanName = kpi.kpiName
-                        .replace(/^Penyelesaian\s+/i, '')
-                        .trim();
-
-                    // Try exact match first
-                    let match = allActivities.find(
-                        (a: any) => (a.activityName || '').toLowerCase() === (cleanName || '').toLowerCase()
-                    );
-
-                    // If no exact match, try contains match
-                    if (!match) {
-                        match = allActivities.find(
-                            (a: any) => (a.activityName || '').toLowerCase().includes((cleanName || '').toLowerCase())
-                                || (cleanName || '').toLowerCase().includes((a.activityName || '').toLowerCase())
-                        );
-                    }
-
-                    if (match) {
-                        activityId = match.id;
-                        // Backfill the abkActivityId for future syncs
-                        await db.run(
-                            'UPDATE kpi_targets SET abkActivityId = ?, updated_at = ? WHERE id = ?',
-                            activityId, new Date().toISOString(), kpi.id
-                        );
-                    }
-                }
-
-                if (!activityId) {
-                    // Auto-create missing activity library entry instead of skipping
-                    const cleanName = kpi.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
-                    const newId = `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                    const now = new Date().toISOString();
-
-                    await db.run(
-                        `INSERT INTO activity_library (id, position, department, activityName, durationMinutes, outputUnit, category, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                        newId, 'Semua Jabatan', '', cleanName, 60, kpi.targetUnit === 'jumlah' ? 'Kali' : (kpi.targetUnit || 'Selesai'), 'Tugas Khusus KPI', now
-                    );
-                    activityId = newId;
-
-                    // Backfill the newly created ID to the KPI target
-                    await db.run(
-                        'UPDATE kpi_targets SET abkActivityId = ?, updated_at = ? WHERE id = ?',
-                        activityId, now, kpi.id
-                    );
-                }
-
-                // Sum approved frekuensi from WLA logs matching this activity
+                // Only approved WLA logs count as official KPI actuals.
                 const row = await db.get(
                     `SELECT 
                         COALESCE(SUM(l.frekuensi), 0) as total_frekuensi,
@@ -491,7 +560,7 @@ export default class KpiService {
                      WHERE l.id_pegawai = ?
                        AND l.id_activity_library = ?
                        AND l.tanggal >= ? AND l.tanggal <= ?
-                       AND (l.status_approval IS NULL OR l.status_approval != 'rejected')`,
+                       AND l.status_approval = 'approved'`,
                     employeeId, activityId, startDate, endDate
                 );
 
@@ -573,6 +642,43 @@ export default class KpiService {
         return startDate <= filterEndDate && endDate >= filterStartDate;
     }
 
+    private static getTargetComposition(department: string) {
+        const deptName = (department || '').toLowerCase();
+
+        if (deptName.includes('pemasaran') || deptName.includes('marketing')) {
+            return { process: 25, outcome: 65, strategic: 10 };
+        }
+        if (deptName.includes('penagihan') || deptName.includes('kolektor')) {
+            return { process: 40, outcome: 40, strategic: 20 };
+        }
+        if (deptName.includes('pelaporan')) {
+            return { process: 40, outcome: 50, strategic: 10 };
+        }
+        if (deptName.includes('account officer') || deptName.includes('kredit')) {
+            return { process: 40, outcome: 50, strategic: 10 };
+        }
+        if (deptName.includes('operasional') || deptName.includes('teller')) {
+            return { process: 60, outcome: 40, strategic: 0 };
+        }
+        if (deptName.includes('customer service') || deptName.includes('cs')) {
+            return { process: 50, outcome: 50, strategic: 0 };
+        }
+        if (deptName.includes('hrd') || deptName.includes('umum')) {
+            return { process: 40, outcome: 50, strategic: 10 };
+        }
+        if (deptName.includes('teknologi informasi') || deptName.includes('it') || deptName.includes('ti')) {
+            return { process: 50, outcome: 35, strategic: 15 };
+        }
+        if (deptName.includes('akuntansi') || deptName.includes('keuangan')) {
+            return { process: 50, outcome: 50, strategic: 0 };
+        }
+        if (deptName.includes('audit') || deptName.includes('skai')) {
+            return { process: 50, outcome: 30, strategic: 20 };
+        }
+
+        return { process: 40, outcome: 40, strategic: 20 };
+    }
+
     /**
      * Rebalance KPI weights for an employee and period so the total is 100%.
      * Uses composition rules based on SOP_06_KINERJA.md for each department.
@@ -581,44 +687,7 @@ export default class KpiService {
         try {
             const employee = await PegawaiRepository.findById(employeeId);
             if (!employee) throw new AppError('Employee not found', 404);
-
-            const deptName = (employee.department || '').toLowerCase();
-
-            // Default fallback composition
-            let targetComp = { process: 40, outcome: 40, strategic: 20 };
-
-            // Apply SOP_06_KINERJA.md composition mapping based on department/division
-            if (deptName.includes('pemasaran') || deptName.includes('marketing')) {
-                // A.1 Bagian Pemasaran (Marketing): Process 25% + Outcome 65% + Strategic 10%
-                targetComp = { process: 25, outcome: 65, strategic: 10 };
-            } else if (deptName.includes('penagihan') || deptName.includes('kolektor')) {
-                // A.2 Bagian Penagihan Nasabah Kredit: Process 40% + Outcome 40% + Strategic 20%
-                targetComp = { process: 40, outcome: 40, strategic: 20 };
-            } else if (deptName.includes('pelaporan')) {
-                // A.3 Bagian Pelaporan: Process 40% + Outcome 50% + Strategic 10%
-                targetComp = { process: 40, outcome: 50, strategic: 10 };
-            } else if (deptName.includes('account officer') || deptName.includes('kredit')) {
-                // A.4 Bagian Account Officer (Kredit): Process 40% + Outcome 50% + Strategic 10%
-                targetComp = { process: 40, outcome: 50, strategic: 10 };
-            } else if (deptName.includes('operasional') || deptName.includes('teller')) {
-                // A.5 Bagian Operasional & Teller: Process 60% + Outcome 40%
-                targetComp = { process: 60, outcome: 40, strategic: 0 };
-            } else if (deptName.includes('customer service') || deptName.includes('cs')) {
-                // A.6 Bagian Customer Service: Process 50% + Outcome 50%
-                targetComp = { process: 50, outcome: 50, strategic: 0 };
-            } else if (deptName.includes('hrd') || deptName.includes('umum')) {
-                // A.7 Bagian HRD & Umum: Process 40% + Outcome 50% + Strategic 10%
-                targetComp = { process: 40, outcome: 50, strategic: 10 };
-            } else if (deptName.includes('teknologi informasi') || deptName.includes('it') || deptName.includes('ti')) {
-                // A.8 Bagian TI (Teknologi Informasi): Process 50% + Outcome 35% + Strategic 15%
-                targetComp = { process: 50, outcome: 35, strategic: 15 };
-            } else if (deptName.includes('akuntansi') || deptName.includes('keuangan')) {
-                // A.9 Bagian Akuntansi & Keuangan: Process 50% + Outcome 50%
-                targetComp = { process: 50, outcome: 50, strategic: 0 };
-            } else if (deptName.includes('audit') || deptName.includes('skai')) {
-                // A.10 Bagian Satuan Kerja Audit Internal (SKAI): Process 50% + Outcome 30% + Strategic 20%
-                targetComp = { process: 50, outcome: 30, strategic: 20 };
-            }
+            const targetComp = this.getTargetComposition(employee.department || '');
 
             const kpis = await KpiRepository.findByEmployeePeriod(employeeId, period);
             if (!kpis || kpis.length === 0) {
