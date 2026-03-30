@@ -1,7 +1,7 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { BookOpen, BarChart2, Target, Award, Briefcase } from 'lucide-react';
+import { BookOpen, BarChart2, Target, Award, Briefcase, CalendarRange } from 'lucide-react';
 
 // Lazy load tab content — reuse existing pages
 const HalamanKinerjaContent = lazy(() => import('./HalamanKinerja'));
@@ -11,6 +11,7 @@ const KpiTargetContent = lazy(() => import('./KpiTargetPage'));
 const AdminWlaSummaryContent = lazy(() => import('./AdminWlaSummaryPage'));
 const LogWlaContent = lazy(() => import('./LogAktivitasWlaPage'));
 const ManajemenTugasAtasanContent = lazy(() => import('./ManajemenTugasAtasanPage'));
+const PerformanceCycleContent = lazy(() => import('./PerformanceCyclePage'));
 
 interface TabDef {
     id: string;
@@ -109,6 +110,17 @@ const ManajemenKinerjaPage: React.FC = () => {
             component: (
                 <Suspense fallback={<TabSpinner />}>
                     <HalamanKinerjaContent />
+                </Suspense>
+            ),
+        },
+        {
+            id: 'siklus',
+            label: 'Siklus Kinerja',
+            icon: <CalendarRange size={18} />,
+            roles: ['admin', 'supervisor'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <PerformanceCycleContent />
                 </Suspense>
             ),
         },

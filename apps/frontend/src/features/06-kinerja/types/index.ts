@@ -121,6 +121,28 @@ export interface KpiSummaryRow {
   statusSummary: 'empty' | 'draft' | 'waiting_approval' | 'active' | 'completed';
 }
 
+export interface PerformanceCycleBatchPayload {
+  period: string;
+  employeeIds?: string[];
+  selfAssessmentDeadline?: string;
+}
+
+export interface PerformanceCycleBatchDetail {
+  employeeId: string;
+  employeeName?: string;
+  status: 'success' | 'skipped' | 'failed';
+  message: string;
+}
+
+export interface PerformanceCycleBatchResult {
+  period: string;
+  processed: number;
+  succeeded: number;
+  skipped: number;
+  failed: number;
+  details: PerformanceCycleBatchDetail[];
+}
+
 export interface DailyActivity {
   id_daily_activity: number;
   id_pegawai: number;

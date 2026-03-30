@@ -34,6 +34,12 @@ import {
   submitSelfAssessment,
   transitionStatus
 } from '../api/kinerjaApi';
+import {
+  createPerformanceCycleReviews,
+  finalizePerformanceCycle,
+  openPerformancePeriod,
+  syncPerformanceCycleKpi
+} from '../api/performanceCycleApi';
 import { createTask, deleteTask, getTasksByEmployee, getTasksBySupervisor, updateTaskStatus } from '../api/taskApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { getWorkloadAnalysis } from '../api/workloadApi';
@@ -41,6 +47,7 @@ import type {
   ActivityLibraryItem,
   AdminWlaSummary,
   Kinerja,
+  PerformanceCycleBatchPayload,
   KpiSummaryRow,
   KpiTarget,
   LogAktivitasHarian,
@@ -94,6 +101,9 @@ export const PERFORMANCE_QUERY_KEYS = {
     list: () => [...PERFORMANCE_QUERY_KEYS.performanceReview.all, 'list'] as const,
     detail: (id?: string) => [...PERFORMANCE_QUERY_KEYS.performanceReview.all, 'detail', id ?? 'unknown'] as const,
     employee: (employeeId?: string) => [...PERFORMANCE_QUERY_KEYS.performanceReview.all, 'employee', employeeId ?? 'anonymous'] as const
+  },
+  performanceCycle: {
+    all: ['performance', 'cycle'] as const
   }
 };
 
@@ -538,6 +548,57 @@ export const useSubmitSelfAssessmentMutation = () => {
     onSuccess: (response: any, variables) => {
       const review = response?.data?.data as Kinerja | undefined;
       invalidatePerformanceReviewQueries(queryClient, review?.employeeId, variables.id);
+    }
+  });
+};
+
+const invalidatePerformanceCycleQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.kpi.all });
+  queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.wla.all });
+  queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.workload.all });
+  queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.performanceReview.all });
+};
+
+export const useOpenPerformancePeriodMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PerformanceCycleBatchPayload) => openPerformancePeriod(payload),
+    onSuccess: () => {
+      invalidatePerformanceCycleQueries(queryClient);
+    }
+  });
+};
+
+export const useSyncPerformanceCycleKpiMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PerformanceCycleBatchPayload) => syncPerformanceCycleKpi(payload),
+    onSuccess: () => {
+      invalidatePerformanceCycleQueries(queryClient);
+    }
+  });
+};
+
+export const useCreatePerformanceCycleReviewsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PerformanceCycleBatchPayload) => createPerformanceCycleReviews(payload),
+    onSuccess: () => {
+      invalidatePerformanceCycleQueries(queryClient);
+    }
+  });
+};
+
+export const useFinalizePerformanceCycleMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PerformanceCycleBatchPayload) => finalizePerformanceCycle(payload),
+    onSuccess: () => {
+      invalidatePerformanceCycleQueries(queryClient);
     }
   });
 };
