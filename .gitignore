@@ -3,3 +3,5 @@ node_modules
 *.log
 git_log.txt
 *.sqlite
+apps/backend/dist/
+backups/
