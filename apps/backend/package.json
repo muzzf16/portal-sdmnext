@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc",
+    "test:performance-cycle": "ts-node tests/performance-cycle.integration.ts",
     "migrate": "ts-node db/migrate.ts",
     "seed": "ts-node db/seed.ts",
     "reset": "ts-node db/reset.ts",
