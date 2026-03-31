@@ -10,11 +10,17 @@ const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.json());
-const allowedOrigins = [
+const envOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([
     'http://localhost:5173',
+    'http://192.168.0.210:8081',
     'https://sdm.bprbaperabatang.com',
-    process.env.CORS_ORIGIN
-].filter(Boolean);
+    ...envOrigins
+]));
 
 app.use(cors({
     origin: (origin, callback) => {
