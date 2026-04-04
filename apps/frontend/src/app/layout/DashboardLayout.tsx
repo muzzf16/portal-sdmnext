@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { normalizeAssetUrl } from '@/shared/utils/normalizeAssetUrl';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useSidebar } from '@/app/hooks/useSidebar';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -85,9 +86,9 @@ const DashboardLayout: React.FC = () => {
 
   const avatarUrl = useMemo(() => {
     const directUrl = user?.avatarUrl;
-    if (directUrl) return directUrl.startsWith('http') ? directUrl : directUrl;
+    if (directUrl) return normalizeAssetUrl(directUrl);
     const employeeUrl = user?.employeeDetails?.avatarUrl;
-    if (employeeUrl) return employeeUrl.startsWith('http') ? employeeUrl : employeeUrl;
+    if (employeeUrl) return normalizeAssetUrl(employeeUrl);
     return `/avatars/default-avatar.jpg`;
   }, [user]);
 
@@ -123,6 +124,7 @@ const DashboardLayout: React.FC = () => {
     {
       label: 'Laporan & Sistem',
       items: [
+        { to: '/dashboard/profil-admin', icon: <User size={18} />, text: 'Profil Saya', roles: ['admin'] },
         { to: '/dashboard/laporan', icon: <FileText size={18} />, text: 'Laporan', roles: ['admin'] },
         { to: '/dashboard/perubahan-data', icon: <FileText size={18} />, text: 'Perubahan Data', roles: ['admin'] },
         { to: '/dashboard/pengaturan', icon: <Settings size={18} />, text: 'Pengaturan', roles: ['admin'] },
@@ -324,7 +326,7 @@ const DashboardLayout: React.FC = () => {
                       <p className="text-xs text-neutral-400">{user?.email}</p>
                     </div>
                     <Link
-                      to={`/dashboard/pegawai/${user?.employeeId}`}
+                      to={user?.role === 'admin' ? '/dashboard/profil-admin' : `/dashboard/pegawai/${user?.employeeId}`}
                       onClick={() => setIsUserMenuOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors"
                     >

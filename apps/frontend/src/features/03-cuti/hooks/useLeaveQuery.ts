@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import {
   ajukanPermintaanCuti,
+  getBatchSisaCuti,
+  getCutiBersama,
   getPermintaanCuti,
   getPermintaanCutiSaya,
   getSisaCuti,
@@ -14,8 +16,12 @@ export const LEAVE_QUERY_KEYS = {
   all: ['leave-requests'] as const,
   list: (filters?: CutiFilters) => [...LEAVE_QUERY_KEYS.all, 'list', filters ?? {}] as const,
   mine: (employeeId?: string) => [...LEAVE_QUERY_KEYS.all, 'mine', employeeId ?? 'anonymous'] as const,
-  remainingBalance: (employeeId?: string) => ['leave-balance', employeeId ?? 'anonymous'] as const
+  remainingBalance: (employeeId?: string) => ['leave-balance', employeeId ?? 'anonymous'] as const,
+  batchBalance: ['leave-balance', 'batch'] as const,
+  cutiBersama: ['cuti-bersama'] as const
 };
+
+// ─── List Queries ───────────────────────────────────────────────
 
 export const useLeaveRequests = (filters?: CutiFilters) =>
   useQuery({
@@ -46,6 +52,8 @@ export const useMyLeaveRequests = () => {
   });
 };
 
+// ─── Balance Queries ────────────────────────────────────────────
+
 export const useLeaveBalance = (employeeId?: string) =>
   useQuery({
     queryKey: LEAVE_QUERY_KEYS.remainingBalance(employeeId),
@@ -61,6 +69,28 @@ export const useLeaveBalance = (employeeId?: string) =>
     staleTime: 60 * 1000
   });
 
+export const useBatchSisaCuti = () =>
+  useQuery({
+    queryKey: LEAVE_QUERY_KEYS.batchBalance,
+    queryFn: async () => {
+      const response = await getBatchSisaCuti();
+      return response.data;
+    },
+    staleTime: 60 * 1000
+  });
+
+export const useCutiBersama = () =>
+  useQuery({
+    queryKey: LEAVE_QUERY_KEYS.cutiBersama,
+    queryFn: async () => {
+      const response = await getCutiBersama();
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+// ─── Mutations ──────────────────────────────────────────────────
+
 export const useSubmitLeaveRequest = () => {
   const queryClient = useQueryClient();
 
@@ -72,6 +102,7 @@ export const useSubmitLeaveRequest = () => {
     onSuccess: (_, payload) => {
       const employeeId = payload.get('employeeId');
       queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.batchBalance });
 
       if (typeof employeeId === 'string' && employeeId) {
         queryClient.invalidateQueries({
@@ -101,6 +132,7 @@ export const useUpdateLeaveRequestStatus = () => {
     },
     onSuccess: (updatedRequest: Cuti) => {
       queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.batchBalance });
       if (updatedRequest?.employeeId) {
         queryClient.invalidateQueries({
           queryKey: LEAVE_QUERY_KEYS.mine(updatedRequest.employeeId)
@@ -123,9 +155,12 @@ export const useDeleteLeaveRequest = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.batchBalance });
     }
   });
 };
+
+// ─── Helpers ────────────────────────────────────────────────────
 
 export const normalizeLeaveStatusLabel = (status?: string) => {
   const normalized = (status || '').toLowerCase();

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS pengguna (
     password TEXT,
     role TEXT, -- 'admin' atau 'employee'
     employeeId TEXT,
+    avatarUrl TEXT,
     createdAt DATETIME,
     FOREIGN KEY (employeeId) REFERENCES pegawai(id)
 );

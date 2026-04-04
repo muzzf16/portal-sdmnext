@@ -8,7 +8,7 @@ const employeeApi = new ApiService<Pegawai>('/employees');
 export const getEmployees = async () => {
   try {
     const response = await employeeApi.list();
-    console.log('getEmployees response:', response); // Debug log
+
     return response;
   } catch (error) {
     console.error('Error in getEmployees:', error);
@@ -26,8 +26,7 @@ import api from './api';
 
 export const getEmployeeGenderData = async () => {
   try {
-    const response = await api.get('/employees/charts/gender-distribution'); // This will be prefixed with /api by the axios config
-    console.log('getEmployeeGenderData response:', response.data);
+    const response = await api.get('/employees/charts/gender-distribution');
     return response.data;
   } catch (error) {
     console.error('Error in getEmployeeGenderData:', error);

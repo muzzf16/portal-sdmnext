@@ -131,7 +131,7 @@ export const PenggunaRepository = {
     const db = await openDb();
 
     // Filter allowed fields
-    const allowedFields = ['name', 'email', 'role', 'employeeId'];
+    const allowedFields = ['name', 'email', 'role', 'employeeId', 'avatarUrl'];
     const updates: string[] = [];
     const values: any[] = [];
 
@@ -155,6 +155,21 @@ export const PenggunaRepository = {
 
     const updatedUser = await this.findById(id);
     return updatedUser;
+  },
+
+  async changePassword(id: string, currentPassword: string, newPassword: string) {
+    const db = await openDb();
+    const user = await db.get('SELECT * FROM pengguna WHERE id = ?', id);
+    if (!user) throw new Error('User not found');
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) throw new Error('Password saat ini salah');
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await db.run('UPDATE pengguna SET password = ? WHERE id = ?', [hashedPassword, id]);
+    return { message: 'Password berhasil diubah' };
   },
 
   async delete(id: string) {

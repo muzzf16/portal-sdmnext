@@ -202,6 +202,50 @@ class CutiService {
       throw new AppError(`Error calculating remaining leave: ${error.message}`, 500);
     }
   }
+
+  static getCutiBersama() {
+    const currentYear = new Date().getFullYear();
+    return CUTI_BERSAMA.filter(
+      (cb) => new Date(cb.tanggal).getFullYear() === currentYear
+    );
+  }
+
+  static async getBatchSisaCuti(): Promise<Array<LeaveBalanceSummary & { employeeId: string; employeeName: string }>> {
+    try {
+      const companySettings = await getCompanySettings();
+      const jumlahJatahCuti = companySettings?.annualLeaveQuota || 12;
+      const currentYear = new Date().getFullYear();
+      const cutiBersamaTahunIni = CUTI_BERSAMA.filter(
+        (cb) => new Date(cb.tanggal).getFullYear() === currentYear
+      ).length;
+      const sumberJatah = companySettings ? 'company_settings' : 'default_uu13_2003';
+
+      const allEmployees = await PermintaanCutiRepository.findAllActiveEmployees();
+      const allApprovedLeaves = await PermintaanCutiRepository.findAll({ status: 'disetujui' });
+
+      return allEmployees.map((emp) => {
+        const empLeaves = allApprovedLeaves.filter(
+          (l) => l.employeeId === emp.id && isAnnualLeaveType(l.leaveType)
+        );
+        const cutiDiambil = empLeaves.reduce((total, item) => {
+          return total + (item.jumlahHari ?? PermintaanCutiRepository.calculateLeaveDuration(item.startDate, item.endDate));
+        }, 0);
+
+        return {
+          employeeId: emp.id,
+          employeeName: emp.name,
+          jatahCuti: jumlahJatahCuti,
+          cutiDiambil,
+          cutiBersama: cutiBersamaTahunIni,
+          sisaCuti: jumlahJatahCuti - cutiDiambil - cutiBersamaTahunIni,
+          sumberJatah
+        };
+      });
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(`Error calculating batch leave balance: ${error.message}`, 500);
+    }
+  }
 }
 
 export default CutiService;

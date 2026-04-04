@@ -22,12 +22,12 @@ const listAttendance = async (filters?: AttendanceFilters) => {
 export const getAttendance = () => listAttendance();
 
 export const getTodayAttendanceCount = async () => {
-  const attendanceData = await listAttendance();
   const today = formatLocalDate(new Date());
+  const attendanceData = await listAttendance({ startDate: today, endDate: today });
   const uniqueEmployeesToday = new Set<string>();
 
   attendanceData.forEach((record) => {
-    if (record.date === today && record.clockIn) {
+    if (record.clockIn) {
       uniqueEmployeesToday.add(String(record.employeeId));
     }
   });

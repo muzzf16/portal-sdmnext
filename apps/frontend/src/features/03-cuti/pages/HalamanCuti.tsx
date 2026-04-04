@@ -7,7 +7,7 @@ import PerhitunganSisaCuti from '../components/PerhitunganSisaCuti';
 const HalamanCuti: React.FC = () => {
   return (
     <div>
-      <h1 className="text-3xl font-bold text-primary-dark-blue">Cuti & Izin</h1>
+      <h1 className="text-3xl font-bold text-primary-dark-blue dark:text-white">Cuti &amp; Izin</h1>
       <KelolaJatahCuti />
       <DaftarCuti />
       <PerhitunganSisaCuti />

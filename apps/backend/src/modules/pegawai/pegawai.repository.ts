@@ -264,13 +264,22 @@ export const PegawaiRepository = {
     const supervisor = await db.get('SELECT jabatan_id FROM pegawai WHERE id = ?', atasanId);
     if (!supervisor || !supervisor.jabatan_id) return [];
 
+    // Recursive CTE: collect all jabatan IDs in the hierarchy below the supervisor's jabatan
     const rows = await db.all(`
-      SELECT p.*, 
+      WITH RECURSIVE sub_jabatan(id) AS (
+        -- Seed: direct children of supervisor's jabatan
+        SELECT id FROM jabatan WHERE parent_id = ?
+        UNION ALL
+        -- Recursion: children of children
+        SELECT j.id FROM jabatan j INNER JOIN sub_jabatan s ON j.parent_id = s.id
+      )
+      SELECT p.*,
         j.nama as jabatanNama, j.level as jabatanLevel, j.department as jabatanDepartment
       FROM pegawai p
       LEFT JOIN jabatan j ON p.jabatan_id = j.id
-      WHERE j.parent_id = ? AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')
-      ORDER BY p.name ASC
+      WHERE p.jabatan_id IN (SELECT id FROM sub_jabatan)
+        AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')
+      ORDER BY j.level ASC, p.name ASC
     `, supervisor.jabatan_id);
     return parseJsonFields(rows);
   },
@@ -284,43 +293,56 @@ export const PegawaiRepository = {
     }
     const supervisorJabatanId = supervisor.jabatan_id;
 
-    // Total subordinates
+    // Shared CTE fragment: all jabatan IDs in the hierarchy below the supervisor
+    const subJabatanCTE = `
+      WITH RECURSIVE sub_jabatan(id) AS (
+        SELECT id FROM jabatan WHERE parent_id = ?
+        UNION ALL
+        SELECT j.id FROM jabatan j INNER JOIN sub_jabatan s ON j.parent_id = s.id
+      )
+    `;
+
+    // Total subordinates (all levels)
     const total = await db.get(
-      `SELECT COUNT(*) as count 
+      `${subJabatanCTE}
+       SELECT COUNT(*) as count
        FROM pegawai p
-       JOIN jabatan j ON p.jabatan_id = j.id 
-       WHERE j.parent_id = ? AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')`,
+       WHERE p.jabatan_id IN (SELECT id FROM sub_jabatan)
+         AND (p.isActive = 1 OR p.statusKaryawan = 'aktif')`,
       supervisorJabatanId
     );
 
     // Attendance today (present)
     const today = new Date().toISOString().split('T')[0];
     const present = await db.get(
-      `SELECT COUNT(a.id) as count 
+      `${subJabatanCTE}
+       SELECT COUNT(a.id) as count
        FROM absensi a
        JOIN pegawai p ON a.employeeId = p.id
-       JOIN jabatan j ON p.jabatan_id = j.id
-       WHERE j.parent_id = ? AND a.date = ? AND a.status = 'hadir'`,
+       WHERE p.jabatan_id IN (SELECT id FROM sub_jabatan)
+         AND a.date = ? AND a.status = 'hadir'`,
       supervisorJabatanId, today
     );
 
     // On leave/sick/permission today
     const onLeave = await db.get(
-      `SELECT COUNT(a.id) as count 
+      `${subJabatanCTE}
+       SELECT COUNT(a.id) as count
        FROM absensi a
        JOIN pegawai p ON a.employeeId = p.id
-       JOIN jabatan j ON p.jabatan_id = j.id
-       WHERE j.parent_id = ? AND a.date = ? AND a.status IN ('izin', 'sakit', 'cuti')`,
+       WHERE p.jabatan_id IN (SELECT id FROM sub_jabatan)
+         AND a.date = ? AND a.status IN ('izin', 'sakit', 'cuti')`,
       supervisorJabatanId, today
     );
 
     // Pending leave requests
     const pendingLeaves = await db.get(
-      `SELECT COUNT(c.id) as count
+      `${subJabatanCTE}
+       SELECT COUNT(c.id) as count
        FROM permintaan_cuti c
        JOIN pegawai p ON c.employeeId = p.id
-       JOIN jabatan j ON p.jabatan_id = j.id
-       WHERE j.parent_id = ? AND c.status = 'menunggu'`,
+       WHERE p.jabatan_id IN (SELECT id FROM sub_jabatan)
+         AND c.status = 'menunggu'`,
       supervisorJabatanId
     );
 

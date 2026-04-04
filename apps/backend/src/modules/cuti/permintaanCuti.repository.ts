@@ -169,5 +169,13 @@ export const PermintaanCutiRepository = {
     );
 
     return rows.map(mapLeaveRequestRow);
+  },
+
+  async findAllActiveEmployees(db?: LeaveDatabase): Promise<Array<{ id: string; name: string }>> {
+    const connection = await resolveDb(db);
+    const rows = await connection.all(
+      "SELECT id, name FROM pegawai WHERE isActive = 1 ORDER BY name ASC"
+    );
+    return rows.map((r: any) => ({ id: r.id, name: r.name }));
   }
 };

@@ -20,6 +20,8 @@ const upload = multer({ storage: storage });
 const router = Router();
 
 router.get('/', CutiController.getAllPermintaanCuti);
+router.get('/batch-sisa-cuti', CutiController.getBatchSisaCuti);
+router.get('/cuti-bersama', CutiController.getCutiBersama);
 router.get('/employee/:employeeId', CutiController.getPermintaanCutiByEmployeeId);
 router.get('/sisa-cuti/:employeeId', CutiController.getSisaCuti);
 router.get('/:id', CutiController.getPermintaanCutiById);

@@ -2,12 +2,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPegawai, getPegawaiById, createPegawai, updatePegawai, deletePegawai } from '../api/employeeApi';
 import { Pegawai } from '../types';
+import { normalizeAssetUrl } from '@/shared/utils/normalizeAssetUrl';
 
 const constructAvatarUrl = (pegawaiData: Pegawai): Pegawai => {
-  // Fix avatar URL: strip absolute localhost prefix from dev environment
   if (pegawaiData?.avatarUrl) {
-    const fixedUrl = pegawaiData.avatarUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '');
-    return { ...pegawaiData, avatarUrl: fixedUrl };
+    return { ...pegawaiData, avatarUrl: normalizeAssetUrl(pegawaiData.avatarUrl) };
   }
   return pegawaiData;
 };

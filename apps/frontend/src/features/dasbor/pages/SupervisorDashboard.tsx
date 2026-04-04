@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { getSupervisorDashboardData } from '../../../shared/services/dashboardAPI';
+import { getSupervisorDashboardData, getRecentActivity } from '../../../shared/services/dashboardAPI';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { Users, Clock, Calendar, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Users, Calendar, CheckCircle, AlertCircle, Loader2, Inbox } from 'lucide-react';
 import { Card } from '@/shared/components/ui';
 import { Pegawai } from '../../01-pegawai/types';
+import { normalizeAssetUrl } from '@/shared/utils/normalizeAssetUrl';
 
 interface SupervisorStats {
     totalTeam: number;
@@ -12,20 +13,39 @@ interface SupervisorStats {
     pendingLeaves: number;
 }
 
+interface Activity {
+    action: string;
+    user: string;
+    time: string;
+}
+
 const SupervisorDashboard: React.FC = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState<SupervisorStats | null>(null);
     const [subordinates, setSubordinates] = useState<Pegawai[]>([]);
+    const [teamActivity, setTeamActivity] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await getSupervisorDashboardData();
-                if (response.success && response.data) {
-                    setStats(response.data.stats);
-                    setSubordinates(response.data.subordinates);
+                const [dashboardResponse, activityData] = await Promise.all([
+                    getSupervisorDashboardData(),
+                    getRecentActivity().catch(() => [])
+                ]);
+
+                if (dashboardResponse.success && dashboardResponse.data) {
+                    setStats(dashboardResponse.data.stats);
+                    setSubordinates(dashboardResponse.data.subordinates);
+
+                    const subNames = new Set(
+                        (dashboardResponse.data.subordinates || []).map((s: Pegawai) => s.name)
+                    );
+                    const filtered = (Array.isArray(activityData) ? activityData : [])
+                        .filter((a: Activity) => subNames.has(a.user))
+                        .slice(0, 5);
+                    setTeamActivity(filtered);
                 } else {
                     setError('Gagal memuat data dashboard.');
                 }
@@ -65,34 +85,10 @@ const SupervisorDashboard: React.FC = () => {
     }
 
     const statCards = [
-        {
-            title: 'Total Anggota Tim',
-            value: stats?.totalTeam || 0,
-            icon: Users,
-            color: 'text-blue-500',
-            bgColor: 'bg-blue-100 dark:bg-blue-900/30'
-        },
-        {
-            title: 'Hadir Hari Ini',
-            value: stats?.presentToday || 0,
-            icon: CheckCircle,
-            color: 'text-green-500',
-            bgColor: 'bg-green-100 dark:bg-green-900/30'
-        },
-        {
-            title: 'Izin / Cuti',
-            value: stats?.onLeaveToday || 0,
-            icon: Calendar,
-            color: 'text-orange-500',
-            bgColor: 'bg-orange-100 dark:bg-orange-900/30'
-        },
-        {
-            title: 'Menunggu Persetujuan',
-            value: stats?.pendingLeaves || 0,
-            icon: AlertCircle,
-            color: 'text-red-500',
-            bgColor: 'bg-red-100 dark:bg-red-900/30'
-        }
+        { title: 'Total Anggota Tim', value: stats?.totalTeam || 0, icon: Users, color: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+        { title: 'Hadir Hari Ini', value: stats?.presentToday || 0, icon: CheckCircle, color: 'text-green-500', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+        { title: 'Izin / Cuti', value: stats?.onLeaveToday || 0, icon: Calendar, color: 'text-orange-500', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
+        { title: 'Menunggu Persetujuan', value: stats?.pendingLeaves || 0, icon: AlertCircle, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30' }
     ];
 
     return (
@@ -143,7 +139,7 @@ const SupervisorDashboard: React.FC = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         <div className="h-10 w-10 flex-shrink-0">
-                                                            <img className="h-10 w-10 rounded-full object-cover" src={sub.avatarUrl || '/avatars/default-avatar.jpg'} alt="" />
+                                                            <img className="h-10 w-10 rounded-full object-cover" src={normalizeAssetUrl(sub.avatarUrl)} alt="" />
                                                         </div>
                                                         <div className="ml-4">
                                                             <div className="text-sm font-medium text-gray-900 dark:text-white">{sub.name}</div>
@@ -181,10 +177,26 @@ const SupervisorDashboard: React.FC = () => {
                     <Card className="p-6">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Aktivitas Tim Terbaru</h3>
                         <div className="space-y-4">
-                            <div className="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
-                                <Clock className="h-10 w-10 mb-2" />
-                                <p>Belum ada aktivitas tim</p>
-                            </div>
+                            {teamActivity.length > 0 ? (
+                                teamActivity.map((activity, index) => (
+                                    <div key={index} className="flex items-start border-b border-gray-100 dark:border-neutral-700 pb-3 last:border-0 last:pb-0">
+                                        <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2 mr-3 mt-0.5">
+                                            <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400"></div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm text-gray-800 dark:text-gray-200">{activity.action}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                {activity.user} • {new Date(activity.time).toLocaleString('id-ID')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+                                    <Inbox className="h-10 w-10 mb-2" />
+                                    <p>Belum ada aktivitas tim</p>
+                                </div>
+                            )}
                         </div>
                     </Card>
                 </div>

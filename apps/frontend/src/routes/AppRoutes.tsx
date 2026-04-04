@@ -17,6 +17,7 @@ const AdminDashboard = lazy(() => import('../features/dasbor/pages/AdminDashboar
 const SupervisorDashboard = lazy(() => import('../features/dasbor/pages/SupervisorDashboard'));
 const EmployeeDashboard = lazy(() => import('../features/dasbor/pages/EmployeeDashboard'));
 const DashboardIndex = lazy(() => import('../features/dasbor/pages/DashboardIndex'));
+const ProfilAdminPage = lazy(() => import('../features/dasbor/pages/ProfilAdminPage'));
 
 // Employee
 const HalamanPegawai = lazy(() => import('../features/01-pegawai/pages/HalamanPegawai'));
@@ -147,6 +148,13 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanPegawai />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="profil-admin" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <ProfilAdminPage />
             </Suspense>
           </PrivateRoute>
         } />

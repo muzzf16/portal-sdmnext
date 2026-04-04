@@ -66,6 +66,39 @@ class PenggunaController {
       next(error);
     }
   }
+
+  static async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Current password dan new password wajib diisi.' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password baru minimal 6 karakter.' });
+      }
+      const result = await PenggunaService.changePassword(id, currentPassword, newPassword);
+      return res.status(200).json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+      return;
+    }
+  }
+
+  static async uploadAvatar(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'File tidak ditemukan.' });
+      }
+      const avatarUrl = `/avatars/${req.file.filename}`;
+      const updatedUser = await PenggunaService.updatePengguna(id, { avatarUrl });
+      return res.status(200).json({ success: true, avatarUrl, data: updatedUser });
+    } catch (error) {
+      next(error);
+      return;
+    }
+  }
 }
 
 export default PenggunaController;

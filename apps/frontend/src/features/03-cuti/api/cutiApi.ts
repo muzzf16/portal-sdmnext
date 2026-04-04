@@ -1,5 +1,5 @@
 import api from '../../../shared/services/api';
-import type { Cuti, CutiFilters, LeaveBalanceSummary, LeaveStatus } from '../types';
+import type { Cuti, CutiFilters, CutiBersama, LeaveBalanceSummary, LeaveStatus, BatchSisaCuti } from '../types';
 
 export const getPermintaanCuti = (filters?: CutiFilters) =>
   api.get<Cuti[]>('/leave-requests', {
@@ -11,6 +11,12 @@ export const getPermintaanCutiSaya = (employeeId: string) =>
 
 export const getSisaCuti = (employeeId: string) =>
   api.get<LeaveBalanceSummary>(`/leave-requests/sisa-cuti/${employeeId}`);
+
+export const getBatchSisaCuti = () =>
+  api.get<BatchSisaCuti[]>('/leave-requests/batch-sisa-cuti');
+
+export const getCutiBersama = () =>
+  api.get<CutiBersama[]>('/leave-requests/cuti-bersama');
 
 export const ajukanPermintaanCuti = (cutiData: FormData) =>
   api.post<Cuti>('/leave-requests', cutiData);

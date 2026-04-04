@@ -130,9 +130,9 @@ const AdminDashboard: React.FC = () => {
           getEmployeeEducationData(),
           getEmployeeDepartmentData()
         ]);
-        const gd = Array.isArray(genderResponse) ? genderResponse : (genderResponse?.data || []);
-        const ed = Array.isArray(educationResponse) ? educationResponse : (educationResponse?.data || []);
-        const dd = Array.isArray(deptResponse) ? deptResponse : (deptResponse?.data || []);
+        const gd = Array.isArray(genderResponse) ? genderResponse : (genderResponse as any)?.data || [];
+        const ed = Array.isArray(educationResponse) ? educationResponse : (educationResponse as any)?.data || [];
+        const dd = Array.isArray(deptResponse) ? deptResponse : (deptResponse as any)?.data || [];
         setGenderData(gd);
         setEducationData(ed);
         setDepartmentData(dd);
@@ -230,7 +230,7 @@ const AdminDashboard: React.FC = () => {
               className="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl shadow transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
             >
               <div className="flex items-center">
-                <div className={`p - 3 rounded - lg ${stat.bgColor} `} aria-hidden="true">
+                <div className={`p-3 rounded-lg ${stat.bgColor}`} aria-hidden="true">
                   <stat.icon size={24} className={stat.color} aria-hidden="true" />
                 </div>
                 <div className="ml-4">
@@ -262,7 +262,7 @@ const AdminDashboard: React.FC = () => {
                     }}
                   >
                     {genderData.map((_, index) => (
-                      <Cell key={`cell - ${index} `} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -315,7 +315,7 @@ const AdminDashboard: React.FC = () => {
                     }}
                   >
                     {departmentData.map((_, index) => (
-                      <Cell key={`dept - ${index} `} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`dept-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -347,7 +347,7 @@ const AdminDashboard: React.FC = () => {
                 title={action.title}
               >
                 <div className="flex justify-center mb-3">
-                  <div className={`p - 3 rounded - lg ${action.color} `}>
+                  <div className={`p-3 rounded-lg ${action.color}`}>
                     <action.icon size={24} />
                   </div>
                 </div>

@@ -32,3 +32,14 @@ export interface LeaveBalanceSummary {
   sisaCuti: number;
   sumberJatah: string;
 }
+
+export interface BatchSisaCuti extends LeaveBalanceSummary {
+  employeeId: string;
+  employeeName: string;
+}
+
+export interface CutiBersama {
+  id: string;
+  tanggal: string;
+  deskripsi: string;
+}

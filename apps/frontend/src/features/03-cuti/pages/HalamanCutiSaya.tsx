@@ -5,7 +5,7 @@ import DaftarCutiSaya from '../components/DaftarCutiSaya';
 const HalamanCutiSaya: React.FC = () => {
   return (
     <div>
-      <h1 className="text-3xl font-bold text-primary-dark-blue">Cuti Saya</h1>
+      <h1 className="text-3xl font-bold text-primary-dark-blue dark:text-white">Cuti Saya</h1>
       <FormCuti />
       <DaftarCutiSaya />
     </div>

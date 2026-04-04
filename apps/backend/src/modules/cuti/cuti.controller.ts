@@ -76,6 +76,24 @@ class CutiController {
       next(error);
     }
   }
+
+  static async getBatchSisaCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await CutiService.getBatchSisaCuti();
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getCutiBersama(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = CutiService.getCutiBersama();
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default CutiController;

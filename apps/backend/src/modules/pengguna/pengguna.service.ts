@@ -49,7 +49,8 @@ class PenggunaService {
       if (!user) {
         throw new AppError('User not found', 404);
       }
-      return user;
+      const { password: _, ...userWithoutPassword } = user;
+      return userWithoutPassword;
     } catch (error: any) {
       throw new AppError(`Error retrieving user: ${error.message}`, 500);
     }
@@ -58,6 +59,10 @@ class PenggunaService {
   static async updatePengguna(id: string, data: any) {
     try {
       const updatedUser = await PenggunaRepository.update(id, data);
+      if (updatedUser) {
+        const { password: _, ...userWithoutPassword } = updatedUser;
+        return userWithoutPassword;
+      }
       return updatedUser;
     } catch (error: any) {
       throw new AppError(`Error updating user: ${error.message}`, 500);
@@ -73,6 +78,17 @@ class PenggunaService {
       return { message: 'User deleted successfully' };
     } catch (error: any) {
       throw new AppError(`Error deleting user: ${error.message}`, 500);
+    }
+  }
+
+  static async changePassword(id: string, currentPassword: string, newPassword: string) {
+    try {
+      return await PenggunaRepository.changePassword(id, currentPassword, newPassword);
+    } catch (error: any) {
+      if (error.message === 'Password saat ini salah') {
+        throw new AppError(error.message, 400);
+      }
+      throw new AppError(`Error changing password: ${error.message}`, 500);
     }
   }
 }
