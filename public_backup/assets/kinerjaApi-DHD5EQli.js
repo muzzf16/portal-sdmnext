@@ -1,0 +1,1 @@
+import{e as a}from"./index-Bxn4Ppb0.js";const r=()=>a.get("/performance-reviews"),i=e=>a.get(`/performance-reviews/${e}`),o=e=>a.get(`/performance-reviews?employeeId=${e}`),s=e=>a.post("/performance-reviews",e);export{o as a,s as b,i as c,r as g};

@@ -1,0 +1,1 @@
+import{e as r}from"./index-Bxn4Ppb0.js";const o=async t=>(await r.get(`/contracts/job-history/employee/${t}`)).data,e=async()=>{try{return((await r.get("/contracts/expiring")).data.data||[]).length}catch(t){return console.error("Error in getExpiringContractsCount:",t),0}};export{o as a,e as g};

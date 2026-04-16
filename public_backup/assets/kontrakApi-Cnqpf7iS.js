@@ -1,0 +1,1 @@
+import{e as a}from"./index-Bxn4Ppb0.js";const s=()=>a.get("/contracts"),n=t=>a.get(`/contracts/${t}`),r=t=>a.post("/contracts",t),c=t=>a.post("/contracts",t,{headers:{"Content-Type":"multipart/form-data"}});export{r as a,c as b,n as c,s as g};

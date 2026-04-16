@@ -1,0 +1,1 @@
+import{e as s}from"./index-C16ccCUI.js";const n=a=>s.get("/payrolls",{params:a}),p=a=>s.get(`/payrolls/${a}`),l=(a,t)=>s.put(`/payrolls/${a}`,t),r=a=>s.post("/payrolls/run",{period:a}),e=(a,t)=>s.patch(`/payrolls/${a}/status`,{status:t});export{p as a,l as b,n as g,r,e as u};

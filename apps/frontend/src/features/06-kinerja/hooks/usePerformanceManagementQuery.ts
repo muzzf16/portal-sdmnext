@@ -146,6 +146,23 @@ export const useJabatanListQuery = () =>
     staleTime: 5 * 60 * 1000
   });
 
+export const useDirectorNames = () =>
+  useQuery({
+    queryKey: ['employees', 'directors'],
+    queryFn: async () => {
+      const { getPegawai } = await import('../../01-pegawai/api/employeeApi');
+      const response = await getPegawai();
+      const allEmps = response.data || [];
+      const dirU = allEmps.find((e: any) => e.position?.toUpperCase() === 'DIREKTUR UTAMA' || e.jabatan?.toUpperCase() === 'DIREKTUR UTAMA');
+      const dirY = allEmps.find((e: any) => e.position?.toUpperCase() === 'DIREKTUR YMFK' || e.jabatan?.toUpperCase() === 'DIREKTUR YMFK');
+      return {
+        utama: dirU?.name || '..............................',
+        ymfk: dirY?.name || '..............................'
+      };
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
 export const useSelectablePerformanceEmployees = (role?: string, employeeId?: string, employeeName?: string) =>
   useQuery({
     queryKey: PERFORMANCE_QUERY_KEYS.employee.selectable(role, employeeId),
@@ -451,11 +468,22 @@ export const useApplyKpiTemplateMutation = () => {
     }
   });
 };
-
 export const fetchAdminWlaDetailLogs = async (employeeId: string, startDate: string, endDate: string) => {
   const response = await getAdminDetailLogsWla(employeeId, undefined, startDate, endDate);
   return (response.data?.data || []) as LogAktivitasHarian[];
 };
+
+export const useAdminWlaDetailLogs = (employeeId?: string, startDate?: string, endDate?: string) =>
+  useQuery({
+    queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(employeeId, startDate, endDate),
+    queryFn: async () => {
+      if (!employeeId || !startDate || !endDate) return [];
+      const response = await getAdminDetailLogsWla(employeeId, undefined, startDate, endDate);
+      return (response.data?.data || []) as LogAktivitasHarian[];
+    },
+    enabled: !!employeeId && !!startDate && !!endDate,
+    staleTime: 15 * 1000
+  });
 
 export const useCreateBulkWlaMutation = () => {
   const queryClient = useQueryClient();

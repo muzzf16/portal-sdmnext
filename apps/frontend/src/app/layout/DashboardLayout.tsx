@@ -173,7 +173,7 @@ const DashboardLayout: React.FC = () => {
       {/* ═══ Sidebar ═══ */}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-50 flex flex-col gradient-sidebar shadow-sidebar transition-all duration-300 ease-smooth',
+          'fixed inset-y-0 left-0 z-50 flex flex-col gradient-sidebar shadow-sidebar transition-all duration-300 ease-smooth print:hidden',
           isSidebarOpen ? 'w-64' : 'w-[68px]',
         )}
       >
@@ -265,7 +265,7 @@ const DashboardLayout: React.FC = () => {
         )}
       >
         {/* ─── Header ─── */}
-        <header className="sticky top-0 z-40 flex items-center justify-between h-16 px-6 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-lg border-b border-neutral-200/60 dark:border-neutral-700/40">
+        <header className="sticky top-0 z-40 flex items-center justify-between h-16 px-6 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-lg border-b border-neutral-200/60 dark:border-neutral-700/40 print:hidden">
           <div className="flex items-center gap-4">
             <button
               onClick={toggleSidebar}

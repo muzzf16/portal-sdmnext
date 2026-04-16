@@ -5,6 +5,7 @@ import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Download, RefreshCw, Paperclip, X, FileText } from 'lucide-react';
 import KpiSummaryView from '../components/KpiSummaryView';
+import KpiMonitoringView from '../components/KpiMonitoringView';
 import {
     useApplyKpiTemplateMutation,
     useCreateKpiMutation,
@@ -39,7 +40,7 @@ const KpiTargetPage: React.FC = () => {
     const [templateModal, setTemplateModal] = useState(false);
     const [templateDept, setTemplateDept] = useState('');
     const canViewSummary = role === 'admin' || role === 'supervisor';
-    const currentKpiView = canViewSummary && searchParams.get('kpiView') === 'summary' ? 'summary' : 'manage';
+    const currentKpiView = canViewSummary ? (searchParams.get('kpiView') || 'manage') : 'manage';
     const employeesQuery = useSelectablePerformanceEmployees(role, user?.employeeId, user?.name);
     const employees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
     const kpiListFilters = useMemo(() => {
@@ -53,7 +54,7 @@ const KpiTargetPage: React.FC = () => {
             role
         };
     }, [role, selectedEmployee, selectedPeriod, user?.employeeId]);
-    const kpiListQuery = useKpiTargetList(kpiListFilters, currentKpiView === 'manage');
+    const kpiListQuery = useKpiTargetList(kpiListFilters, currentKpiView === 'manage' || currentKpiView === 'monitoring');
     const createKpiMutation = useCreateKpiMutation();
     const updateKpiMutation = useUpdateKpiMutation();
     const updateKpiActualMutation = useUpdateKpiActualMutation();
@@ -103,7 +104,7 @@ const KpiTargetPage: React.FC = () => {
         return options;
     }, []);
 
-    const handleKpiViewChange = (view: 'manage' | 'summary') => {
+    const handleKpiViewChange = (view: 'manage' | 'summary' | 'monitoring') => {
         const nextParams = new URLSearchParams(searchParams);
         if (view === 'manage') {
             nextParams.delete('kpiView');
@@ -416,6 +417,16 @@ const KpiTargetPage: React.FC = () => {
                                 }`}
                         >
                             Rekap KPI
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleKpiViewChange('monitoring')}
+                            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${currentKpiView === 'monitoring'
+                                ? 'border-indigo-500 text-indigo-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Monitoring KPI
                         </button>
                     </div>
                 </div>
@@ -826,9 +837,22 @@ const KpiTargetPage: React.FC = () => {
                 </div>
             )}
                 </>
-            ) : (
+            ) : currentKpiView === 'summary' ? (
                 <KpiSummaryView
                     isActive
+                />
+            ) : (
+                <KpiMonitoringView
+                    isActive
+                    kpis={kpis}
+                    period={selectedPeriod || 'Semua Periode'}
+                    role={role}
+                    employees={employees}
+                    selectedEmployee={selectedEmployee}
+                    setSelectedEmployee={setSelectedEmployee}
+                    periodOptions={periodOptions}
+                    selectedPeriod={selectedPeriod}
+                    setSelectedPeriod={setSelectedPeriod}
                 />
             )}
         </div>
