@@ -7,6 +7,7 @@ export interface LogAktivitasWlaPayload {
     tanggal: string;
     frekuensi: number;
     catatan?: string;
+    nominal_rupiah?: number;
 }
 
 export const createLogAktivitasWla = (data: LogAktivitasWlaPayload) =>

@@ -45,7 +45,6 @@ const getPeriodDates = (p: string) => {
 const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({ 
     isActive, 
     kpis, 
-    period,
     role,
     employees,
     selectedEmployee,
@@ -60,6 +59,30 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
     // Fetch WLA logs specifically for the selected employee and period
     const { startDate, endDate } = getPeriodDates(selectedPeriod);
     const { data: wlaLogs = [] } = useAdminWlaDetailLogs(selectedEmployee, startDate, endDate);
+
+    const selectedEmployeeName = useMemo(() => {
+        const emp = employees.find(e => e.id === selectedEmployee);
+        return emp ? `${emp.name} (${emp.nip})` : (selectedEmployee || '-');
+    }, [employees, selectedEmployee]);
+
+    const selectedPeriodLabel = useMemo(() => {
+        const opt = periodOptions.find(o => o.value === selectedPeriod);
+        return opt ? opt.label : (selectedPeriod || 'Semua Periode');
+    }, [periodOptions, selectedPeriod]);
+
+    const formatNominal = (val: number) => {
+        if (val >= 1000000000) {
+            const num = val / 1000000000;
+            const formatted = parseFloat(num.toFixed(1));
+            return `Rp ${formatted} Milyar`;
+        }
+        if (val >= 1000000) {
+            const num = val / 1000000;
+            const formatted = parseFloat(num.toFixed(1));
+            return `Rp ${formatted} Juta`;
+        }
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+    };
 
     if (!isActive) return null;
 
@@ -85,35 +108,37 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         const wlaItemsWithPct = wlaItems.map(k => ({ ...k, pct: getPct(k) }));
 
         // Aggregate KPI Khusus into exactly 3 standardized categories, using explicit targets if any, or pulling directly from WLA logs
-        const aggregateKhususWla = (categoryName: string, filterFn: (name: string) => boolean) => {
+        const aggregateKhususWla = (categoryName: string, filterFn: (name: string) => boolean, defaultTarget: number) => {
             // Did they explicitly define targets?
             const explicitTargets = rawKhususItems.filter(k => filterFn(k.kpiName));
             const explicitTargetTotal = explicitTargets.reduce((sum, i) => sum + (Number(i.targetValue) || 0), 0);
             
             // Raw WLA logs matching this category
             const matchingLogs = wlaLogs.filter(log => filterFn(log.activityName || '') && log.status_approval === 'approved');
-            const wlaActual = matchingLogs.reduce((sum, log) => sum + (Number(log.frekuensi) || 0), 0);
-
-            // If no explicit targets set, fallback target is 0. 
-            // In WLA-only mode: cap at 100% just in case, but assume 1 action is progress.
-            const target = explicitTargetTotal;
-            const percentage = target === 0 ? (wlaActual > 0 ? 100 : 0) : Math.min((wlaActual / target) * 100, 100);
+            
+            // Sum NOMINAL RUPIAH for these 3 categories
+            const wlaActualNominal = matchingLogs.reduce((sum, log) => sum + (Number(log.nominal_rupiah) || 0), 0);
+            
+            // Use explicit target total as target, or fallback to fixed defaultTarget if no meaningful target is set (e.g. if it's 0 or 1)
+            const target = explicitTargetTotal > 1 ? explicitTargetTotal : defaultTarget;
+            const percentage = target === 0 ? (wlaActualNominal > 0 ? 100 : 0) : Math.min((wlaActualNominal / target) * 100, 100);
 
             return {
                 id: categoryName,
                 kpiName: categoryName,
-                targetValue: target, // If 0, UI might show it differently but accurate
-                actualValue: wlaActual, // Pulled straight from WLA logs
-                targetUnit: '',
+                targetValue: target, 
+                actualValue: wlaActualNominal, 
+                targetUnit: 'Rp',
                 pct: percentage,
-                count: explicitTargets.length > 0 ? explicitTargets.length : (wlaActual > 0 ? 1 : 0) // Counter tracking if any setup or action holds
+                count: explicitTargets.length > 0 ? explicitTargets.length : (wlaActualNominal > 0 ? 1 : 0),
+                isNominal: true
             };
         };
 
         const khususItemsWithPct = [
-            aggregateKhususWla('Penanganan NPL', isNPL),
-            aggregateKhususWla('Perolehan Pemasaran Kredit', isKredit),
-            aggregateKhususWla('Perolehan Pemasaran Dana', isDana)
+            aggregateKhususWla('Penanganan NPL', isNPL, 50000000), // Locked Target 50jt
+            aggregateKhususWla('Perolehan Pemasaran Kredit', isKredit, 100000000), // Locked Target 100jt
+            aggregateKhususWla('Perolehan Pemasaran Dana', isDana, 100000000) // Locked Target 100jt
         ]; // Always show the 3 main categories for KPI Khusus
 
         // Use weighted average if weights are provided, otherwise simple average
@@ -156,7 +181,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                 <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Monitoring KPI</h2>
                     <p className="text-sm text-gray-500">
-                        Hitungan otomatis total pencapaian KPI ({period === 'Semua Periode' ? 'Semua Periode' : `Periode: ${period}`}). <br/>
+                        Hitungan otomatis total pencapaian KPI ({selectedPeriodLabel}). <br/>
                         Komposisi: <b className="text-blue-700">80% dari WLA</b> dan <b className="text-purple-700">20% dari KPI Khusus</b> (Pemasaran Kredit, Pemasaran Dana, NPL).
                     </p>
                 </div>
@@ -167,6 +192,20 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                     <Printer size={18} />
                     <span>Cetak PDF</span>
                 </button>
+            </div>
+
+            {/* Print Only Header (Gap 6) */}
+            <div className="hidden print:block mb-8 pb-6 border-b-2 border-gray-100">
+                <div className="grid grid-cols-2 gap-8">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Nama Pegawai</p>
+                        <p className="text-base font-extrabold text-blue-900">{selectedEmployeeName}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Periode Laporan</p>
+                        <p className="text-base font-extrabold text-indigo-900">{selectedPeriodLabel}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Filters */}
@@ -307,8 +346,12 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                     <tr key={k.id} className="hover:bg-purple-50/50 transition-colors">
                                         <td className="px-4 py-3 text-gray-900 font-medium">{k.kpiName}</td>
                                         <td className="px-4 py-3 text-center">
-                                            {k.actualValue || 0} / {k.targetValue}
-                                            <span className="text-gray-400 ml-1 text-xs">{k.targetUnit === 'jumlah' ? '' : k.targetUnit}</span>
+                                            <div className="font-bold text-gray-700">
+                                                {formatNominal(Number(k.actualValue))}
+                                            </div>
+                                            <div className="text-[10px] text-gray-400">
+                                                Target: {formatNominal(Number(k.targetValue))}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-center font-semibold text-purple-700">{k.pct.toFixed(1)}%</td>
                                     </tr>
@@ -320,8 +363,9 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                             <tfoot className="bg-gray-50 divide-y divide-gray-200 border-t border-gray-200">
                                 <tr>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center">TOTAL</td>
-                                    <td className="px-4 py-3 text-red-600 font-bold text-center">
-                                        {summary.khususItems.reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0)} / {summary.khususItems.reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0)}
+                                    <td className="px-4 py-3 text-red-600 font-bold text-center text-xs">
+                                        {formatNominal(summary.khususItems.reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0))} <br/>
+                                        <span className="text-[10px] opacity-70">vs Target {formatNominal(summary.khususItems.reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0))}</span>
                                     </td>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center">
                                         {summary.khususPercentage.toFixed(1)}%

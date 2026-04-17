@@ -561,19 +561,44 @@ const KpiTargetPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nama KPI *</label>
-                            <input value={form.kpiName} onChange={e => setForm({ ...form, kpiName: e.target.value })}
+                            <input value={form.kpiName} onChange={e => {
+                                const name = e.target.value;
+                                const lower = name.toLowerCase();
+                                let targetVal = form.targetValue;
+                                let targetUnit = form.targetUnit;
+                                
+                                if (lower.includes('npl')) {
+                                    targetVal = 50000000;
+                                    targetUnit = 'Rp';
+                                } else if (lower.includes('pemasaran kredit') || lower.includes('pemasaran dana')) {
+                                    targetVal = 100000000;
+                                    targetUnit = 'Rp';
+                                }
+
+                                setForm({ ...form, kpiName: name, targetValue: targetVal, targetUnit: targetUnit });
+                            }}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required placeholder="e.g. Akurasi Closing" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Target *</label>
-                            <input type="number" step="0.01" value={form.targetValue} onChange={e => setForm({ ...form, targetValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required />
+                            <input type="number" step="1" value={form.targetValue} onChange={e => setForm({ ...form, targetValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" 
+                                required 
+                                disabled={form.kpiName.toLowerCase().includes('npl') || 
+                                          form.kpiName.toLowerCase().includes('pemasaran kredit') || 
+                                          form.kpiName.toLowerCase().includes('pemasaran dana')} 
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Satuan Target</label>
                             <select value={form.targetUnit} onChange={e => setForm({ ...form, targetUnit: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                                disabled={form.kpiName.toLowerCase().includes('npl') || 
+                                          form.kpiName.toLowerCase().includes('pemasaran kredit') || 
+                                          form.kpiName.toLowerCase().includes('pemasaran dana')}
+                            >
                                 <option value="%">%</option>
+                                <option value="Rp">Rp (Rupiah)</option>
                                 <option value="hari">Hari</option>
                                 <option value="jumlah">Jumlah</option>
                                 <option value="menit">Menit</option>

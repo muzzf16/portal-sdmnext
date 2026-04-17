@@ -7,6 +7,7 @@ export interface CreateLogAktivitasPayload {
   frekuensi: number;
   catatan?: string;
   lampiran?: string;
+  nominal_rupiah?: number;
 }
 
 export interface CreateBulkLogAktivitasPayload {
@@ -25,6 +26,7 @@ export interface LogAktivitasHarianItem {
   status_approval?: LogApprovalStatus | null;
   catatan?: string | null;
   lampiran?: string | null;
+  nominal_rupiah?: number;
   created_at?: string;
   updated_at?: string;
   activityName?: string;

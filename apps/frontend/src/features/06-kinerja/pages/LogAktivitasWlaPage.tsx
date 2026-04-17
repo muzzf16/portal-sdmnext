@@ -36,8 +36,8 @@ const LogAktivitasWlaPage: React.FC = () => {
         || (libraryQuery.error as Error | null)?.message
         || null;
 
-    // Map of activity ID to { frekuensi, catatan, files, target }
-    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, files?: File[], target?: string }>>({});
+    // Map of activity ID to { frekuensi, catatan, files, target, nominal_rupiah }
+    const [formInputs, setFormInputs] = useState<Record<string, { frekuensi: number | string, catatan: string, files?: File[], target?: string, nominal_rupiah?: number | string }>>({});
 
     // Task Modal state
     const [openTaskModal, setOpenTaskModal] = useState(false);
@@ -52,7 +52,7 @@ const LogAktivitasWlaPage: React.FC = () => {
     // Pre-fill form inputs whenever myLogs changes (e.g. initial load or after changing date)
     useEffect(() => {
         if (myLogs && myLogs.length > 0) {
-            const newFormInputs: Record<string, { frekuensi: number | string, catatan: string, target?: string }> = {};
+            const newFormInputs: Record<string, { frekuensi: number | string, catatan: string, target?: string, nominal_rupiah?: number | string }> = {};
             myLogs.forEach(log => {
                 // Try to extract Target from Catatan if it was previously saved that way
                 let targetMatch = log.catatan?.match(/\[Target: (.*?)\]/);
@@ -62,7 +62,8 @@ const LogAktivitasWlaPage: React.FC = () => {
                 newFormInputs[String(log.id_activity_library)] = {
                     frekuensi: log.frekuensi,
                     catatan: cleanCatatan,
-                    target: target
+                    target: target,
+                    nominal_rupiah: log.nominal_rupiah || 0
                 };
             });
             setFormInputs(newFormInputs);
@@ -71,7 +72,7 @@ const LogAktivitasWlaPage: React.FC = () => {
         }
     }, [myLogs]);
 
-    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'files' | 'target', value: any) => {
+    const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'files' | 'target' | 'nominal_rupiah', value: any) => {
         setFormInputs(prev => ({
             ...prev,
             [id]: {
@@ -80,6 +81,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                 catatan: prev[id]?.catatan || '',
                 files: prev[id]?.files || [],
                 target: prev[id]?.target || '',
+                nominal_rupiah: prev[id]?.nominal_rupiah || 0,
                 [field]: value
             }
         }));
@@ -97,7 +99,8 @@ const LogAktivitasWlaPage: React.FC = () => {
                     id_activity_library: id,
                     frekuensi: Number(data.frekuensi),
                     catatan: finalCatatan,
-                    files: data.files || []
+                    files: data.files || [],
+                    nominal_rupiah: Number(data.nominal_rupiah || 0)
                 };
             });
 
@@ -278,13 +281,32 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                         <div className="mt-3 sm:mt-0 sm:ml-4 flex-1">
                                                             <div className="flex bg-white border border-amber-200 rounded p-2 shadow-sm min-h-[60px]">
                                                                 <label className="text-xs text-amber-700 font-medium mr-2 whitespace-nowrap pt-1">Target:</label>
-                                                                <textarea
-                                                                    value={val.target || ''}
-                                                                    onChange={(e) => handleInputChange(actId, 'target', e.target.value)}
-                                                                    className="w-full text-xs border-none focus:ring-0 p-0 text-gray-700 resize-none"
-                                                                    placeholder="..."
-                                                                    rows={2}
-                                                                />
+                                                                {(() => {
+                                                                    const name = act.activityName || '';
+                                                                    const n = name.toLowerCase();
+                                                                    let lockedLabel = '';
+                                                                    if (n.includes('npl')) lockedLabel = "Rp 50 Juta";
+                                                                    else if (n.includes('pemasaran kredit')) lockedLabel = "Rp 100 Juta";
+                                                                    else if (n.includes('pemasaran dana')) lockedLabel = "Rp 100 Juta";
+
+                                                                    if (lockedLabel) {
+                                                                        return (
+                                                                            <div className="text-xs text-indigo-700 font-bold pt-1">
+                                                                                {lockedLabel}
+                                                                            </div>
+                                                                        );
+                                                                    }
+
+                                                                    return (
+                                                                        <textarea
+                                                                            value={val.target || ''}
+                                                                            onChange={(e) => handleInputChange(actId, 'target', e.target.value)}
+                                                                            className="w-full text-xs border-none focus:ring-0 p-0 text-gray-700 resize-none"
+                                                                            placeholder="..."
+                                                                            rows={2}
+                                                                        />
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     )}
@@ -303,17 +325,42 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                 </div>
                                                 {Number(val.frekuensi) > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-gray-100 border-dashed animate-in fade-in slide-in-from-top-2">
-                                                        <div className="flex items-center mb-3">
-                                                            <label className="text-xs text-gray-700 font-bold mr-2">Frekuensi Kegiatan:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                value={val.frekuensi}
-                                                                onChange={(e) => handleInputChange(actId, 'frekuensi', e.target.value)}
-                                                                className="w-20 px-2 py-1.5 text-xs border border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                                            />
-                                                            <span className="text-xs text-gray-600 ml-2 font-medium bg-gray-100 border border-gray-200 px-2 py-1 rounded">{act.outputUnit || 'Kali'}</span>
+                                                        <div className="flex flex-col sm:flex-row gap-4 mb-3">
+                                                            <div className="flex items-center">
+                                                                <label className="text-xs text-gray-700 font-bold mr-2 whitespace-nowrap">Frekuensi:</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    value={val.frekuensi}
+                                                                    onChange={(e) => handleInputChange(actId, 'frekuensi', e.target.value)}
+                                                                    className="w-20 px-2 py-1.5 text-xs border border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                                />
+                                                                <span className="text-xs text-gray-600 ml-2 font-medium bg-gray-100 border border-gray-200 px-2 py-1 rounded">{act.outputUnit || 'Kali'}</span>
+                                                            </div>
+
+                                                            {/* Nominal Rupiah Input (Specific for KPI Khusus) */}
+                                                            {(act.activityName?.toUpperCase().includes('NPL') || 
+                                                              act.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
+                                                              act.activityName?.toUpperCase().includes('PEMASARAN DANA')) && (
+                                                                <div className="flex items-center flex-1">
+                                                                    <label className="text-xs text-indigo-700 font-bold mr-2 whitespace-nowrap">Nominal (Rp):</label>
+                                                                    <div className="relative flex-1">
+                                                                        <span className="absolute left-2 top-1.5 text-xs text-gray-400">Rp</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={val.nominal_rupiah || ''}
+                                                                            onChange={(e) => handleInputChange(actId, 'nominal_rupiah', e.target.value)}
+                                                                            placeholder="Misal: 100000000"
+                                                                            className="w-full pl-8 pr-2 py-1.5 text-xs border border-indigo-200 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-indigo-50/30"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="ml-2 text-[10px] text-gray-500 italic max-w-[120px]">
+                                                                        * Khusus KPI Capaian Nominal
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
+
                                                         <textarea
                                                             value={val.catatan || ''}
                                                             onChange={(e) => handleInputChange(actId, 'catatan', e.target.value)}

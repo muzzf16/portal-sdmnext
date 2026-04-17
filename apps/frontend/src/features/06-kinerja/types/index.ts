@@ -169,6 +169,7 @@ export interface LogAktivitasHarian {
   status_approval: 'pending' | 'approved' | 'rejected';
   catatan?: string;
   lampiran?: string;
+  nominal_rupiah?: number;
   created_at?: string;
 
   // Joined fields

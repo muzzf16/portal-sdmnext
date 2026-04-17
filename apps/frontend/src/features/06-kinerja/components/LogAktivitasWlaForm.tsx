@@ -21,7 +21,8 @@ const LogAktivitasWlaForm: React.FC<LogAktivitasWlaFormProps> = ({ onSuccess, on
         defaultValues: {
             id_activity_library: '',
             frekuensi: 1,
-            catatan: ''
+            catatan: '',
+            nominal_rupiah: 0
         }
     });
 
@@ -72,7 +73,8 @@ const LogAktivitasWlaForm: React.FC<LogAktivitasWlaFormProps> = ({ onSuccess, on
                 id_activity_library: Number(data.id_activity_library),
                 tanggal: selectedDate,
                 frekuensi: Number(data.frekuensi),
-                catatan: data.catatan
+                catatan: data.catatan,
+                nominal_rupiah: Number(data.nominal_rupiah || 0)
             });
             onSuccess();
         } catch (err: any) {
@@ -146,6 +148,34 @@ const LogAktivitasWlaForm: React.FC<LogAktivitasWlaFormProps> = ({ onSuccess, on
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Dihitung dari Frekuensi x Durasi Standar.</p>
                     </div>
+
+                    {/* Nominal Rupiah Field */}
+                    {(selectedActivity?.activityName?.toUpperCase().includes('NPL') || 
+                      selectedActivity?.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
+                      selectedActivity?.activityName?.toUpperCase().includes('PEMASARAN DANA')) && (
+                        <div className="col-span-1 md:col-span-2">
+                             <label className="block text-sm font-medium text-indigo-700 mb-2">Capaian Nominal (Rp) *</label>
+                             <div className="relative">
+                                 <span className="absolute left-3 top-2.5 text-gray-500">Rp</span>
+                                 <input
+                                     type="number"
+                                     {...register('nominal_rupiah', { 
+                                         required: 'Nominal wajib diisi untuk aktivitas ini',
+                                         min: { value: 0, message: 'Nominal tidak boleh negatif' }
+                                     })}
+                                     placeholder="Masukkan nominal angka saja, misal 100000000"
+                                     className={clsx(
+                                         "w-full pl-10 pr-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-indigo-50/20",
+                                         errors.nominal_rupiah ? "border-red-300" : "border-indigo-200"
+                                     )}
+                                 />
+                             </div>
+                             {errors.nominal_rupiah && <p className="mt-1 text-xs text-red-500">{errors.nominal_rupiah.message as string}</p>}
+                             <p className="text-[11px] text-gray-500 mt-1 italic">
+                                 Aktivitas ini memerlukan input nominal rupiah untuk perhitungan KPI Khusus.
+                             </p>
+                        </div>
+                    )}
 
                     <div className="col-span-1 md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Tambahan (Opsional)</label>

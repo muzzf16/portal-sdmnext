@@ -46,6 +46,7 @@ export default class LogAktivitasHarianService {
             frekuensi: this.normalizeNumber(payload.frekuensi || 1, 'frekuensi'),
             catatan: this.normalizeText(payload.catatan),
             lampiran: this.normalizeText(payload.lampiran),
+            nominal_rupiah: this.normalizeNumber(payload.nominal_rupiah || 0, 'nominal_rupiah'),
         };
 
         if (!normalizedPayload.id_pegawai || !normalizedPayload.id_activity_library) {

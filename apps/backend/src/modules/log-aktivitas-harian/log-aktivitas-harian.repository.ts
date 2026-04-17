@@ -13,14 +13,15 @@ export default class LogAktivitasHarianRepository {
         const db = await openDb();
         const result = await db.run(
             `INSERT INTO log_aktivitas_harian 
-             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
+             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan, nominal_rupiah) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             payload.id_pegawai,
             payload.tanggal,
             payload.id_activity_library,
             payload.frekuensi,
             payload.total_durasi_terhitung,
-            payload.catatan || null
+            payload.catatan || null,
+            payload.nominal_rupiah || 0
         );
         return { id_log: Number(result.lastID || 0), ...payload };
     }
@@ -39,7 +40,7 @@ export default class LogAktivitasHarianRepository {
 
         // Construct bulk insert values
         // Note: SQLite supports bulk insert via multiple VALUES clauses
-        const placeholders = logs.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+        const placeholders = logs.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
         const values = logs.flatMap(log => [
             log.id_pegawai,
             log.tanggal,
@@ -47,12 +48,13 @@ export default class LogAktivitasHarianRepository {
             log.frekuensi,
             log.total_durasi_terhitung,
             log.catatan || null,
-            log.lampiran || null
+            log.lampiran || null,
+            log.nominal_rupiah || 0
         ]);
 
         const result = await db.run(
             `INSERT INTO log_aktivitas_harian 
-             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan, lampiran) 
+             (id_pegawai, tanggal, id_activity_library, frekuensi, total_durasi_terhitung, catatan, lampiran, nominal_rupiah) 
              VALUES ${placeholders}`,
             ...values
         );
