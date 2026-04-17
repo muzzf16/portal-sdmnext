@@ -544,6 +544,389 @@ Contoh: jika tertulis `GET /employees`, endpoint penuhnya adalah `GET /api/emplo
 - Jaga konsistensi bentuk response agar frontend mudah integrasi.
 - Tambahkan minimal 1 skenario test untuk success path dan 1 untuk error path.
 
+## Template Standar Endpoint (Semua Modul)
+
+Section ini adalah format baku yang direkomendasikan untuk dokumentasi endpoint baru/eksisting agar junior programmer punya pola kerja yang konsisten.
+
+### A. Template Universal (Copy-Paste)
+
+```md
+### [METHOD] /api/[path]
+
+Tujuan:
+- [fungsi endpoint]
+
+Auth:
+- [Publik | Bearer Token | API Key]
+
+Role:
+- [admin/pimpinan/supervisor/employee atau N/A]
+
+Path Params:
+- [namaParam]: [tipe], [wajib/opsional], [keterangan]
+
+Query Params:
+- [namaParam]: [tipe], [wajib/opsional], [keterangan]
+
+Request Body (JSON):
+```json
+{
+  "fieldA": "string",
+  "fieldB": 0
+}
+```
+
+Request Body (Multipart) [jika ada]:
+- file field: `[namaFieldFile]`
+- form fields: `[field1, field2]`
+
+Validasi Wajib:
+- [daftar validasi]
+
+Contoh Success Response:
+```json
+{
+  "success": true,
+  "message": "OK",
+  "data": {}
+}
+```
+
+Contoh Error Response:
+```json
+{
+  "success": false,
+  "message": "Pesan error yang jelas",
+  "errors": [
+    { "field": "fieldA", "message": "fieldA wajib diisi" }
+  ]
+}
+```
+```
+
+### B. Konvensi Response yang Disarankan
+
+- Success:
+  - `success: true`
+  - `message`: string ringkas
+  - `data`: object/array
+  - `meta`: untuk paginasi/list (opsional)
+- Error:
+  - `success: false`
+  - `message`: human-readable
+  - `errors`: detail validasi (opsional)
+
+### C. Standar Validasi Minimum
+
+- `:id`/`:employeeId`/`:taskId` harus non-empty string.
+- Field numerik (`weight`, `targetValue`, `baseSalary`, dsb.) harus number valid.
+- Field tanggal (`period`, `startDate`, `endDate`) harus format konsisten.
+- Upload endpoint wajib cek file existence + tipe file.
+- Endpoint perubahan status wajib validasi nilai enum status.
+
+## Template Per Modul (Contoh Siap Pakai)
+
+> Catatan: semua contoh di bawah adalah template dokumentasi. Sesuaikan field final dengan implementasi controller/service terbaru saat coding.
+
+### 1) Auth — `POST /api/auth/login`
+- Request body:
+```json
+{ "email": "admin@company.com", "password": "secret123" }
+```
+- Validasi wajib:
+  - `email` wajib format email.
+  - `password` minimal 8 karakter.
+- Success response:
+```json
+{ "success": true, "message": "Login berhasil", "data": { "accessToken": "...", "user": {} } }
+```
+- Error response:
+```json
+{ "success": false, "message": "Email atau password salah" }
+```
+
+### 2) Users — `PUT /api/users/:id/password`
+- Request body:
+```json
+{ "oldPassword": "old12345", "newPassword": "newStrong123" }
+```
+- Validasi wajib:
+  - `id` wajib ada.
+  - `oldPassword` dan `newPassword` wajib.
+  - `newPassword` minimal 8 karakter.
+- Success: password berubah.
+- Error: password lama salah / user tidak ditemukan.
+
+### 3) Employees — `POST /api/employees/with-user`
+- Request body (JSON):
+```json
+{ "name": "Budi", "nip": "EMP-001", "department": "IT", "email": "budi@company.com", "role": "employee" }
+```
+- Validasi wajib:
+  - `name`, `nip`, `department`, `email` wajib.
+  - `email` unik.
+  - `nip` unik.
+- Success: data pegawai + akun user terbentuk.
+- Error: konflik data unik (`email`/`nip`).
+
+### 4) Attendance — `POST /api/attendance/clock-in`
+- Request body:
+```json
+{ "employeeId": "emp-001" }
+```
+- Validasi wajib:
+  - `employeeId` wajib.
+  - Tidak boleh clock-in ganda pada hari yang sama (sesuai rule bisnis).
+- Success: attendance row baru.
+- Error: pegawai tidak ditemukan / sudah clock-in.
+
+### 5) Leave Requests — `PUT /api/leave-requests/:id/status`
+- Request body:
+```json
+{ "status": "approved", "note": "Disetujui supervisor" }
+```
+- Validasi wajib:
+  - `id` wajib.
+  - `status` hanya `approved` atau `rejected`.
+  - `note` wajib jika `status=rejected`.
+- Success: status cuti terupdate.
+- Error: request tidak ditemukan / status tidak valid.
+
+### 6) Payroll — `POST /api/payrolls/run`
+- Request body:
+```json
+{ "period": "2026-04" }
+```
+- Validasi wajib:
+  - `period` wajib format periode yang dipakai sistem.
+  - Pastikan payroll period belum final/locked.
+- Success: ringkasan payroll yang berhasil digenerate.
+- Error: period invalid / proses gagal.
+
+### 7) Performance Reviews — `PUT /api/performance-reviews/:id/transition`
+- Request body:
+```json
+{ "status": "approved", "notes": "Review selesai" }
+```
+- Validasi wajib:
+  - `status` masuk enum status review.
+  - Hanya role berwenang yang boleh transition.
+- Success: status review berubah.
+- Error: forbidden / transisi tidak valid.
+
+### 8) KPI Targets — `PUT /api/kpi-targets/:id/actual`
+- Request body (multipart):
+  - file: `evidence`
+  - form: `actualValue`
+- Validasi wajib:
+  - `actualValue` numerik.
+  - file evidence opsional/wajib sesuai kebijakan modul.
+- Success: actual KPI terupdate + lampiran tersimpan.
+- Error: format angka/file tidak valid.
+
+### 9) KPI Templates — `POST /api/kpi-templates/apply`
+- Request body:
+```json
+{ "employeeId": "emp-001", "period": "2026-Q2", "department": "IT" }
+```
+- Validasi wajib:
+  - `employeeId` dan `period` wajib.
+  - Minimal salah satu: `department` atau `templateIds`.
+- Success: jumlah KPI created/skipped.
+- Error: template tidak ditemukan / payload tidak lengkap.
+
+### 10) Performance Cycle — `POST /api/performance-cycle/open`
+- Request body:
+```json
+{ "period": "2026-Q2", "startDate": "2026-04-01", "endDate": "2026-06-30" }
+```
+- Validasi wajib:
+  - `period`, `startDate`, `endDate` wajib.
+  - `startDate <= endDate`.
+- Success: period cycle terbuka.
+- Error: period duplikat / tanggal tidak valid.
+
+### 11) Jabatan — `POST /api/jabatan`
+- Request body:
+```json
+{ "name": "Supervisor IT", "level": 3, "parentId": "jab-001" }
+```
+- Validasi wajib:
+  - `name` dan `level` wajib.
+  - `parentId` valid jika diisi.
+- Success: jabatan baru tersimpan.
+- Error: parent tidak ditemukan / data invalid.
+
+### 12) Contracts — `POST /api/contracts`
+- Request body (multipart):
+  - file: `contractFile`
+  - form: `employeeId`, `contractType`, `startDate`, `endDate`
+- Validasi wajib:
+  - `employeeId`, `contractType`, `startDate`, `endDate` wajib.
+  - `endDate` harus >= `startDate`.
+- Success: kontrak baru tersimpan.
+- Error: data kontrak tidak valid.
+
+### 13) Pelatihan — `POST /api/pelatihan/employee/:id`
+- Request body (multipart):
+  - file: `certificate` (opsional sesuai kebijakan)
+  - form: `nama_pelatihan`, `penyelenggara`, `tanggal_mulai`, `tanggal_selesai`
+- Validasi wajib:
+  - `id` pegawai valid.
+  - field tanggal valid.
+- Success: data pelatihan tersimpan.
+- Error: pegawai tidak ditemukan / upload gagal.
+
+### 14) Recruitment — `POST /api/recruitment/candidates`
+- Request body:
+```json
+{ "name": "Sinta", "email": "sinta@mail.com", "position": "Backend Engineer", "status": "applied" }
+```
+- Validasi wajib:
+  - `name`, `email`, `position` wajib.
+  - `email` valid format.
+- Success: kandidat tersimpan.
+- Error: data kandidat invalid.
+
+### 15) Onboarding — `POST /api/onboarding/employee/:employeeId/tasks`
+- Request body:
+```json
+{ "task_name": "Buat akun email kantor", "description": "Koordinasi dengan tim IT", "due_date": "2026-04-30" }
+```
+- Validasi wajib:
+  - `employeeId` valid.
+  - `task_name` dan `due_date` wajib.
+- Success: task orientasi dibuat.
+- Error: employee tidak ditemukan.
+
+### 16) Tasks — `PUT /api/tasks/:id/status`
+- Request body:
+```json
+{ "status": "done", "progress": 100 }
+```
+- Validasi wajib:
+  - `status` dalam enum task.
+  - user memiliki akses scope untuk task tersebut.
+- Success: status task terupdate.
+- Error: forbidden / task tidak ditemukan.
+
+### 17) Workload — `PUT /api/workload/:id/approve`
+- Request body:
+```json
+{ "approvalNote": "Disetujui, lanjutkan periode berikutnya" }
+```
+- Validasi wajib:
+  - role harus `admin/pimpinan/supervisor`.
+  - `id` analisis harus ada.
+- Success: workload approved.
+- Error: unauthorized / data tidak ditemukan.
+
+### 18) Log Aktivitas Harian — `POST /api/log-aktivitas-harian`
+- Request body (multipart/json tergantung implementasi):
+```json
+{ "tanggal": "2026-04-17", "aktivitas": "Menyusun laporan KPI", "durasiJam": 4 }
+```
+- Validasi wajib:
+  - `tanggal`, `aktivitas` wajib.
+  - `durasiJam` numerik positif.
+- Success: log tersimpan.
+- Error: payload invalid.
+
+### 19) Notifikasi — `PUT /api/notifikasi/:notificationId/read`
+- Request body: tidak wajib (atau optional metadata).
+- Validasi wajib:
+  - `notificationId` valid.
+  - notifikasi milik user yang login (ownership check).
+- Success: status notifikasi menjadi read.
+- Error: notifikasi tidak ditemukan/forbidden.
+
+### 20) Reports — `GET /api/reports/payroll`
+- Query contoh:
+  - `?period=2026-04&department=IT&page=1&limit=20`
+- Validasi wajib:
+  - `period` sesuai format.
+  - `page`/`limit` numerik.
+- Success:
+```json
+{ "success": true, "data": [], "meta": { "page": 1, "limit": 20, "total": 120 } }
+```
+- Error: query tidak valid.
+
+### 21) Dashboard — `GET /api/dashboard/employee/:employeeId`
+- Request body: tidak ada.
+- Validasi wajib:
+  - `employeeId` valid.
+  - role/ownership valid untuk akses dashboard employee.
+- Success: agregasi KPI, attendance, payroll ringkas.
+- Error: forbidden / employee tidak ditemukan.
+
+### 22) Company Settings — `PUT /api/company-settings`
+- Request body (multipart):
+  - file: `logo`
+  - form: `companyName`, `address`, `phone`, `email`
+- Validasi wajib:
+  - field identitas perusahaan wajib sesuai kebijakan.
+  - tipe file logo valid (jpg/png/webp).
+- Success: settings terupdate.
+- Error: validasi gagal / upload gagal.
+
+### 23) Activity Library — `POST /api/activity-library`
+- Request body:
+```json
+{ "position": "Analis SDM", "activityName": "Evaluasi KPI bulanan", "defaultDuration": 2 }
+```
+- Validasi wajib:
+  - role `admin/pimpinan`.
+  - `position` dan `activityName` wajib.
+- Success: item library tersimpan.
+- Error: unauthorized / payload invalid.
+
+### 24) Audit Logs — `POST /api/audit-logs`
+- Request body:
+```json
+{ "action": "UPDATE_PAYROLL", "actorId": "usr-001", "entityType": "payroll", "entityId": "pay-123", "metadata": {} }
+```
+- Validasi wajib:
+  - role `admin/pimpinan`.
+  - `action`, `actorId`, `entityType`, `entityId` wajib.
+- Success: audit log tersimpan.
+- Error: unauthorized / payload invalid.
+
+### 25) Changelog — `POST /api/changelog`
+- Request body:
+```json
+{ "version": "v3.4.0", "title": "Payroll enhancement", "description": "Menambah endpoint payroll status patch" }
+```
+- Validasi wajib:
+  - role `admin/pimpinan`.
+  - `version`, `title`, `description` wajib.
+- Success: entri changelog dibuat.
+- Error: validasi gagal.
+
+### 26) Integrations — `POST /api/integrations/attendance`
+- Auth:
+  - API Key (`apiKeyMiddleware`)
+- Request body:
+```json
+{ "employeeId": "emp-001", "date": "2026-04-17", "clockIn": "08:00:00", "clockOut": "17:00:00" }
+```
+- Validasi wajib:
+  - API key valid.
+  - field attendance inti wajib.
+- Success: data absensi terbuat dari sistem eksternal.
+- Error: unauthorized API key / payload invalid.
+
+### 27) Backup — `POST /api/backup/restore`
+- Request body:
+```json
+{ "backupFile": "backup_2026_04_17.sqlite" }
+```
+- Validasi wajib:
+  - role admin only (disarankan).
+  - file backup harus ada dan tervalidasi.
+- Success: restore selesai.
+- Error: file tidak ditemukan / restore gagal.
+
 ## Changelog Dokumen
 
 - April 2026: `GEMINI.md` disesuaikan total ke kondisi repo aktual (struktur folder, modul backend/frontend, route root, script, dan runtime behavior).
