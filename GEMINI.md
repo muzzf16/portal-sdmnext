@@ -1,719 +1,549 @@
+# PORTAL SDM v3 — Kondisi Aktual
 
-**portal-sdm** adalah HRMS modular full-stack:
+Dokumen ini adalah snapshot kondisi repository saat ini (April 2026) untuk memudahkan onboarding, maintenance, dan sinkronisasi antar tim.
 
-* Frontend: **React + TypeScript + Vite + Tailwind**
-* Backend: **Node.js + Express + sqlite3** (penggunaan `sqlite3` package)
-* Deployment: **VPS** (Nginx reverse proxy) + **PM2** untuk proses Node.js
-* Pattern: Feature-based modular architecture (frontend `features/*`, backend `modules/*`)
-* Goal: production-ready, maintainable, skalabel untuk tim pengembang.
+## Ringkasan Teknologi
 
----
+- Frontend: React + TypeScript + Vite + Tailwind CSS
+- Backend: Node.js + Express + TypeScript
+- Database: SQLite (`database.sqlite`)
+- Auth: JWT + bcrypt
+- Tooling utama: Jest, ESLint, ts-node-dev
+- Deployment style: VPS / containerized setup (ada `Dockerfile` dan `docker-compose.yml`)
 
-## Table of contents
+## Struktur Monorepo (Aktual)
 
-1. Project layout (monorepo)
-2. Frontend architecture (struktur & detail)
-3. Backend architecture (struktur, contoh file, run)
-4. API spec (endpoints utama + contoh request/response)
-5. Database schema (sqlite3) — tabel inti & field
-6. Data flow (text diagram)
-7. Auth, security & best practices
-8. Local development & npm scripts
-9. Testing & CI recommendations
-10. Deployment guide (VPS + Nginx + PM2)
-11. Docs & maintenance checklist
-
----
-**STRUKTUR MODUL UTAMA**
-| Modul                                            | Fungsi Utama                                                                   | Catatan                                             |
-| ------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **1. Master Data Pegawai**                       | Menyimpan dan mengelola seluruh informasi karyawan.                            | Dasar semua modul lain.                             |
-| **2. Absensi & Kehadiran**                       | Catat jam masuk, keluar, lembur, izin, keterlambatan.                          | Bisa manual atau terhubung alat (fingerprint/RFID). |
-| **3. Cuti & Izin**                               | Manajemen cuti tahunan, sakit, dll.                                            | Termasuk sistem approval berjenjang.                |
-| **4. Penggajian (Payroll)**                      | Hitung gaji otomatis berdasarkan absensi, tunjangan, potongan.                 | Integrasi ke BPJS, pajak, pinjaman, lembur.         |
-| **5. Manajemen Kontrak & Jabatan**               | Kelola masa kontrak, promosi, mutasi, atau demosi.                             | Reminder otomatis saat kontrak hampir habis.        |
-| **6. Penilaian Kinerja (Performance Appraisal)** | Evaluasi kinerja, KPI, skor, feedback.                                         | Bisa input supervisor dan rekan kerja.              |
-| **7. Rekrutmen & Onboarding**                    | Modul untuk lamaran kerja, seleksi, dan orientasi.                             | Menyimpan data kandidat.                            |
-| **8. Pelatihan & Sertifikasi (Training)**        | Riwayat pelatihan dan sertifikat pegawai.                                      | Bisa dilampirkan file PDF/scan sertifikat.          |
-| **9. Laporan & Analitik**                        | Laporan bulanan: absensi, gaji, kinerja, cuti, turnover.                       | Export PDF/Excel dan dashboard statistik.           |
-| **10. Notifikasi & Pengingat Otomatis**          | Email/WhatsApp reminder: cuti disetujui, kontrak habis, lembur disetujui, dll. | Bisa pakai API WA atau email gateway.               |
-
-
-## 1. Project layout (monorepo)
-
-```
-hrms/
+```text
+portal-sdmv3/
 ├── apps/
-│   ├── backend/           # Node/Express API (sqlite3)
-│   │   ├── package.json
+│   ├── backend/
 │   │   ├── src/
 │   │   │   ├── config/
-│   │   │   │   └── db.ts
-│   │   │   ├── modules/
-│   │   │   │   ├── employee/
-│   │   │   │   │   ├── employee.controller.ts
-│   │   │   │   │   ├── employee.service.ts
-│   │   │   │   │   └── employee.repository.ts
-│   │   │   │   └── ... (attendance, leave, payroll, performance, notifications)
-│   │   │   ├── routes/
-│   │   │   │   └── index.ts
+│   │   │   ├── core/
+│   │   │   ├── jobs/
 │   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts
-│   │   │   │   └── errorHandler.ts
+│   │   │   ├── modules/
+│   │   │   ├── routes/
+│   │   │   ├── services/
+│   │   │   ├── types/
 │   │   │   ├── utils/
 │   │   │   ├── app.ts
 │   │   │   └── server.ts
-│   │   └── database.sqlite
+│   │   ├── db/
+│   │   ├── public/
+│   │   ├── scripts/
+│   │   └── package.json
 │   └── frontend/
-│       ├── package.json
-│       ├── vite.config.ts
-│       └── src/
-│           ├── app/               # App root, providers, layout
-│           ├── features/
-│           │   ├── 01-employee/
-│           │   ├── 02-attendance/
-│           │   └── ... (03-10)
-│           ├── shared/            # UI components, hooks, utils
-│           ├── routes/
-│           ├── styles/
-│           └── main.tsx
-├── packages/
-│   ├── shared/   # (optional) shared types & helpers across apps
-│   └── ui/       # (optional) shared react-ui package
+│       ├── src/
+│       │   ├── app/
+│       │   ├── features/
+│       │   ├── locales/
+│       │   ├── routes/
+│       │   ├── shared/
+│       │   ├── i18n.ts
+│       │   └── index.css
+│       ├── docs/
+│       └── package.json
 ├── docs/
-│   └── QWEN.md (QWEN architecture document)
-├── .env
-└── README.md
+├── script/
+├── database.sqlite
+├── README.md
+└── GEMINI.md
 ```
 
----
-
-## 2. Frontend architecture (struktur & detail)
-
-### 2.1 Prinsip
-
-* **Feature-sliced**: setiap fitur punya subfolder (`components`, `hooks`, `pages`, `api`, `types`).
-* **Shared** menyimpan komponen UI (Button, Card, Table), hooks global (useApi), utils, dan type definitions.
-* **Providers**: `AuthProvider`, `NotificationProvider`, `ToastProvider`, `LayoutProvider`.
-* **Routing**: React Router v6+ dengan `DashboardLayout` (Sidebar + Header + Outlet).
-
-### 2.2 Contoh folder `src/` (frontend)
-
-```
-src/
-├── app/
-│   ├── App.tsx
-│   ├── providers/
-│   │   ├── AuthProvider.tsx
-│   │   └── index.tsx  (AppProviders)
-│   └── layout/
-│       └── DashboardLayout.tsx
-├── features/
-│   ├── 01-employee/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── pages/
-│   └── ...
-├── shared/
-│   ├── components/ui/
-│   ├── hooks/
-│   ├── utils/
-│   └── types/
-├── routes/
-├── styles/global.css
-└── main.tsx
-```
-
-### 2.3 Best practices frontend
-
-* Use `React Query` / `TanStack Query` (opsional) untuk caching server state.
-* `useApi` hook menggunakan Axios with baseURL `process.env.VITE_API_BASE`.
-* Lazy load route components (`React.lazy` + `Suspense`).
-* Centralized ErrorBoundary at App root.
-* Tailwind theme tokens (colors, spacing) di `tailwind.config.ts`.
-
----
-
-## 3. Backend architecture (struktur, contoh file, run)
-
-### 3.1 Prinsip
-
-* Layers: Controller → Service → Repository → DB
-* `sqlite3` package untuk koneksi (simple). Alternatif: better-sqlite3 (sync) atau Drizzle ORM jika ingin type-safe.
-* Modular per domain (employee, attendance, payroll, ...).
-
-### 3.2 Contoh `apps/backend/src` (ringkas)
-
-```
-src/
-├── config/
-│   └── db.ts
-├── modules/
-│   └── employee/
-│       ├── employee.controller.ts
-│       ├── employee.service.ts
-│       └── employee.repository.ts
-├── routes/
-│   └── index.ts
-├── middleware/
-│   ├── authMiddleware.ts
-│   └── errorHandler.ts
-├── utils/
-│   ├── jwt.ts
-│   └── response.ts
-├── app.ts
-└── server.ts
-```
-
-### 3.3 Contoh `db.ts` (sqlite3)
-
-```ts
-// src/config/db.ts
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-
-export async function openDb() {
-  return open({
-    filename: process.env.DB_SOURCE || './database.sqlite',
-    driver: sqlite3.Database
-  });
-}
-```
-
-### 3.4 Contoh `employee.repository.ts`
-
-```ts
-// src/modules/employee/employee.repository.ts
-import { openDb } from '../../config/db';
-
-export const EmployeeRepository = {
-  async findAll() {
-    const db = await openDb();
-    return db.all('SELECT * FROM employees ORDER BY nama ASC');
-  },
-
-  async findById(id:number) {
-    const db = await openDb();
-    return db.get('SELECT * FROM employees WHERE id = ?', id);
-  },
-
-  async create(payload:any) {
-    const db = await openDb();
-    const result = await db.run(
-      `INSERT INTO employees (nama, nip, jabatan, departemen, tanggal_masuk) VALUES (?, ?, ?, ?, ?)`,
-      payload.nama, payload.nip, payload.jabatan, payload.departemen, payload.tanggal_masuk
-    );
-    return result.lastID;
-  }
-}
-```
-
-### 3.5 Contoh `server.ts` & `app.ts`
-
-```ts
-// src/app.ts
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import routes from './routes';
-import errorHandler from './middleware/errorHandler';
-
-const app = express();
-app.use(helmet());
-app.use(express.json());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
-app.use('/api', routes);
-app.use(errorHandler);
-export default app;
-
-// src/server.ts
-import app from './app';
-const PORT = process.env.PORT || 3333;
-app.listen(PORT, () => console.log(`API running on ${PORT}`));
-```
-
----
-
-## 4. API spec (endpoints utama)
-
-> Semua endpoint bawah path `/api`
-
-### Auth
-
-* `POST /auth/login` — body `{email, password}` → returns `{ accessToken, refreshToken, user }`
-* `POST /auth/refresh` — body `{ refreshToken }` → returns new tokens
-
-### Employee
-
-* `GET /employees` — list pegawai (query: page, q, dept)
-* `GET /employees/:id` — detail pegawai
-* `POST /employees` — create
-* `PUT /employees/:id` — update
-* `DELETE /employees/:id` — delete
-
-### Attendance
-
-* `POST /attendance/clock-in` — `{ employeeId }`
-* `POST /attendance/clock-out` — `{ employeeId }`
-* `GET /attendance?employeeId=&month=YYYY-MM` — rekap
-
-### Leave
-
-* `GET /leave-requests` — list
-* `POST /leave-requests` — create
-* `PUT /leave-requests/:id` — approve/reject (body `{ status, note }`)
-
-### Payroll
-
-* `GET /payrolls?period=YYYY-MM` — rekap payroll
-* `POST /payrolls/run` — generate gaji bulan
-
-### Performance
-
-* `GET /performance-reviews?employeeId=&period=YYYY-MM`
-* `POST /performance-reviews`
-
-**Response format** (konvensi)
-
-```json
-{
-  "success": true,
-  "data": ...,
-  "meta": { "page": 1, "perPage": 20, "total": 120 }
-}
-```
-
----
-
-## 5. Database schema (sqlite3) — tabel inti
-
-1. Tabel Pegawai
-
-| Kolom                | Tipe      | Keterangan                |
-| -------------------- | --------- | ------------------------- |
-| id                   | TEXT (PK) | ID unik pegawai           |
-| name                 | TEXT      | Nama lengkap              |
-| nip                  | TEXT      | Nomor Induk Pegawai       |
-| position             | TEXT      | Jabatan                   |
-| pangkat              | TEXT      | Pangkat/golongan pegawai  |
-| golongan             | TEXT      | Golongan                  |
-| department           | TEXT      | Departemen tempat bekerja |
-| joinDate             | TEXT      | Tanggal masuk             |
-| avatarUrl            | TEXT      | Foto profil               |
-| jenis_kelamin        | TEXT      | Jenis kelamin             |
-| leaveBalance         | INTEGER   | Sisa cuti                 |
-| isActive             | INTEGER   | Status aktif (1=aktif)    |
-| address              | TEXT      | Alamat                    |
-| phone                | TEXT      | Nomor telepon             |
-| pob                  | TEXT      | Tempat lahir              |
-| dob                  | TEXT      | Tanggal lahir             |
-| religion             | TEXT      | Agama                     |
-| maritalStatus        | TEXT      | Status perkawinan         |
-| numberOfChildren     | INTEGER   | Jumlah anak               |
-| educationHistory     | TEXT      | Riwayat pendidikan        |
-| workHistory          | TEXT      | Riwayat pekerjaan         |
-| trainingCertificates | TEXT      | Sertifikat pelatihan      |
-| payrollInfo          | TEXT      | Informasi gaji            |
-| email                | TEXT      | Email                     |
-| statusKaryawan       | TEXT      | Default `'aktif'`         |
-| tanggalKeluar        | TEXT      | Jika resign               |
-| createdAt            | DATETIME  | Timestamp pembuatan       |
-
-2. Tabel Pengguna
-| Kolom      | Tipe                   | Keterangan                  |
-| ---------- | ---------------------- | --------------------------- |
-| id         | TEXT (PK)              |                             |
-| name       | TEXT                   |                             |
-| email      | TEXT (unik)            |                             |
-| password   | TEXT                   |                             |
-| role       | TEXT                   | `'admin'` atau `'employee'` |
-| employeeId | TEXT (FK → pegawai.id) |                             |
-| createdAt  | DATETIME               |                             |
-
-Relasi:
-🔗 pengguna.employeeId → pegawai.id
-
-
-3. Absensi
-
-| Kolom        | Tipe                     |
-| ------------ | ------------------------ |
-| id           | TEXT (PK)                |
-| employeeId   | TEXT (FK → pegawai.id)   |
-| employeeName | TEXT                     |
-| date         | TEXT                     |
-| clockIn      | TEXT                     |
-| clockOut     | TEXT                     |
-| status       | TEXT (default `'hadir'`) |
-| workDuration | TEXT                     |
-| notes        | TEXT                     |
-| created_at   | DATETIME                 |
-
-
-4. permintaan cuti
-| Kolom              | Tipe                        |
-| ------------------ | --------------------------- |
-| id                 | TEXT (PK)                   |
-| employeeId         | TEXT (FK → pegawai.id)      |
-| employeeName       | TEXT                        |
-| leaveType          | TEXT                        |
-| startDate          | TEXT                        |
-| endDate            | TEXT                        |
-| jumlahHari         | INTEGER                     |
-| reason             | TEXT                        |
-| status             | TEXT (default `'menunggu'`) |
-| supportingDocument | TEXT                        |
-| rejectionReason    | TEXT                        |
-| createdAt          | DATETIME                    |
-
-
-5. penggajian
-
-| Kolom             | Tipe                   |
-| ----------------- | ---------------------- |
-| id                | TEXT (PK)              |
-| employeeId        | TEXT (FK → pegawai.id) |
-| employeeName      | TEXT                   |
-| period            | TEXT                   |
-| baseSalary        | REAL                   |
-| incomes           | TEXT                   |
-| deductions        | TEXT                   |
-| totalIncome       | REAL                   |
-| totalDeductions   | REAL                   |
-| netSalary         | REAL                   |
-| tanggalPembayaran | TEXT                   |
-| createdAt         | DATETIME               |
-
-6. penilaian_kinerja
-| Kolom               | Tipe                   |
-| ------------------- | ---------------------- |
-| id                  | TEXT (PK)              |
-| employeeId          | TEXT (FK → pegawai.id) |
-| employeeName        | TEXT                   |
-| period              | TEXT                   |
-| reviewerName        | TEXT                   |
-| reviewDate          | TEXT                   |
-| overallScore        | REAL                   |
-| status              | TEXT                   |
-| strengths           | TEXT                   |
-| areasForImprovement | TEXT                   |
-| employeeFeedback    | TEXT                   |
-| kpis                | TEXT                   |
-| penilaiId           | TEXT                   |
-| createdAt           | DATETIME               |
-
-
-
-7. kontrak
-
-| Kolom          | Tipe                   |
-| -------------- | ---------------------- |
-| id             | TEXT (PK)              |
-| employeeId     | TEXT (FK → pegawai.id) |
-| contractNumber | TEXT                   |
-| contractType   | TEXT                   |
-| startDate      | TEXT                   |
-| endDate        | TEXT                   |
-| status         | TEXT                   |
-| contractFile   | TEXT                   |
-| terms          | TEXT                   |
-| salary         | REAL                   |
-| notes          | TEXT                   |
-| createdAt      | DATETIME               |
-
-8. pelatihan
-
-| Kolom            | Tipe                   |
-| ---------------- | ---------------------- |
-| id               | INTEGER (PK)           |
-| pegawai_id       | TEXT (FK → pegawai.id) |
-| nama_pelatihan   | TEXT                   |
-| penyelenggara    | TEXT                   |
-| tanggal_mulai    | TEXT                   |
-| tanggal_selesai  | TEXT                   |
-| nomor_sertifikat | TEXT                   |
-
-
-9️⃣ riwayat_jabatan
-
-| Kolom             | Tipe                   |
-| ----------------- | ---------------------- |
-| id                | INTEGER (PK)           |
-| pegawai_id        | TEXT (FK → pegawai.id) |
-| jabatan_lama      | TEXT                   |
-| jabatan_baru      | TEXT                   |
-| tanggal_perubahan | TEXT                   |
-
-
-🔟 tugas_orientasi
-
-| Kolom       | Tipe                   |
-| ----------- | ---------------------- |
-| id          | INTEGER (PK)           |
-| employee_id | TEXT (FK → pegawai.id) |
-| task_name   | TEXT                   |
-| description | TEXT                   |
-| due_date    | TEXT                   |
-| completed   | INTEGER                |
-
-📨 notifikasi
-
-| Kolom       | Tipe                   |
-| ----------- | ---------------------- |
-| id          | INTEGER (PK)           |
-| employee_id | TEXT (FK → pegawai.id) |
-| message     | TEXT                   |
-| type        | TEXT                   |
-| is_read     | INTEGER                |
-| created_at  | DATETIME               |
-
-
-cuti
-
-| Kolom               | Tipe                      |
-| ------------------- | ------------------------- |
-| id_cuti             | INTEGER (PK)              |
-| id_pegawai          | INTEGER (FK → pegawai.id) |
-| jenis_cuti          | TEXT                      |
-| tanggal_mulai       | DATE                      |
-| tanggal_selesai     | DATE                      |
-| alasan              | TEXT                      |
-| status_pengajuan    | TEXT                      |
-| id_atasan_penyetuju | INTEGER                   |
-| created_at          | DATETIME                  |
-
-
-pinjaman_karyawan
-
-| Kolom            | Tipe                      |
-| ---------------- | ------------------------- |
-| id_pinjaman      | INTEGER (PK)              |
-| id_pegawai       | INTEGER (FK → pegawai.id) |
-| tanggal_pinjaman | DATE                      |
-| jumlah           | REAL                      |
-| tenor            | INTEGER                   |
-| cicilan_perbulan | REAL                      |
-| sisa_pinjaman    | REAL                      |
-| status_pinjaman  | TEXT                      |
-| created_at       | DATETIME                  |
-
-
-users
-
-| Kolom      | Tipe                    |
-| ---------- | ----------------------- |
-| id         | INTEGER (PK)            |
-| username   | TEXT                    |
-| email      | TEXT                    |
-| password   | TEXT                    |
-| role       | TEXT                    |
-| employeeId | TEXT (FK → pegawai.nip) |
-| avatarUrl  | TEXT                    |
-| created_at | DATETIME                |
-
-
-
-notifications
-
-| Kolom             | Tipe                    |
-| ----------------- | ----------------------- |
-| id                | TEXT (PK)               |
-| employee_id       | TEXT (FK → pegawai.nip) |
-| message           | TEXT                    |
-| type              | TEXT                    |
-| is_read           | INTEGER                 |
-| created_at        | DATETIME                |
-| scheduled_for     | DATETIME                |
-| delivery_channel  | TEXT                    |
-| related_entity    | TEXT                    |
-| related_entity_id | TEXT                    |
-
-
-pegawai.id ← pengguna.employeeId  
-pegawai.id ← absensi.employeeId  
-pegawai.id ← penggajian.employeeId  
-pegawai.id ← permintaan_cuti.employeeId  
-pegawai.id ← penilaian_kinerja.employeeId  
-pegawai.id ← kontrak.employeeId  
-pegawai.id ← pelatihan.pegawai_id  
-pegawai.id ← riwayat_jabatan.pegawai_id  
-pegawai.id ← tugas_orientasi.employee_id  
-pegawai.id ← notifikasi.employee_id  
-pegawai.id ← cuti.id_pegawai  
-pegawai.id ← pinjaman_karyawan.id_pegawai  
-pegawai.nip ← users.employeeId  
-pegawai.nip ← notifications.employee_id
-
-> NOTE: Buat migration/seed script untuk bikin tabel dan contoh data. Simpan SQL di `apps/backend/db/migrations` atau gunakan simple script JS untuk init DB.
-
----
-
-## 6. Data flow (text diagram)
-
-### Clock-in flow (example)
-
-```
-[Frontend Clock-in Button]
-    ↓ POST /api/attendance/clock-in { employeeId }
-[Express Controller: attendanceController.clockIn]
-    ↓ calls attendanceService.recordClockIn(employeeId)
-[attendanceService] -> validates, calculates lateness
-    ↓ attendanceRepository.insert(...)
-[SQLite DB] -> new attendance row
-    ↑ return success
-[attendanceService] -> returns { success:true, data: attendanceRow }
-[Express] -> response 200 -> Frontend displays successful clock-in
-```
-
-### Payroll run flow
-
-```
-[Frontend admin clicks Run Payroll]
-    ↓ POST /api/payrolls/run { periode: '2025-10' }
-[payroll.controller.runPayroll] 
-    ↓ payroll.service.fetchAllEmployees()
-    ↓ for each employee: compute gaji using attendance, leave, tunjangan rules
-    ↓ payroll.repository.insert(payrollRecord)
-[DB] store payroll records
-[Controller] -> respond with summary & downloadable slips
-```
-
----
-
-## 7. Auth, security & best practices
-
-### 7.1 Authentication
-
-* Login returns **Access Token (short)** & **Refresh Token (long)**.
-* Access token used in `Authorization: Bearer <token>` header.
-* Refresh token stored in HTTP-only cookie (if web) or handled securely.
-
-### 7.2 Security middleware (recommended)
-
-* `helmet()` — HTTP headers hardening
-* `express-rate-limit` — block abuse
-* `express-validator` / `zod` — validate input body
-* `xss-clean` / sanitize inputs if accepting HTML
-* Use parameterized sqlite queries (avoid string interpolation) or use prepared statements.
-
-### 7.3 Passwords
-
-* Hash with `bcrypt` (salt rounds >= 10)
-* Never store raw password; use `.env` for secrets (JWT_SECRET).
-
-### 7.4 CORS
-
-* Restrict `CORS_ORIGIN` to frontend domain (e.g., `https://app.example.com`)
-
----
-
-## 8. Local development & npm scripts
-
-### Backend `apps/backend/package.json` (suggestion)
-
-```json
-{
-  "name": "portal-sdm-backend",
-  "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "start": "node dist/server.js",
-    "build": "tsc",
-    "migrate": "node scripts/init_db.js",
-    "seed": "node scripts/seed_db.js"
-  }
-}
-```
-
-### Frontend `apps/frontend/package.json` (suggestion)
-
-```json
-{
-  "name": "hrms-frontend",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  }
-}
-```
-
-### Developing locally
-
-* Run backend: `cd apps/backend && npm run dev`
-* Run frontend: `cd apps/frontend && npm run dev`
-* Environment variables in `.env` (top-level or per app)
-
----
-
-## 9. Testing & CI recommendations
-
-* Unit tests: **Vitest** (frontend) + **Jest/Vitest** (backend)
-* Integration tests: **supertest** (API)
-* Mocking: **msw** (frontend)
-* Lint & format: **ESLint**, **Prettier**
-* CI pipeline (GitHub Actions):
-
-  * Steps: checkout → install → lint → test → build
-  * For main branch, create release artifacts (frontend build & backend dist)
-
----
-
-## 10. Deployment guide (VPS + Nginx + PM2)
-
-
-
-## 11. Docs & maintenance checklist
-
-* Add `docs/ERD.png` (diagram) — keep in repo.
-* Keep migration scripts up to date in `apps/backend/db/migrations/`.
-* Add `CONTRIBUTING.md` describing feature development flow.
-* Add `CHANGELOG.md` for releases.
-
----
-
-## Appendix A — Example env variables
-
-`.env` (backend)
-
-```
-PORT=3333
-NODE_ENV=production
-DB_SOURCE=./database.sqlite
-JWT_SECRET=YOUR_SECRET
-CORS_ORIGIN=https://app.yourdomain.com
-```
-
-`.env` (frontend)
-
-```
-VITE_API_BASE=https://api.yourdomain.com/api
-```
-
----
-
-## Appendix B — Quickstart (Developers)
-
-1. Clone repo
-2. `cd hrms/apps/backend && npm install && npm run migrate && npm run seed && npm run dev`
-3. `cd hrms/apps/frontend && npm install && npm run dev`
-4. Open `http://localhost:5173`
-
----
-
-## Appendix C — Checklist sebelum produksi
-
-* [ ] Pastikan `JWT_SECRET` set dan kuat
-* [ ] Hapus sample accounts & seed data
-* [ ] Ganti `CORS_ORIGIN` dengan domain produksi
-* [ ] Set file permissions untuk `database.sqlite`
-* [ ] Setup PM2 auto-start & logrotate
-* [ ] Setup HTTPS + HTTP → HTTPS redirect
-
----
-
-## Penutup
-
-Dokumen ini adalah blueprint production-ready untuk HRMS yang modular, dapat di-scale, dan sesuai praktik engineering modern. Jika kamu ingin, aku bisa:
-
-* Meng-generate `apps/backend` starter files (controller/service/repository) lengkap dengan migration & seed script untuk `sqlite3`.
-* Atau generate `apps/frontend` starter (React + TypeScript + Vite + Tailwind) yang terhubung ke API local.
+## Modul Backend yang Ada
+
+Folder `apps/backend/src/modules` saat ini berisi:
+
+- `pegawai`
+- `absensi`
+- `cuti`
+- `penggajian`
+- `kinerja`
+- `pelatihan`
+- `kontrak`
+- `perekrutan`
+- `orientasi`
+- `notifikasi`
+- `laporan`
+- `dashboard`
+- `pengguna`
+- `company-settings`
+- `permintaanPerubahanData`
+- `workload`
+- `kpi`
+- `jabatan`
+- `task`
+- `log-aktivitas-harian`
+- `activity-library`
+- `integration`
+- `audit-log`
+- `changelog`
+- `backup`
+- `performance-management`
+
+## API Route Root (Aktual)
+
+Semua route dipasang di prefix `/api`, dengan root path berikut:
+
+- `/auth`
+- `/users`
+- `/employees`
+- `/leave-requests`
+- `/attendance`
+- `/performance-reviews`
+- `/payrolls`
+- `/data-change-requests`
+- `/recruitment`
+- `/onboarding`
+- `/notifikasi`
+- `/contracts`
+- `/pelatihan`
+- `/backup`
+- `/company-settings`
+- `/reports`
+- `/dashboard`
+- `/workload`
+- `/activity-library`
+- `/kpi-targets`
+- `/kpi-templates`
+- `/jabatan`
+- `/log-aktivitas-harian`
+- `/tasks`
+- `/integrations`
+- `/audit-logs`
+- `/changelog`
+- `/performance-cycle`
+- plus route upload dari `routes/upload`
+
+## Catatan Arsitektur Runtime Backend
+
+- `app.ts` sudah memakai `helmet`, `cors`, JSON parser, dan middleware `requestContext`.
+- CORS memakai allowlist + fallback untuk development.
+- Static assets disajikan dari:
+  - `/uploads`
+  - `/avatars`
+  - `/documents`
+  - `/logos`
+- Server juga melayani frontend statis (`public`) dengan SPA fallback.
+- `server.ts` menjalankan migration ringan saat startup dan scheduler job otomatis.
+
+## Frontend Feature Saat Ini
+
+Di `apps/frontend/src/features` ada modul utama numerik dan modul pendukung:
+
+- Modul utama: `01-pegawai` s.d. `10-notifikasi`
+- Modul pendukung: `auth`, `autentikasi`, `dasbor`, `landing`, `orientasi`, `pengaturan`
+
+## NPM Scripts (Aktual)
+
+### Backend (`apps/backend/package.json`)
+
+- `npm run dev` → jalankan API dengan `ts-node-dev`
+- `npm run build` → compile TypeScript
+- `npm run start` → jalankan hasil build
+- `npm run migrate` → `ts-node db/migrate.ts`
+- `npm run seed` → `ts-node db/seed.ts`
+- `npm run reset` → reset database script
+- `npm run test:performance-cycle` → integration test performance cycle
+
+### Frontend (`apps/frontend/package.json`)
+
+- `npm run dev` → Vite dev server
+- `npm run build` → build production (`tsc && vite build`)
+- `npm run preview` → preview hasil build
+- `npm run lint` → lint TypeScript/TSX
+- `npm run test` / `test:watch` / `test:coverage` → Jest
+
+## Cara Menjalankan Lokal
+
+1. Backend
+   - `cd apps/backend`
+   - `npm install`
+   - `npm run dev`
+2. Frontend
+   - `cd apps/frontend`
+   - `npm install`
+   - `npm run dev`
+
+Default local:
+
+- API: `http://localhost:3333`
+- Frontend: `http://localhost:5173`
+
+## Catatan Data & Database
+
+- File database aktif di root: `database.sqlite`.
+- Terdapat beberapa file backup SQLite di root project untuk recovery/migrasi data.
+- Hindari overwrite database produksi secara manual; gunakan script migrasi yang tersedia.
+
+## Referensi Utama
+
+- `README.md` untuk pengantar proyek
+- `apps/backend/src/routes/index.ts` untuk daftar route terkini
+- `apps/backend/package.json` dan `apps/frontend/package.json` untuk script terbaru
+- `QWEN.md` sebagai dokumen pendamping lama (jika masih dipakai tim)
+
+## Panduan Endpoint per Modul (Untuk Junior Programmer)
+
+Semua endpoint di bawah memakai prefix `/api`.  
+Contoh: jika tertulis `GET /employees`, endpoint penuhnya adalah `GET /api/employees`.
+
+### 1) Autentikasi (`/auth`)
+
+- Tujuan: login/register user aplikasi.
+- Endpoint:
+  - `POST /auth/login`
+  - `POST /auth/register`
+- Catatan pengembangan:
+  - Simpan logic validasi kredensial di controller/service auth.
+  - Jika menambah endpoint auth baru, pastikan kontrak response konsisten (`success`, `data/message`).
+
+### 2) Pengguna (`/users`)
+
+- Tujuan: kelola akun pengguna.
+- Endpoint:
+  - `GET /users`
+  - `GET /users/:id`
+  - `PUT /users/:id`
+  - `PUT /users/:id/password`
+  - `POST /users/:id/avatar` (multipart field: `avatar`)
+  - `DELETE /users/:id`
+- Catatan:
+  - Endpoint avatar sudah pakai upload middleware.
+  - Fitur sensitif (password/profile) sebaiknya tetap lewat validasi role + ownership.
+
+### 3) Pegawai (`/employees`)
+
+- Tujuan: master data pegawai + statistik dasar.
+- Endpoint:
+  - `GET /employees`
+  - `GET /employees/:id`
+  - `POST /employees`
+  - `POST /employees/with-user`
+  - `PUT /employees/:id`
+  - `PUT /employees/:id/payroll-info`
+  - `DELETE /employees/:id`
+  - `GET /employees/charts/gender-distribution`
+  - `GET /employees/charts/education-distribution`
+  - `GET /employees/charts/department-distribution`
+- Catatan:
+  - Pembuatan pegawai bisa sekaligus pembuatan akun (`with-user`).
+  - Untuk perubahan skema pegawai, update query laporan dan dashboard juga.
+
+### 4) Absensi (`/attendance`)
+
+- Tujuan: clock-in/out dan administrasi data kehadiran.
+- Endpoint:
+  - `GET /attendance`
+  - `GET /attendance/:id`
+  - `GET /attendance/employee/:id`
+  - `POST /attendance/clock-in`
+  - `POST /attendance/clock-out`
+  - `POST /attendance/upload` (multipart field: `file`)
+  - `POST /attendance`
+  - `PUT /attendance/:id`
+  - `DELETE /attendance/:id`
+- Catatan:
+  - `clock-in`/`clock-out` untuk alur operasional harian.
+  - `upload` dipakai untuk import/bulk log.
+
+### 5) Cuti (`/leave-requests`)
+
+- Tujuan: pengajuan, persetujuan, dan saldo cuti.
+- Endpoint:
+  - `GET /leave-requests`
+  - `GET /leave-requests/batch-sisa-cuti`
+  - `GET /leave-requests/cuti-bersama`
+  - `GET /leave-requests/employee/:employeeId`
+  - `GET /leave-requests/sisa-cuti/:employeeId`
+  - `GET /leave-requests/:id`
+  - `POST /leave-requests` (multipart optional field: `supportingDocument`)
+  - `PUT /leave-requests/:id/status`
+  - `DELETE /leave-requests/:id`
+- Catatan:
+  - Endpoint status adalah titik utama workflow approval.
+  - Saat menambah tipe cuti baru, cek dampaknya ke payroll dan laporan.
+
+### 6) Penggajian (`/payrolls`)
+
+- Tujuan: kelola payroll record dan proses payroll periodik.
+- Endpoint:
+  - `GET /payrolls`
+  - `GET /payrolls/:id`
+  - `GET /payrolls/employee/:id`
+  - `POST /payrolls`
+  - `POST /payrolls/run`
+  - `POST /payrolls/:id/components`
+  - `PATCH /payrolls/:id/status` (admin only)
+  - `PUT /payrolls/:id`
+  - `DELETE /payrolls/:id`
+  - `GET /payrolls/:id/download`
+- Catatan:
+  - `run` dipakai untuk generate payroll massal.
+  - `components` cocok untuk allowance/deduction terpisah.
+
+### 7) Penilaian Kinerja (`/performance-reviews`)
+
+- Tujuan: siklus review kinerja individual.
+- Endpoint:
+  - `GET /performance-reviews`
+  - `GET /performance-reviews/:id`
+  - `GET /performance-reviews/employee/:id`
+  - `POST /performance-reviews`
+  - `PUT /performance-reviews/:id`
+  - `PUT /performance-reviews/:id/feedback`
+  - `PUT /performance-reviews/:id/self-assessment`
+  - `PUT /performance-reviews/:id/transition`
+  - `DELETE /performance-reviews/:id`
+- Catatan:
+  - Ada pembatasan akses berbasis role dan ownership pada beberapa endpoint.
+  - Endpoint `transition` adalah pengendali status workflow review.
+
+### 8) KPI Target (`/kpi-targets`) dan KPI Template (`/kpi-templates`)
+
+- Tujuan: manajemen target KPI dan penerapan template KPI.
+- Endpoint KPI target:
+  - `GET /kpi-targets/summary`
+  - `GET /kpi-targets`
+  - `GET /kpi-targets/employee/:employeeId`
+  - `GET /kpi-targets/:id`
+  - `POST /kpi-targets`
+  - `POST /kpi-targets/generate-from-abk`
+  - `POST /kpi-targets/rebalance`
+  - `POST /kpi-targets/sync-wla`
+  - `PUT /kpi-targets/:id`
+  - `PUT /kpi-targets/:id/actual` (multipart field: `evidence`)
+  - `POST /kpi-targets/:id/evidence` (multipart field: `evidence`)
+  - `DELETE /kpi-targets/:id`
+- Endpoint KPI template:
+  - `GET /kpi-templates`
+  - `POST /kpi-templates/apply`
+- Catatan:
+  - Mayoritas write endpoint KPI dibatasi role manajerial.
+  - `apply` pada template akan membuat entri `kpi_targets` untuk employee + period.
+
+### 9) Performance Cycle Orchestration (`/performance-cycle`)
+
+- Tujuan: orkestrasi siklus performa (level batch/periode).
+- Endpoint:
+  - `POST /performance-cycle/open`
+  - `POST /performance-cycle/sync-kpi`
+  - `POST /performance-cycle/create-reviews`
+  - `POST /performance-cycle/finalize`
+- Catatan:
+  - Endpoint ini cocok dipanggil admin pada milestone periodik.
+  - Saat ubah alur cycle, pastikan sinkron dengan modul kinerja + KPI.
+
+### 10) Jabatan (`/jabatan`)
+
+- Tujuan: struktur jabatan dan hirarki organisasi.
+- Endpoint:
+  - `GET /jabatan`
+  - `GET /jabatan/:id`
+  - `POST /jabatan`
+  - `PUT /jabatan/:id`
+  - `DELETE /jabatan/:id`
+  - `GET /jabatan/tree`
+  - `GET /jabatan/tree-with-employees`
+  - `GET /jabatan/level/:level`
+  - `GET /jabatan/subordinates/:pegawaiId`
+- Catatan:
+  - Dipakai untuk kebutuhan struktur approval dan reporting line.
+
+### 11) Kontrak (`/contracts`)
+
+- Tujuan: kelola kontrak kerja + riwayat jabatan.
+- Endpoint:
+  - `GET /contracts`
+  - `GET /contracts/:id`
+  - `GET /contracts/expiring`
+  - `GET /contracts/employee/:employeeId`
+  - `POST /contracts` (multipart field: `contractFile`)
+  - `PUT /contracts/:id` (multipart field: `contractFile`)
+  - `DELETE /contracts/:id`
+  - `GET /contracts/job-history/employee/:id`
+  - `POST /contracts/job-history/employee/:id`
+- Catatan:
+  - `expiring` penting untuk reminder otomatis.
+
+### 12) Pelatihan (`/pelatihan`)
+
+- Tujuan: data training dan sertifikat pegawai.
+- Endpoint:
+  - `GET /pelatihan`
+  - `GET /pelatihan/employee/:id`
+  - `POST /pelatihan/employee/:id` (multipart field: `certificate`)
+- Catatan:
+  - Attachment sertifikat dikelola melalui upload middleware.
+
+### 13) Perekrutan (`/recruitment`)
+
+- Tujuan: CRUD data kandidat.
+- Endpoint:
+  - `GET /recruitment/candidates`
+  - `GET /recruitment/candidates/:id`
+  - `POST /recruitment/candidates`
+  - `PUT /recruitment/candidates/:id`
+  - `DELETE /recruitment/candidates/:id`
+
+### 14) Orientasi (`/onboarding`)
+
+- Tujuan: tugas onboarding pegawai baru.
+- Endpoint:
+  - `GET /onboarding/employee/:employeeId/tasks`
+  - `POST /onboarding/employee/:employeeId/tasks`
+  - `PUT /onboarding/tasks/:taskId`
+  - `DELETE /onboarding/tasks/:taskId`
+
+### 15) Task Operasional (`/tasks`)
+
+- Tujuan: assignment task supervisor-employee.
+- Endpoint:
+  - `POST /tasks`
+  - `GET /tasks/supervisor/:supervisor_id`
+  - `GET /tasks/employee/:employee_id`
+  - `PUT /tasks/:id/status`
+  - `DELETE /tasks/:id`
+- Catatan:
+  - Sudah ada guard scope (`ensure*Scope`) + role restriction.
+  - Pattern ini bisa dijadikan referensi untuk modul yang butuh ownership check.
+
+### 16) Workload Analysis (`/workload`)
+
+- Tujuan: analisis beban kerja per employee.
+- Endpoint:
+  - `GET /workload/:employeeId`
+  - `POST /workload`
+  - `PUT /workload/:id/submit`
+  - `PUT /workload/:id/approve`
+- Catatan:
+  - `submit`/`approve` merepresentasikan tahapan workflow.
+
+### 17) Log Aktivitas Harian (`/log-aktivitas-harian`)
+
+- Tujuan: pencatatan aktivitas kerja harian + approval.
+- Endpoint:
+  - `POST /log-aktivitas-harian/bulk`
+  - `POST /log-aktivitas-harian`
+  - `GET /log-aktivitas-harian/my-logs`
+  - `GET /log-aktivitas-harian/summary`
+  - `GET /log-aktivitas-harian/admin/summary`
+  - `GET /log-aktivitas-harian/admin/logs`
+  - `PUT /log-aktivitas-harian/:id/status`
+- Catatan:
+  - Endpoint admin dibatasi role `admin/pimpinan/supervisor`.
+
+### 18) Notifikasi (`/notifikasi`)
+
+- Tujuan: notifikasi user dan status baca.
+- Endpoint:
+  - `GET /notifikasi/employee/:employeeId`
+  - `GET /notifikasi/employee/:employeeId/unread`
+  - `POST /notifikasi/employee/:employeeId`
+  - `PUT /notifikasi/:notificationId/read`
+  - `GET /notifikasi/scheduled`
+- Catatan:
+  - Untuk reminder otomatis terjadwal, cek scheduler di backend jobs.
+
+### 19) Laporan (`/reports`)
+
+- Tujuan: laporan operasional, analitik, ekspor, custom report.
+- Endpoint standard:
+  - `GET /reports/employees`
+  - `GET /reports/attendance`
+  - `GET /reports/payroll`
+  - `GET /reports/leave`
+  - `GET /reports/performance`
+  - `GET /reports/turnover`
+  - `GET /reports/demographics`
+- Endpoint analitik:
+  - `GET /reports/employees/comprehensive`
+  - `GET /reports/attendance/analytics`
+  - `GET /reports/payroll/analytics`
+- Endpoint export:
+  - `GET /reports/employees/export`
+  - `GET /reports/attendance/export`
+  - `GET /reports/payroll/export`
+  - `GET /reports/leave/export`
+  - `GET /reports/performance/export`
+- Endpoint custom report:
+  - `GET /reports/custom/metadata`
+  - `POST /reports/custom/generate`
+  - `POST /reports/custom/export`
+- Catatan:
+  - Untuk fitur baru, prioritaskan reuse service query agar endpoint standar dan export tetap sinkron.
+
+### 20) Dashboard (`/dashboard`)
+
+- Tujuan: agregasi metrik untuk role tertentu.
+- Endpoint:
+  - `GET /dashboard/admin`
+  - `GET /dashboard/supervisor`
+  - `GET /dashboard/employee/:employeeId`
+  - `GET /dashboard/recent-activity`
+
+### 21) Company Settings (`/company-settings`)
+
+- Tujuan: profil perusahaan dan branding.
+- Endpoint:
+  - `GET /company-settings`
+  - `PUT /company-settings` (multipart field: `logo`)
+
+### 22) Activity Library (`/activity-library`)
+
+- Tujuan: katalog aktivitas acuan.
+- Endpoint:
+  - `GET /activity-library`
+  - `GET /activity-library/positions`
+  - `GET /activity-library/position/:position`
+  - `GET /activity-library/:id`
+  - `POST /activity-library`
+  - `PUT /activity-library/:id`
+  - `DELETE /activity-library/:id`
+- Catatan:
+  - Semua endpoint butuh auth token; write endpoint dibatasi `admin/pimpinan`.
+
+### 23) Audit Log (`/audit-logs`) dan Changelog (`/changelog`)
+
+- Tujuan: jejak perubahan sistem.
+- Endpoint audit:
+  - `GET /audit-logs`
+  - `POST /audit-logs`
+- Endpoint changelog:
+  - `GET /changelog`
+  - `POST /changelog`
+- Catatan:
+  - Keduanya dibatasi role `admin/pimpinan`.
+
+### 24) Integration API (`/integrations`)
+
+- Tujuan: endpoint konsumsi sistem eksternal (API key based).
+- Endpoint:
+  - `GET /integrations/employees`
+  - `GET /integrations/attendance`
+  - `GET /integrations/leaves`
+  - `POST /integrations/attendance`
+  - `POST /integrations/daily-activities`
+- Catatan:
+  - Endpoint ini menggunakan `apiKeyMiddleware`, bukan JWT user login biasa.
+
+### 25) Backup (`/backup`)
+
+- Tujuan: backup dan restore data.
+- Endpoint:
+  - `POST /backup/backup`
+  - `POST /backup/restore`
+
+### Checklist Saat Menambah Endpoint Baru
+
+- Tambahkan route di file modul `*.routes.ts`, lalu daftarkan di `apps/backend/src/routes/index.ts` jika modul baru.
+- Pisahkan tanggung jawab Controller → Service → Repository (jangan query SQL kompleks di route).
+- Reuse middleware yang ada: `authenticateToken`, `restrictTo`, dan middleware scope/ownership.
+- Definisikan validasi request body/query/path secara eksplisit sebelum logic bisnis.
+- Jaga konsistensi bentuk response agar frontend mudah integrasi.
+- Tambahkan minimal 1 skenario test untuk success path dan 1 untuk error path.
+
+## Changelog Dokumen
+
+- April 2026: `GEMINI.md` disesuaikan total ke kondisi repo aktual (struktur folder, modul backend/frontend, route root, script, dan runtime behavior).
