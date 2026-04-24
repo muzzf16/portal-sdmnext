@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticateToken);
 
 router.get('/summary', restrictTo('admin', 'supervisor'), KpiController.getSummary);
+router.get('/monitoring-summary', restrictTo('admin', 'supervisor'), KpiController.getMonitoringSummary);
 router.get('/', KpiController.getAll);
 router.get('/employee/:employeeId', KpiController.getByEmployeeId);
 router.get('/:id', KpiController.getById);

@@ -359,6 +359,18 @@ export const useKpiSummary = (startDate: string, endDate: string, enabled = true
     staleTime: 15 * 1000
   });
 
+export const useKpiMonitoringSummary = (startDate: string, endDate: string, enabled = true) =>
+  useQuery({
+    queryKey: ['kpi', 'monitoring-summary', startDate, endDate],
+    queryFn: async () => {
+      const { getMonitoringSummary } = await import('../api/kpiApi');
+      const response = await getMonitoringSummary({ startDate, endDate });
+      return response.data?.data || [];
+    },
+    enabled: enabled && !!startDate && !!endDate,
+    staleTime: 15 * 1000
+  });
+
 export const useKpiTemplates = (enabled = true) =>
   useQuery({
     queryKey: PERFORMANCE_QUERY_KEYS.kpi.templates(),

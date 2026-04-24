@@ -19,6 +19,15 @@ export const getKpiSummary = (filters: { employeeId?: string; period?: string; s
     return api.get<{ success: boolean; data: KpiSummaryRow[] }>(`/kpi-targets/summary?${params.toString()}`);
 };
 
+export const getMonitoringSummary = (filters: { employeeId?: string; period?: string; startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters.period) params.append('period', filters.period);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    return api.get<{ success: boolean; data: any[] }>(`/kpi-targets/monitoring-summary?${params.toString()}`);
+};
+
 export const getKpiByEmployeeId = (employeeId: string) =>
     api.get<{ success: boolean; data: KpiTarget[] }>(`/kpi-targets/employee/${employeeId}`);
 

@@ -3,9 +3,8 @@ import clsx from 'clsx';
 import { Download, Search, Target } from 'lucide-react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { KpiSummaryRow } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
-import { useKpiSummary } from '../hooks/usePerformanceManagementQuery';
+import { useKpiMonitoringSummary } from '../hooks/usePerformanceManagementQuery';
 
 interface KpiSummaryViewProps {
     isActive: boolean;
@@ -13,25 +12,29 @@ interface KpiSummaryViewProps {
 
 const getTodayString = () => new Date().toISOString().split('T')[0];
 
-const getScoreLabel = (score: number) => {
-    if (score >= 5) return 'Sangat Baik';
-    if (score >= 4) return 'Baik';
-    if (score >= 3) return 'Cukup';
-    if (score >= 2) return 'Kurang';
-    if (score >= 1) return 'Sangat Kurang';
-    return '-';
+const EFFECTIVE_WORKING_MINUTES = 480;
+
+const getWorkingDays = (start: string, end: string) => {
+    const startDateObj = new Date(start);
+    const endDateObj = new Date(end);
+    let count = 0;
+    let curDate = new Date(startDateObj.getTime());
+    while (curDate <= endDateObj) {
+        const dayOfWeek = curDate.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            count++;
+        }
+        curDate.setDate(curDate.getDate() + 1);
+    }
+    return count > 0 ? count : 1;
 };
 
-const getStatusBadge = (status: KpiSummaryRow['statusSummary']) => {
-    const statusMap = {
-        empty: { label: 'Belum Ada KPI', className: 'bg-gray-100 text-gray-600' },
-        draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700' },
-        waiting_approval: { label: 'Menunggu', className: 'bg-amber-100 text-amber-800' },
-        active: { label: 'Aktif', className: 'bg-blue-100 text-blue-800' },
-        completed: { label: 'Selesai', className: 'bg-green-100 text-green-800' },
-    };
-
-    return statusMap[status];
+const getScoreCategory = (score: number) => {
+    if (score >= 90) return { label: 'Sangat Baik', className: 'bg-green-100 text-green-800' };
+    if (score >= 75) return { label: 'Baik', className: 'bg-blue-100 text-blue-800' };
+    if (score >= 60) return { label: 'Cukup', className: 'bg-yellow-100 text-yellow-800' };
+    if (score >= 40) return { label: 'Kurang', className: 'bg-orange-100 text-orange-800' };
+    return { label: 'Sangat Kurang', className: 'bg-red-100 text-red-800' };
 };
 
 const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
@@ -39,8 +42,10 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
     const [startDate, setStartDate] = useState<string>(getTodayString());
     const [endDate, setEndDate] = useState<string>(getTodayString());
     const { settings: companySettings } = useCompanySettings();
-    const summaryQuery = useKpiSummary(startDate, endDate, isActive && !!startDate && !!endDate && startDate <= endDate);
-    const summaries = (summaryQuery.data ?? []) as KpiSummaryRow[];
+    
+    // Pass startDate/endDate as period filters
+    const summaryQuery = useKpiMonitoringSummary(startDate, endDate, isActive && !!startDate && !!endDate && startDate <= endDate);
+    const rawSummaries = (summaryQuery.data ?? []) as any[];
     const loading = summaryQuery.isLoading || summaryQuery.isFetching;
     const error = !startDate || !endDate
         ? 'Pilih rentang tanggal terlebih dahulu.'
@@ -48,18 +53,53 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
             ? 'Tanggal akhir harus sama atau setelah tanggal mulai.'
             : ((summaryQuery.error as Error | null)?.message ?? null);
 
+    const processedSummaries = useMemo(() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const effectiveEndDate = endDate && endDate > today ? today : endDate;
+        const workingDays = startDate && effectiveEndDate ? getWorkingDays(startDate, effectiveEndDate) : 1;
+        const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
+
+        return rawSummaries.map((summary) => {
+            const totalDurasiMenit = summary.totalDurasiMenit || 0;
+            const wlaPercentage = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
+
+            const nplTargetFinal = summary.khusus.nplTarget >= 1000000 ? summary.khusus.nplTarget : 50000000;
+            const kreditTargetFinal = summary.khusus.kreditTarget >= 1000000 ? summary.khusus.kreditTarget : 100000000;
+            const danaTargetFinal = summary.khusus.danaTarget >= 1000000 ? summary.khusus.danaTarget : 100000000;
+
+            const totalActual = summary.khusus.nplActual + summary.khusus.kreditActual + summary.khusus.danaActual;
+            const totalTarget = nplTargetFinal + kreditTargetFinal + danaTargetFinal;
+
+            let khususPercentage = 0;
+            if (totalTarget > 0) {
+                khususPercentage = Math.min((totalActual / totalTarget) * 100, 100);
+            } else {
+                khususPercentage = totalActual > 0 ? 100 : 0;
+            }
+
+            const finalTotal = (wlaPercentage * 0.8) + (khususPercentage * 0.2);
+
+            return {
+                ...summary,
+                wlaPercentage,
+                khususPercentage,
+                finalTotal
+            };
+        });
+    }, [rawSummaries, startDate, endDate]);
+
     const filteredSummaries = useMemo(() => {
         const normalizedSearch = searchQuery.toLowerCase();
 
-        return [...summaries]
+        return [...processedSummaries]
             .filter((summary) =>
                 !normalizedSearch
                 || summary.employeeName.toLowerCase().includes(normalizedSearch)
                 || summary.department.toLowerCase().includes(normalizedSearch)
                 || summary.position.toLowerCase().includes(normalizedSearch)
             )
-            .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
-    }, [searchQuery, summaries]);
+            .sort((a, b) => b.finalTotal - a.finalTotal || a.employeeName.localeCompare(b.employeeName));
+    }, [searchQuery, processedSummaries]);
 
     const handleExport = () => {
         if (filteredSummaries.length === 0) {
@@ -68,16 +108,16 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
         }
 
         const headerRows = [
-            '"Rekap KPI Seluruh Karyawan"',
+            '"Rekap Monitoring KPI Seluruh Karyawan"',
             `"${companySettings?.companyName || 'PT BPR BAPERA BATANG'}"`,
             `"Periode ${startDate} s/d ${endDate}"`,
             '',
         ];
 
-        const columns = ['Karyawan', 'NIP', 'Departemen', 'Jabatan', 'Total KPI', 'Total Bobot (%)', 'Skor KPI (Tertimbang)', 'Status KPI'];
+        const columns = ['Nama Karyawan', 'Jabatan', 'Beban Kerja FTE (80%)', 'Pencapaian Khusus (20%)', 'Total Pencapaian / Skor'];
         const dataRows = filteredSummaries.map((summary) => {
-            const statusBadge = getStatusBadge(summary.statusSummary);
-            return `"${summary.employeeName}","${summary.nip}","${summary.department}","${summary.position}","${summary.totalKpi}","${summary.totalWeight}","${summary.weightedScore.toFixed(2)} / 5","${statusBadge.label}"`;
+            const scoreCategory = getScoreCategory(summary.finalTotal);
+            return `"${summary.employeeName}","${summary.position}","${summary.wlaPercentage.toFixed(1)}%","${summary.khususPercentage.toFixed(1)}%","${summary.finalTotal.toFixed(1)}% (${scoreCategory.label})"`;
         });
 
         const csvContent = [...headerRows, columns.join(','), ...dataRows].join('\n');
@@ -86,7 +126,7 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `Rekap_KPI_${startDate}_to_${endDate}.csv`);
+        link.setAttribute('download', `Rekap_Monitoring_KPI_${startDate}_to_${endDate}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -99,7 +139,7 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
                 {companySettings?.logo && (
                     <img src={companySettings.logo} alt="Logo" className="absolute left-0 top-0 h-16 w-auto object-contain" />
                 )}
-                <h2 className="text-xl font-bold uppercase underline">Rekap KPI Seluruh Karyawan</h2>
+                <h2 className="text-xl font-bold uppercase underline">Rekap Monitoring KPI Seluruh Karyawan</h2>
                 <h3 className="text-lg font-bold">{companySettings?.companyName || 'PT BPR BAPERA BATANG'}</h3>
                 <p className="text-md font-bold">Periode {startDate} s/d {endDate}</p>
             </div>
@@ -108,10 +148,10 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                         <Target className="mr-2 h-6 w-6 text-indigo-600" />
-                        Rekap KPI Seluruh Karyawan
+                        Rekap Monitoring KPI Seluruh Karyawan
                     </h2>
                     <p className="text-gray-500 text-sm mt-1">
-                        Monitor rekap KPI karyawan berdasarkan rentang tanggal periode yang dipilih.
+                        Monitor rekapan hasil monitoring KPI karyawan (WLA FTE &amp; KPI Khusus) berdasarkan rentang tanggal periode yang dipilih.
                     </p>
                 </div>
             </div>
@@ -173,33 +213,32 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
                         <table className="w-full text-sm text-left align-middle print:w-full print:table-fixed">
                             <thead className="bg-gray-50 text-gray-700 uppercase font-medium text-xs">
                                 <tr>
-                                    <th className="px-6 py-4 border-b">Karyawan</th>
-                                    <th className="px-6 py-4 border-b">Departemen / Jabatan</th>
-                                    <th className="px-6 py-4 border-b text-center">Total KPI</th>
-                                    <th className="px-6 py-4 border-b text-center">Total Bobot</th>
-                                    <th className="px-6 py-4 border-b text-center">Skor KPI</th>
-                                    <th className="px-6 py-4 border-b text-center">Status</th>
+                                    <th className="px-6 py-4 border-b w-1/4">Nama Karyawan</th>
+                                    <th className="px-6 py-4 border-b w-1/4">Jabatan</th>
+                                    <th className="px-6 py-4 border-b text-center w-1/6">Beban Kerja FTE (80%)</th>
+                                    <th className="px-6 py-4 border-b text-center w-1/6">Pencapaian Khusus (20%)</th>
+                                    <th className="px-6 py-4 border-b text-center w-1/6">Total Pencapaian / Skor</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                             <div className="flex justify-center items-center">
                                                 <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mr-2"></span>
-                                                Memuat rekap KPI...
+                                                Memuat rekapan monitoring KPI...
                                             </div>
                                         </td>
                                     </tr>
                                 ) : filteredSummaries.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                                            Tidak ada data KPI untuk tanggal terpilih atau pencarian tidak cocok.
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                            Tidak ada data untuk tanggal terpilih atau pencarian tidak cocok.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredSummaries.map((summary) => {
-                                        const statusBadge = getStatusBadge(summary.statusSummary);
+                                        const scoreCategory = getScoreCategory(summary.finalTotal);
 
                                         return (
                                             <tr key={summary.employeeId} className="hover:bg-indigo-50/30 transition-colors">
@@ -208,28 +247,32 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
                                                     <div className="text-xs text-gray-500">NIP: {summary.nip || '-'}</div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="font-medium text-gray-800">{summary.department || '-'}</div>
-                                                    <div className="text-xs text-gray-500">{summary.position || '-'}</div>
+                                                    <div className="font-medium text-gray-800">{summary.position || '-'}</div>
+                                                    <div className="text-xs text-gray-500">{summary.department || '-'}</div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center font-medium">
-                                                    {summary.totalKpi}
+                                                    <span className={clsx(
+                                                        'inline-flex px-2.5 py-1 rounded-full text-xs font-semibold',
+                                                        summary.wlaPercentage >= 80 ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                                                    )}>
+                                                        {summary.wlaPercentage.toFixed(1)}%
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <span className={clsx(
                                                         'inline-flex px-2.5 py-1 rounded-full text-xs font-semibold',
-                                                        summary.totalWeight === 100 ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                                                        summary.khususPercentage >= 100 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                                                     )}>
-                                                        {summary.totalWeight}%
+                                                        {summary.khususPercentage.toFixed(1)}%
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <span className="font-semibold text-gray-900">{summary.weightedScore.toFixed(2)} / 5</span>
-                                                    <div className="text-xs text-gray-500 mt-1">{getScoreLabel(summary.weightedScore)}</div>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={clsx('inline-flex px-2.5 py-1 rounded-full text-xs font-medium', statusBadge.className)}>
-                                                        {statusBadge.label}
-                                                    </span>
+                                                    <div className="font-bold text-gray-900 text-lg">{summary.finalTotal.toFixed(1)}%</div>
+                                                    <div className="mt-1">
+                                                        <span className={clsx('inline-flex px-2.5 py-1 rounded-full text-xs font-medium border', scoreCategory.className)}>
+                                                            {scoreCategory.label}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

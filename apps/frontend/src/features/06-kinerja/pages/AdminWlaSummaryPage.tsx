@@ -181,11 +181,24 @@ const AdminWlaSummaryPage: React.FC = () => {
         setUpdatingId(logId);
         try {
             await updateWlaStatusMutation.mutateAsync({ id: logId, status });
+
+            // Invalidate caches to force fresh data
+            await queryClient.invalidateQueries({
+                queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(employeeKey, startDate, endDate)
+            });
+
+            // Re-fetch detail logs with fresh data
             const logs = await queryClient.fetchQuery({
                 queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(employeeKey, startDate, endDate),
-                queryFn: () => fetchAdminWlaDetailLogs(employeeKey, startDate, endDate)
+                queryFn: () => fetchAdminWlaDetailLogs(employeeKey, startDate, endDate),
+                staleTime: 0
             });
             setDetailLogs(prev => ({ ...prev, [employeeKey]: logs }));
+
+            // Also refresh the admin summary so pending_log_count updates
+            await queryClient.invalidateQueries({
+                queryKey: PERFORMANCE_QUERY_KEYS.wla.adminSummary(startDate, endDate)
+            });
         } catch (err) {
             alert('Gagal mengubah status log.');
         } finally {

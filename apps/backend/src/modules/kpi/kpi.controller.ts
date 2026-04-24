@@ -52,6 +52,30 @@ export default class KpiController {
         }
     }
 
+    static async getMonitoringSummary(req: AuthRequest, res: Response, next: NextFunction) {
+        try {
+            const { employeeId, period, startDate, endDate } = req.query;
+
+            let supervisorId: string | undefined = undefined;
+            if (req.user?.role === 'supervisor') {
+                supervisorId = String(req.user?.employeeId || req.user?.id);
+            }
+
+            const filters: KpiSummaryFilters = {
+                employeeId: employeeId as string | undefined,
+                period: period as string | undefined,
+                startDate: startDate as string | undefined,
+                endDate: endDate as string | undefined,
+            };
+
+            const data = await KpiService.getMonitoringSummaryData(filters, supervisorId);
+
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
     static async getByEmployeeId(req: Request, res: Response, next: NextFunction) {
         try {
             const { employeeId } = req.params;

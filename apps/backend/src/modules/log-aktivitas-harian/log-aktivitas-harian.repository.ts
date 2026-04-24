@@ -33,15 +33,32 @@ export default class LogAktivitasHarianRepository {
     ): Promise<{ message: string; changes: number | undefined }> {
         const db = await openDb();
 
-        // Delete existing logs to prevent duplicates
-        await db.run('DELETE FROM log_aktivitas_harian WHERE id_pegawai = ? AND tanggal = ?', id_pegawai, tanggal);
+        // Only delete logs that haven't been approved/rejected yet (preserve supervisor decisions)
+        await db.run(
+            `DELETE FROM log_aktivitas_harian WHERE id_pegawai = ? AND tanggal = ? AND (status_approval IS NULL OR status_approval = 'pending')`,
+            id_pegawai, tanggal
+        );
 
         if (!logs || logs.length === 0) return { message: `Existing logs cleared. No new logs inserted.`, changes: 0 };
 
+        // Get already-approved activity IDs to avoid duplicates
+        const approvedRows = await db.all(
+            `SELECT id_activity_library FROM log_aktivitas_harian WHERE id_pegawai = ? AND tanggal = ? AND status_approval IN ('approved', 'rejected')`,
+            id_pegawai, tanggal
+        ) as Array<{ id_activity_library: string | number }>;
+        const approvedActivityIds = new Set(approvedRows.map(r => String(r.id_activity_library)));
+
+        // Filter out logs that already have an approved/rejected entry
+        const newLogs = logs.filter(log => !approvedActivityIds.has(String(log.id_activity_library)));
+
+        if (newLogs.length === 0) {
+            return { message: `No new logs to insert (${approvedActivityIds.size} already approved/reviewed).`, changes: 0 };
+        }
+
         // Construct bulk insert values
         // Note: SQLite supports bulk insert via multiple VALUES clauses
-        const placeholders = logs.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
-        const values = logs.flatMap(log => [
+        const placeholders = newLogs.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+        const values = newLogs.flatMap(log => [
             log.id_pegawai,
             log.tanggal,
             log.id_activity_library,
@@ -58,7 +75,7 @@ export default class LogAktivitasHarianRepository {
              VALUES ${placeholders}`,
             ...values
         );
-        return { message: `${logs.length} logs inserted successfully`, changes: result.changes };
+        return { message: `${newLogs.length} logs inserted successfully (${approvedActivityIds.size} already approved, skipped).`, changes: result.changes };
     }
 
     static async getByPegawaiAndDateRange(id_pegawai: string | number, startDate: string, endDate: string): Promise<LogAktivitasHarianItem[]> {

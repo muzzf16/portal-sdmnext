@@ -278,7 +278,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                     
                                                     {/* Target Input khusus Semua Jabatan */}
                                                     {isSemuaJabatan && (
-                                                        <div className="mt-3 sm:mt-0 sm:ml-4 flex-1">
+                                                        <div className="mt-3 sm:mt-0 sm:ml-4 flex-1 min-w-[150px]">
                                                             <div className="flex bg-white border border-amber-200 rounded p-2 shadow-sm min-h-[60px]">
                                                                 <label className="text-xs text-amber-700 font-medium mr-2 whitespace-nowrap pt-1">Target:</label>
                                                                 {(() => {
@@ -325,7 +325,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                 </div>
                                                 {Number(val.frekuensi) > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-gray-100 border-dashed animate-in fade-in slide-in-from-top-2">
-                                                        <div className="flex flex-col sm:flex-row gap-4 mb-3">
+                                                        <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-3">
                                                             <div className="flex items-center">
                                                                 <label className="text-xs text-gray-700 font-bold mr-2 whitespace-nowrap">Frekuensi:</label>
                                                                 <input
@@ -342,7 +342,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                             {(act.activityName?.toUpperCase().includes('NPL') || 
                                                               act.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
                                                               act.activityName?.toUpperCase().includes('PEMASARAN DANA')) && (
-                                                                <div className="flex items-center flex-1">
+                                                                <div className="flex items-center flex-1 min-w-[240px]">
                                                                     <label className="text-xs text-indigo-700 font-bold mr-2 whitespace-nowrap">Nominal (Rp):</label>
                                                                     <div className="relative flex-1">
                                                                         <span className="absolute left-2 top-1.5 text-xs text-gray-400">Rp</span>
@@ -354,7 +354,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                                             className="w-full pl-8 pr-2 py-1.5 text-xs border border-indigo-200 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-indigo-50/30"
                                                                         />
                                                                     </div>
-                                                                    <div className="ml-2 text-[10px] text-gray-500 italic max-w-[120px]">
+                                                                    <div className="ml-2 text-[10px] text-gray-500 italic min-w-[100px]">
                                                                         * Khusus KPI Capaian Nominal
                                                                     </div>
                                                                 </div>

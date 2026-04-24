@@ -42,6 +42,30 @@ const getPeriodDates = (p: string) => {
     return { startDate: undefined, endDate: undefined };
 };
 
+const EFFECTIVE_WORKING_MINUTES = 480;
+
+// Helper to calculate total working days (Mon-Fri) between two dates
+const getWorkingDays = (start: string, end: string) => {
+    const startDateObj = new Date(start);
+    const endDateObj = new Date(end);
+    let count = 0;
+    let curDate = new Date(startDateObj.getTime());
+    while (curDate <= endDateObj) {
+        const dayOfWeek = curDate.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            count++;
+        }
+        curDate.setDate(curDate.getDate() + 1);
+    }
+    return count > 0 ? count : 1;
+};
+
+const getFteStatus = (percentage: number) => {
+    if (percentage > 100) return { label: 'Overload', color: 'text-red-600' };
+    if (percentage >= 80) return { label: 'Optimal', color: 'text-green-600' };
+    return { label: 'Underload', color: 'text-yellow-600' };
+};
+
 const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({ 
     isActive, 
     kpis, 
@@ -95,32 +119,52 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         const isKpiKhusus = (name: string = '') => isNPL(name) || isKredit(name) || isDana(name);
 
         const rawKhususItems = kpis.filter(k => isKpiKhusus(k.kpiName));
-        const wlaItems = kpis.filter(k => !isKpiKhusus(k.kpiName));
 
-        const getPct = (item: KpiTarget) => {
-            const target = Number(item.targetValue) || 0;
-            const actual = Number(item.actualValue) || 0;
-            if (target === 0) return 0;
-            const res = (actual / target) * 100;
-            return res > 100 ? 100 : res;
-        };
+        // ===== WLA FTE Calculation (matching Rekap WLA tab) =====
+        // Include ALL approved logs for FTE calculation (same as Rekap WLA)
+        const allApprovedLogs = wlaLogs.filter(log => log.status_approval === 'approved');
 
-        const wlaItemsWithPct = wlaItems.map(k => ({ ...k, pct: getPct(k) }));
+        // Group ALL approved WLA logs by activity for the rincian table (excluding KPI Khusus for display)
+        const wlaActivityMap = new Map<string, { activityName: string; category: string; totalDurasi: number; totalFrekuensi: number }>();
+        allApprovedLogs.forEach(log => {
+            // Skip KPI Khusus activities for rincian table (they show in KPI Khusus section)
+            if (isKpiKhusus(log.activityName || '')) return;
+            const key = String(log.id_activity_library || log.activityName);
+            const existing = wlaActivityMap.get(key);
+            if (existing) {
+                existing.totalDurasi += Number(log.total_durasi_terhitung) || 0;
+                existing.totalFrekuensi += Number(log.frekuensi) || 0;
+            } else {
+                wlaActivityMap.set(key, {
+                    activityName: log.activityName || key,
+                    category: log.category || '',
+                    totalDurasi: Number(log.total_durasi_terhitung) || 0,
+                    totalFrekuensi: Number(log.frekuensi) || 0
+                });
+            }
+        });
+        const wlaActivityItems = Array.from(wlaActivityMap.values()).sort((a, b) => b.totalDurasi - a.totalDurasi);
 
-        // Aggregate KPI Khusus into exactly 3 standardized categories, using explicit targets if any, or pulling directly from WLA logs
+        // Calculate FTE using ALL approved logs (including KPI Khusus activities)
+        // This matches Rekap WLA which counts all activities toward workload
+        const totalDurasiMenit = allApprovedLogs.reduce((sum, log) => sum + (Number(log.total_durasi_terhitung) || 0), 0);
+        const totalFrekuensi = allApprovedLogs.reduce((sum, log) => sum + (Number(log.frekuensi) || 0), 0);
+        // Cap endDate to today so future working days don't inflate the denominator
+        const today = new Date().toISOString().slice(0, 10);
+        const effectiveEndDate = endDate && endDate > today ? today : endDate;
+        const workingDays = startDate && effectiveEndDate ? getWorkingDays(startDate, effectiveEndDate) : 1;
+        const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
+        const wlaPercentage = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
+
+        // ===== KPI Khusus Calculation (unchanged) =====
         const aggregateKhususWla = (categoryName: string, filterFn: (name: string) => boolean, defaultTarget: number) => {
-            // Did they explicitly define targets?
             const explicitTargets = rawKhususItems.filter(k => filterFn(k.kpiName));
             const explicitTargetTotal = explicitTargets.reduce((sum, i) => sum + (Number(i.targetValue) || 0), 0);
             
-            // Raw WLA logs matching this category
             const matchingLogs = wlaLogs.filter(log => filterFn(log.activityName || '') && log.status_approval === 'approved');
-            
-            // Sum NOMINAL RUPIAH for these 3 categories
             const wlaActualNominal = matchingLogs.reduce((sum, log) => sum + (Number(log.nominal_rupiah) || 0), 0);
             
-            // Use explicit target total as target, or fallback to fixed defaultTarget if no meaningful target is set (e.g. if it's 0 or 1)
-            const target = explicitTargetTotal > 1 ? explicitTargetTotal : defaultTarget;
+            const target = explicitTargetTotal >= 1000000 ? explicitTargetTotal : defaultTarget;
             const percentage = target === 0 ? (wlaActualNominal > 0 ? 100 : 0) : Math.min((wlaActualNominal / target) * 100, 100);
 
             return {
@@ -136,26 +180,21 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         };
 
         const khususItemsWithPct = [
-            aggregateKhususWla('Penanganan NPL', isNPL, 50000000), // Locked Target 50jt
-            aggregateKhususWla('Perolehan Pemasaran Kredit', isKredit, 100000000), // Locked Target 100jt
-            aggregateKhususWla('Perolehan Pemasaran Dana', isDana, 100000000) // Locked Target 100jt
-        ]; // Always show the 3 main categories for KPI Khusus
+            aggregateKhususWla('Penanganan NPL', isNPL, 50000000),
+            aggregateKhususWla('Perolehan Pemasaran Kredit', isKredit, 100000000),
+            aggregateKhususWla('Perolehan Pemasaran Dana', isDana, 100000000)
+        ];
 
-        // Use weighted average if weights are provided, otherwise simple average
-        const weightedAvgPct = (items: any[]) => {
-            if (items.length === 0) return 0;
-            const totalWeight = items.reduce((sum, item) => sum + (item.weight || 0), 0);
-            if (totalWeight > 0) {
-                return items.reduce((sum, item) => sum + (item.pct * (item.weight || 0)), 0) / totalWeight;
-            }
-            return items.reduce((sum, item) => sum + item.pct, 0) / items.length;
-        };
-
-        const wlaPercentage = weightedAvgPct(wlaItemsWithPct);
-        
         let khususPercentage = 0;
         if (khususItemsWithPct.length > 0) {
-            khususPercentage = khususItemsWithPct.reduce((sum, i) => sum + i.pct, 0) / khususItemsWithPct.length;
+            const totalActual = khususItemsWithPct.reduce((sum, i) => sum + (Number(i.actualValue) || 0), 0);
+            const totalTarget = khususItemsWithPct.reduce((sum, i) => sum + (Number(i.targetValue) || 0), 0);
+            
+            if (totalTarget > 0) {
+                khususPercentage = Math.min((totalActual / totalTarget) * 100, 100);
+            } else {
+                khususPercentage = totalActual > 0 ? 100 : 0;
+            }
         }
 
         // Apply 80/20 rule
@@ -166,14 +205,18 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         return {
             khususRawCount: rawKhususItems.length,
             khususItems: khususItemsWithPct,
-            wlaItems: wlaItemsWithPct,
+            wlaActivityItems,
+            totalDurasiMenit,
+            totalFrekuensi,
+            targetMinutes,
+            workingDays,
             khususPercentage,
             wlaPercentage,
             finalKhusus,
             finalWla,
             finalTotal
         };
-    }, [kpis]);
+    }, [kpis, wlaLogs, startDate, endDate]);
 
     return (
         <div className="bg-white rounded-lg shadow mt-6 p-6">
@@ -239,8 +282,8 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path></svg>
                     </div>
-                    <h3 className="text-blue-800 font-semibold mb-1 relative z-10">Pencapaian WLA (80%)</h3>
-                    <p className="text-sm text-blue-600 mb-3 relative z-10">{summary.wlaItems.length} Item KPI</p>
+                    <h3 className="text-blue-800 font-semibold mb-1 relative z-10">Beban Kerja / FTE (80%)</h3>
+                    <p className="text-sm text-blue-600 mb-3 relative z-10">{summary.totalDurasiMenit} menit ({(summary.totalDurasiMenit / 60).toFixed(1)} jam) — {summary.workingDays} hari kerja</p>
                     <div className="text-3xl font-bold text-blue-900 mb-1 relative z-10">
                         {summary.wlaPercentage.toFixed(1)}% <span className="text-lg font-normal text-blue-700">/ 100%</span>
                     </div>
@@ -284,41 +327,47 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                 <div>
                     <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                         <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-xs mr-2">80%</span>
-                        Rincian KPI WLA
+                        Rincian Beban Kerja WLA
                     </h4>
                     <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
                         <table className="min-w-full divide-y divide-gray-200 text-sm">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama KPI</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Realisasi / Target</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Capaian</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Frekuensi</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi Total</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {summary.wlaItems.map(k => (
-                                    <tr key={k.id} className="hover:bg-blue-50/50 transition-colors">
-                                        <td className="px-4 py-3 text-gray-900 font-medium">{k.kpiName}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            {k.actualValue || 0} / {k.targetValue}
-                                            <span className="text-gray-400 ml-1 text-xs">{k.targetUnit === 'jumlah' ? '' : k.targetUnit}</span>
+                                {summary.wlaActivityItems.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <div className="text-gray-900 font-medium">{item.activityName}</div>
+                                            {item.category && <div className="text-xs text-gray-400">{item.category}</div>}
                                         </td>
-                                        <td className="px-4 py-3 text-center font-semibold text-blue-700">{k.pct.toFixed(1)}%</td>
+                                        <td className="px-4 py-3 text-center text-gray-700">{item.totalFrekuensi}x</td>
+                                        <td className="px-4 py-3 text-center font-medium text-blue-700">{item.totalDurasi} menit</td>
                                     </tr>
                                 ))}
-                                {summary.wlaItems.length === 0 && (
-                                    <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500 bg-gray-50/50">Tidak ada data KPI WLA pada periode ini.</td></tr>
+                                {summary.wlaActivityItems.length === 0 && (
+                                    <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500 bg-gray-50/50">Tidak ada data WLA pada periode ini.</td></tr>
                                 )}
                             </tbody>
-                            {summary.wlaItems.length > 0 && (
+                            {summary.wlaActivityItems.length > 0 && (
                                 <tfoot className="bg-gray-50 divide-y divide-gray-200 border-t border-gray-200">
                                     <tr>
                                         <td className="px-4 py-3 text-red-600 font-bold text-center">TOTAL</td>
-                                        <td className="px-4 py-3 text-red-600 font-bold text-center">
-                                            {summary.wlaItems.reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0)} / {summary.wlaItems.reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0)}
+                                        <td className="px-4 py-3 text-red-600 font-bold text-center">{summary.totalFrekuensi}x</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <div className="text-red-600 font-bold">{summary.totalDurasiMenit} menit</div>
+                                            <div className="text-xs text-gray-500">Target: {summary.targetMinutes} menit ({summary.workingDays} hari × 480)</div>
                                         </td>
-                                        <td className="px-4 py-3 text-red-600 font-bold text-center">
+                                    </tr>
+                                    <tr>
+                                        <td className="px-4 py-3 font-bold text-center" colSpan={2}>Beban (FTE)</td>
+                                        <td className={`px-4 py-3 text-center font-bold text-lg ${getFteStatus(summary.wlaPercentage).color}`}>
                                             {summary.wlaPercentage.toFixed(1)}%
+                                            <span className="text-xs font-normal ml-1">({getFteStatus(summary.wlaPercentage).label})</span>
                                         </td>
                                     </tr>
                                 </tfoot>

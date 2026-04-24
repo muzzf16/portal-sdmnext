@@ -296,6 +296,112 @@ export default class KpiService {
         }
     }
 
+    static async getMonitoringSummaryData(filters: KpiSummaryFilters, supervisorId?: string) {
+        const hasPeriod = Boolean(filters.period);
+        const hasDateRange = Boolean(filters.startDate && filters.endDate);
+
+        if (!hasPeriod && !hasDateRange) {
+            throw new AppError('period or startDate/endDate is required', 400);
+        }
+
+        try {
+            let allowedEmployeeIds: string[] | undefined;
+
+            if (supervisorId) {
+                const subordinates = await JabatanService.getAllSubordinates(supervisorId);
+                allowedEmployeeIds = subordinates.map((employee: any) => String(employee.id));
+
+                if (allowedEmployeeIds.length === 0) {
+                    return [];
+                }
+
+                if (filters.employeeId && !allowedEmployeeIds.includes(filters.employeeId)) {
+                    return [];
+                }
+            }
+
+            const employees = await KpiRepository.findSummaryEmployees({
+                employeeId: filters.employeeId,
+                employeeIds: allowedEmployeeIds,
+            });
+
+            if (employees.length === 0) return [];
+            const empIds = employees.map(e => e.employeeId);
+
+            const db = await openDb();
+            const placeholders = empIds.map(() => '?').join(',');
+
+            // fetch all KPIs
+            let kpiQuery = `SELECT * FROM kpi_targets WHERE employeeId IN (${placeholders})`;
+            let kpiParams = [...empIds];
+
+            if (filters.period) {
+                kpiQuery += ` AND period = ?`;
+                kpiParams.push(filters.period);
+            }
+
+            let kpis = await db.all(kpiQuery, ...kpiParams) as any[];
+
+            if (!filters.period && hasDateRange) {
+                kpis = kpis.filter(k => this.periodOverlapsDateRange(k.period, filters.startDate!, filters.endDate!));
+            }
+
+            // fetch all approved WLA logs
+            const logs = await db.all(
+                `SELECT l.id_pegawai, l.nominal_rupiah, l.total_durasi_terhitung, l.id_activity_library, a.activityName
+                 FROM log_aktivitas_harian l
+                 LEFT JOIN activity_library a ON l.id_activity_library = a.id
+                 WHERE l.tanggal >= ? AND l.tanggal <= ? AND l.status_approval = 'approved'
+                 AND l.id_pegawai IN (${placeholders})`,
+                filters.startDate, filters.endDate, ...empIds
+            ) as any[];
+
+            return employees.map(emp => {
+                const empKpis = kpis.filter(k => String(k.employeeId) === String(emp.employeeId));
+                const empLogs = logs.filter(l => String(l.id_pegawai) === String(emp.employeeId));
+
+                const totalDurasiMenit = empLogs.reduce((sum, log) => sum + (Number(log.total_durasi_terhitung) || 0), 0);
+
+                const isNPL = (name: string) => name.toLowerCase().includes('npl');
+                const isKredit = (name: string) => name.toLowerCase().includes('pemasaran kredit');
+                const isDana = (name: string) => name.toLowerCase().includes('pemasaran dana');
+
+                const nplLogs = empLogs.filter(l => isNPL(l.activityName || ''));
+                const kreditLogs = empLogs.filter(l => isKredit(l.activityName || ''));
+                const danaLogs = empLogs.filter(l => isDana(l.activityName || ''));
+
+                const nplActual = nplLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
+                const kreditActual = kreditLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
+                const danaActual = danaLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
+
+                const nplTargets = empKpis.filter(k => isNPL(k.kpiName || ''));
+                const kreditTargets = empKpis.filter(k => isKredit(k.kpiName || ''));
+                const danaTargets = empKpis.filter(k => isDana(k.kpiName || ''));
+
+                const nplTarget = nplTargets.reduce((sum, k) => sum + (Number(k.targetValue) || 0), 0);
+                const kreditTarget = kreditTargets.reduce((sum, k) => sum + (Number(k.targetValue) || 0), 0);
+                const danaTarget = danaTargets.reduce((sum, k) => sum + (Number(k.targetValue) || 0), 0);
+
+                return {
+                    employeeId: emp.employeeId,
+                    employeeName: emp.employeeName,
+                    nip: emp.nip,
+                    department: emp.department,
+                    position: emp.position,
+                    totalDurasiMenit,
+                    khusus: {
+                        nplTarget, nplActual, nplCount: nplTargets.length,
+                        kreditTarget, kreditActual, kreditCount: kreditTargets.length,
+                        danaTarget, danaActual, danaCount: danaTargets.length
+                    }
+                };
+            });
+        } catch (error: any) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(`Error retrieving monitoring summary: ${error.message}`, 500);
+        }
+    }
+
     static async getById(id: string) {
         const item = await KpiRepository.findById(id);
         if (!item) throw new AppError('KPI target not found', 404);
