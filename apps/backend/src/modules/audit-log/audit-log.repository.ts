@@ -5,14 +5,15 @@ export const AuditLogRepository = {
   async create(payload: AuditLogEntry) {
     const db = await openDb();
     const result = await db.run(
-      `INSERT INTO audit_logs (user_id, action, module, description, metadata, request_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO audit_logs (user_id, action, module, description, metadata, request_id, device)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       payload.user_id,
       payload.action,
       payload.module,
       payload.description,
       JSON.stringify(payload.metadata || {}),
-      payload.request_id || null
+      payload.request_id || null,
+      payload.device || null
     );
 
     return db.get('SELECT * FROM audit_logs WHERE id = ?', result.lastID);
@@ -36,6 +37,27 @@ export const AuditLogRepository = {
     if (filters.userId) {
       conditions.push('user_id = ?');
       params.push(filters.userId);
+    }
+
+    if (filters.device) {
+      conditions.push('device = ?');
+      params.push(filters.device);
+    }
+
+    if (filters.startDate) {
+      conditions.push('DATE(created_at) >= DATE(?)');
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      conditions.push('DATE(created_at) <= DATE(?)');
+      params.push(filters.endDate);
+    }
+
+    if (filters.search) {
+      conditions.push('(description LIKE ? OR metadata LIKE ?)');
+      params.push(`%${filters.search}%`);
+      params.push(`%${filters.search}%`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

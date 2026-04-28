@@ -30,11 +30,11 @@ const getWorkingDays = (start: string, end: string) => {
 };
 
 const getScoreCategory = (score: number) => {
-    if (score >= 90) return { label: 'Sangat Baik', className: 'bg-green-100 text-green-800' };
-    if (score >= 75) return { label: 'Baik', className: 'bg-blue-100 text-blue-800' };
-    if (score >= 60) return { label: 'Cukup', className: 'bg-yellow-100 text-yellow-800' };
-    if (score >= 40) return { label: 'Kurang', className: 'bg-orange-100 text-orange-800' };
-    return { label: 'Sangat Kurang', className: 'bg-red-100 text-red-800' };
+    if (score > 95) return { label: 'ISTIMEWA', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
+    if (score > 85) return { label: 'SANGAT BAIK', className: 'bg-green-100 text-green-800 border-green-200' };
+    if (score > 75) return { label: 'BAIK', className: 'bg-blue-100 text-blue-800 border-blue-200' };
+    if (score >= 65) return { label: 'CUKUP BAIK', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+    return { label: 'KURANG BAIK', className: 'bg-red-100 text-red-800 border-red-200' };
 };
 
 const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
@@ -61,7 +61,7 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
 
         return rawSummaries.map((summary) => {
             const totalDurasiMenit = summary.totalDurasiMenit || 0;
-            const wlaPercentage = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
+            const wlaPercentageRaw = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
 
             const nplTargetFinal = summary.khusus.nplTarget >= 1000000 ? summary.khusus.nplTarget : 50000000;
             const kreditTargetFinal = summary.khusus.kreditTarget >= 1000000 ? summary.khusus.kreditTarget : 100000000;
@@ -70,13 +70,15 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
             const totalActual = summary.khusus.nplActual + summary.khusus.kreditActual + summary.khusus.danaActual;
             const totalTarget = nplTargetFinal + kreditTargetFinal + danaTargetFinal;
 
-            let khususPercentage = 0;
+            let khususPercentageRaw = 0;
             if (totalTarget > 0) {
-                khususPercentage = Math.min((totalActual / totalTarget) * 100, 100);
+                khususPercentageRaw = Math.min((totalActual / totalTarget) * 100, 100);
             } else {
-                khususPercentage = totalActual > 0 ? 100 : 0;
+                khususPercentageRaw = totalActual > 0 ? 100 : 0;
             }
 
+            const wlaPercentage = Number(wlaPercentageRaw.toFixed(1));
+            const khususPercentage = Number(khususPercentageRaw.toFixed(1));
             const finalTotal = (wlaPercentage * 0.8) + (khususPercentage * 0.2);
 
             return {

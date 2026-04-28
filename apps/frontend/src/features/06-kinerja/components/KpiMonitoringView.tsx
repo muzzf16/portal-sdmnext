@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { KpiTarget } from '../types';
 import { useAdminWlaDetailLogs, useDirectorNames } from '../hooks/usePerformanceManagementQuery';
 import { Printer } from 'lucide-react';
+import clsx from 'clsx';
 
 interface KpiMonitoringViewProps {
     isActive: boolean;
@@ -64,6 +65,14 @@ const getFteStatus = (percentage: number) => {
     if (percentage > 100) return { label: 'Overload', color: 'text-red-600' };
     if (percentage >= 80) return { label: 'Optimal', color: 'text-green-600' };
     return { label: 'Underload', color: 'text-yellow-600' };
+};
+
+const getScoreCategory = (score: number) => {
+    if (score > 95) return { label: 'ISTIMEWA', className: 'bg-indigo-600 text-white shadow-sm border-indigo-700' };
+    if (score > 85) return { label: 'SANGAT BAIK', className: 'bg-green-600 text-white shadow-sm border-green-700' };
+    if (score > 75) return { label: 'BAIK', className: 'bg-blue-600 text-white shadow-sm border-blue-700' };
+    if (score >= 65) return { label: 'CUKUP BAIK', className: 'bg-yellow-500 text-white shadow-sm border-yellow-600' };
+    return { label: 'KURANG BAIK', className: 'bg-red-600 text-white shadow-sm border-red-700' };
 };
 
 const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({ 
@@ -316,8 +325,11 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                     <div className="text-5xl font-extrabold text-green-700 relative z-10">
                         {summary.finalTotal.toFixed(2)}<span className="text-3xl">%</span>
                     </div>
-                    <div className="text-sm text-green-700 mt-3 pt-3 border-t border-green-200 relative z-10">
-                        Dari maksimal pencapaian 100%
+                    <div className="mt-3 relative z-10 flex items-center">
+                        <span className={clsx("px-3 py-1 rounded-full text-xs font-bold border", getScoreCategory(summary.finalTotal).className)}>
+                            {getScoreCategory(summary.finalTotal).label}
+                        </span>
+                        <span className="text-xs text-green-700 ml-2">/ 100%</span>
                     </div>
                 </div>
             </div>

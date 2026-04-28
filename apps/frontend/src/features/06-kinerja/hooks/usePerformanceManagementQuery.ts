@@ -153,8 +153,16 @@ export const useDirectorNames = () =>
       const { getPegawai } = await import('../../01-pegawai/api/employeeApi');
       const response = await getPegawai();
       const allEmps = response.data || [];
-      const dirU = allEmps.find((e: any) => e.position?.toUpperCase() === 'DIREKTUR UTAMA' || e.jabatan?.toUpperCase() === 'DIREKTUR UTAMA');
-      const dirY = allEmps.find((e: any) => e.position?.toUpperCase() === 'DIREKTUR YMFK' || e.jabatan?.toUpperCase() === 'DIREKTUR YMFK');
+      const isDirUtama = (e: any) => {
+        const p = (e.position || e.jabatan || e.jabatanNama || '').toUpperCase().trim();
+        return p === 'DIREKTUR UTAMA';
+      };
+      const isDirYmfk = (e: any) => {
+        const p = (e.position || e.jabatan || e.jabatanNama || '').toUpperCase().trim();
+        return p === 'DIREKTUR YMFK';
+      };
+      const dirU = allEmps.find(isDirUtama);
+      const dirY = allEmps.find(isDirYmfk);
       return {
         utama: dirU?.name || '..............................',
         ymfk: dirY?.name || '..............................'

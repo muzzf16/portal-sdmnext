@@ -10,7 +10,8 @@ export default class AuditLogController {
         module: req.body.module,
         description: req.body.description,
         metadata: req.body.metadata || {},
-        request_id: req.context?.requestId
+        request_id: req.context?.requestId,
+        device: req.body.device || null
       };
 
       const data = await AuditLogService.record(payload);
@@ -26,6 +27,10 @@ export default class AuditLogController {
         module: req.query.module as string | undefined,
         action: req.query.action as string | undefined,
         userId: req.query.userId as string | undefined,
+        device: req.query.device as string | undefined,
+        startDate: req.query.startDate as string | undefined,
+        endDate: req.query.endDate as string | undefined,
+        search: req.query.search as string | undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined
       });
 

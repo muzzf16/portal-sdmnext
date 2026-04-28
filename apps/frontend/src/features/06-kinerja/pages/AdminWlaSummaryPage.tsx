@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
-import { getEmployees } from '../../../shared/services/employeeAPI';
 import { AdminWlaSummary } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
@@ -11,15 +10,9 @@ import {
     fetchAdminWlaDetailLogs,
     PERFORMANCE_QUERY_KEYS,
     useAdminWlaSummary,
-    useUpdateWlaStatusMutation
+    useUpdateWlaStatusMutation,
+    useDirectorNames
 } from '../hooks/usePerformanceManagementQuery';
-
-type DirectorEmployee = {
-    name?: string;
-    nama_lengkap?: string;
-    position?: string;
-    jabatan?: string;
-};
 
 const getPositionWeight = (job: string) => {
     const j = (job || '').toLowerCase();
@@ -39,10 +32,12 @@ const AdminWlaSummaryPage: React.FC = () => {
     const [detailLogs, setDetailLogs] = useState<Record<string, any[]>>({});
     const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
     const [updatingId, setUpdatingId] = useState<number | null>(null);
-    const [directorNames, setDirectorNames] = useState({
-        direkturUtama: 'Nama Lengkap & Tandatangan',
-        direkturYmfk: 'Nama Lengkap & Tandatangan'
-    });
+    const { data: fetchedDirectorNames } = useDirectorNames();
+    const directorNames = {
+        direkturUtama: fetchedDirectorNames?.utama && fetchedDirectorNames?.utama !== '..............................' ? fetchedDirectorNames.utama : 'SAPTO NUGROHO SE.,MSi',
+        direkturYmfk: fetchedDirectorNames?.ymfk && fetchedDirectorNames?.ymfk !== '..............................' ? fetchedDirectorNames.ymfk : 'IFAN ARDANA ,SE,.MSi'
+    };
+
     const { settings: companySettings } = useCompanySettings();
     const queryClient = useQueryClient();
     const adminSummaryQuery = useAdminWlaSummary(startDate, endDate);
@@ -55,27 +50,6 @@ const AdminWlaSummaryPage: React.FC = () => {
         setExpandedEmployee(null);
         setDetailLogs({});
     }, [startDate, endDate]);
-
-    useEffect(() => {
-        const fetchDirectors = async () => {
-            try {
-                const res = await getEmployees();
-                const employees = (res.data || res || []) as DirectorEmployee[];
-                const dirUtama = employees.find((e) => e.position?.toLowerCase() === 'direktur utama' || e.jabatan?.toLowerCase() === 'direktur utama');
-                const dirYmfk = employees.find((e) => e.position?.toLowerCase() === 'direktur ymfk' || e.jabatan?.toLowerCase() === 'direktur ymfk');
-                const getDirectorName = (employee?: DirectorEmployee) =>
-                    employee?.name || employee?.nama_lengkap || 'Nama Lengkap & Tandatangan';
-
-                setDirectorNames({
-                    direkturUtama: getDirectorName(dirUtama),
-                    direkturYmfk: getDirectorName(dirYmfk)
-                });
-            } catch (err) {
-                console.error("Gagal mengambil data direktur:", err);
-            }
-        };
-        fetchDirectors();
-    }, []);
 
     const EFFECTIVE_WORKING_MINUTES = 480;
 
@@ -413,59 +387,70 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                                             <tr>
                                                                                 <th className="px-4 py-2 text-left">Aktivitas</th>
                                                                                 <th className="px-4 py-2 text-center">Frekuensi</th>
-                                                                                <th className="px-4 py-2 text-center">Durasi</th>
+                                                                                <th className="px-4 py-2 text-center">Durasi/Nominal</th>
                                                                                 <th className="px-4 py-2 text-left">Catatan</th>
                                                                                 <th className="px-4 py-2 text-center">Status</th>
                                                                                 <th className="px-4 py-2 text-center">Aksi</th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody className="divide-y divide-gray-100 bg-white">
-                                                                            {logs.map((log: any) => (
-                                                                                <tr key={log.id_log}>
-                                                                                    <td className="px-4 py-3">
-                                                                                        <div className="font-medium">{log.activityName || log.id_activity_library}</div>
-                                                                                        <div className="text-xs text-gray-400">{log.category || ''}</div>
-                                                                                    </td>
-                                                                                    <td className="px-4 py-3 text-center">{log.frekuensi}x</td>
-                                                                                    <td className="px-4 py-3 text-center font-medium">{log.total_durasi_terhitung} menit</td>
-                                                                                    <td className="px-4 py-3 text-xs text-gray-500">{log.catatan || '-'}</td>
-                                                                                    <td className="px-4 py-3 text-center">
-                                                                                        <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium", getStatusBadge(log.status_approval || 'pending'))}>
-                                                                                            {log.status_approval || 'pending'}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                    <td className="px-4 py-3 text-center">
-                                                                                        <div className="flex gap-2 justify-center">
-                                                                                            <button
-                                                                                                onClick={() => handleUpdateStatus(log.id_log, 'approved', key)}
-                                                                                                disabled={updatingId === log.id_log || log.status_approval === 'approved'}
-                                                                                                title="Approve"
-                                                                                                className={clsx(
-                                                                                                    "p-1.5 rounded-full transition-colors",
-                                                                                                    log.status_approval === 'approved'
-                                                                                                        ? "bg-green-100 text-green-400 cursor-default"
-                                                                                                        : "bg-green-50 text-green-600 hover:bg-green-100"
-                                                                                                )}
-                                                                                            >
-                                                                                                <CheckCircle className="h-4 w-4" />
-                                                                                            </button>
-                                                                                            <button
-                                                                                                onClick={() => handleUpdateStatus(log.id_log, 'rejected', key)}
-                                                                                                disabled={updatingId === log.id_log || log.status_approval === 'rejected'}
-                                                                                                title="Reject"
-                                                                                                className={clsx(
-                                                                                                    "p-1.5 rounded-full transition-colors",
-                                                                                                    log.status_approval === 'rejected'
-                                                                                                        ? "bg-red-100 text-red-400 cursor-default"
-                                                                                                        : "bg-red-50 text-red-600 hover:bg-red-100"
-                                                                                                )}
-                                                                                            >
-                                                                                                <XCircle className="h-4 w-4" />
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            ))}
+                                                                            {logs.map((log: any) => {
+                                                                                const actName = (log.activityName || String(log.id_activity_library || '')).toUpperCase();
+                                                                                const isNominalOnlyActivity = actName.includes('NPL') || actName.includes('PEMASARAN KREDIT') || actName.includes('PEMASARAN DANA');
+
+                                                                                return (
+                                                                                    <tr key={log.id_log}>
+                                                                                        <td className="px-4 py-3">
+                                                                                            <div className="font-medium">{log.activityName || log.id_activity_library}</div>
+                                                                                            <div className="text-xs text-gray-400">{log.category || ''}</div>
+                                                                                        </td>
+                                                                                        <td className="px-4 py-3 text-center">
+                                                                                            {isNominalOnlyActivity ? '-' : `${log.frekuensi}x`}
+                                                                                        </td>
+                                                                                        <td className="px-4 py-3 text-center font-medium">
+                                                                                            {isNominalOnlyActivity
+                                                                                                ? `Rp ${Number(log.nominal_rupiah || 0).toLocaleString('id-ID')}`
+                                                                                                : `${log.total_durasi_terhitung} menit`}
+                                                                                        </td>
+                                                                                        <td className="px-4 py-3 text-xs text-gray-500">{log.catatan || '-'}</td>
+                                                                                        <td className="px-4 py-3 text-center">
+                                                                                            <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium", getStatusBadge(log.status_approval || 'pending'))}>
+                                                                                                {log.status_approval || 'pending'}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="px-4 py-3 text-center">
+                                                                                            <div className="flex gap-2 justify-center">
+                                                                                                <button
+                                                                                                    onClick={() => handleUpdateStatus(log.id_log, 'approved', key)}
+                                                                                                    disabled={updatingId === log.id_log || log.status_approval === 'approved'}
+                                                                                                    title="Approve"
+                                                                                                    className={clsx(
+                                                                                                        "p-1.5 rounded-full transition-colors",
+                                                                                                        log.status_approval === 'approved'
+                                                                                                            ? "bg-green-100 text-green-400 cursor-default"
+                                                                                                            : "bg-green-50 text-green-600 hover:bg-green-100"
+                                                                                                    )}
+                                                                                                >
+                                                                                                    <CheckCircle className="h-4 w-4" />
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    onClick={() => handleUpdateStatus(log.id_log, 'rejected', key)}
+                                                                                                    disabled={updatingId === log.id_log || log.status_approval === 'rejected'}
+                                                                                                    title="Reject"
+                                                                                                    className={clsx(
+                                                                                                        "p-1.5 rounded-full transition-colors",
+                                                                                                        log.status_approval === 'rejected'
+                                                                                                            ? "bg-red-100 text-red-400 cursor-default"
+                                                                                                            : "bg-red-50 text-red-600 hover:bg-red-100"
+                                                                                                    )}
+                                                                                                >
+                                                                                                    <XCircle className="h-4 w-4" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                );
+                                                                            })}
                                                                         </tbody>
                                                                     </table>
                                                                 )}

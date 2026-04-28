@@ -259,6 +259,9 @@ const LogAktivitasWlaPage: React.FC = () => {
                                         const actId = String(act.id || '');
                                         const val = formInputs[actId] || { frekuensi: '', catatan: '', files: [] };
                                         const isSemuaJabatan = act.position === 'Semua Jabatan';
+                                        const isNominalOnlyActivity = act.activityName?.toUpperCase().includes('NPL') || 
+                                                                      act.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
+                                                                      act.activityName?.toUpperCase().includes('PEMASARAN DANA');
                                         
                                         return (
                                             <div key={act.id || `act-${index}`} className={clsx("p-4 rounded-lg hover:shadow-md transition-all", isSemuaJabatan ? "border-2 border-amber-400 bg-amber-50" : "border border-gray-200 hover:border-indigo-300 bg-white")}>
@@ -326,7 +329,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                 {Number(val.frekuensi) > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-gray-100 border-dashed animate-in fade-in slide-in-from-top-2">
                                                         <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-3">
-                                                            <div className="flex items-center">
+                                                            <div className={clsx("flex items-center", isNominalOnlyActivity ? "hidden" : "")}>
                                                                 <label className="text-xs text-gray-700 font-bold mr-2 whitespace-nowrap">Frekuensi:</label>
                                                                 <input
                                                                     type="number"
@@ -339,9 +342,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                             </div>
 
                                                             {/* Nominal Rupiah Input (Specific for KPI Khusus) */}
-                                                            {(act.activityName?.toUpperCase().includes('NPL') || 
-                                                              act.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
-                                                              act.activityName?.toUpperCase().includes('PEMASARAN DANA')) && (
+                                                            {isNominalOnlyActivity && (
                                                                 <div className="flex items-center flex-1 min-w-[240px]">
                                                                     <label className="text-xs text-indigo-700 font-bold mr-2 whitespace-nowrap">Nominal (Rp):</label>
                                                                     <div className="relative flex-1">
@@ -435,14 +436,24 @@ const LogAktivitasWlaPage: React.FC = () => {
                                         <div className="flex justify-between">
                                             <div className="flex-1">
                                                 <h4 className="text-sm font-bold text-gray-800">{log.activityName}</h4>
-                                                <div className="flex flex-wrap gap-2 mt-1">
-                                                    <span className="text-xs text-gray-500 px-2 py-0.5 bg-gray-100 rounded">
-                                                        {log.frekuensi}x
-                                                    </span>
-                                                    <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded">
-                                                        {log.total_durasi_terhitung} Menit
-                                                    </span>
-                                                </div>
+                                                {(() => {
+                                                    const actName = log.activityName?.toUpperCase() || '';
+                                                    const isNominalOnly = actName.includes('NPL') || actName.includes('PEMASARAN KREDIT') || actName.includes('PEMASARAN DANA');
+                                                    return (
+                                                        <div className="flex flex-wrap gap-2 mt-1">
+                                                            {!isNominalOnly && (
+                                                                <span className="text-xs text-gray-500 px-2 py-0.5 bg-gray-100 rounded">
+                                                                    {log.frekuensi}x
+                                                                </span>
+                                                            )}
+                                                            <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded">
+                                                                {isNominalOnly 
+                                                                    ? `Rp ${Number(log.nominal_rupiah || 0).toLocaleString('id-ID')}` 
+                                                                    : `${log.total_durasi_terhitung} Menit`}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                                 {log.catatan && (
                                                     <p className="text-xs text-gray-500 mt-2 italic border-l-2 border-gray-200 pl-2">
                                                         "{log.catatan}"
