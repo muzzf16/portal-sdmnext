@@ -74,6 +74,7 @@ const HalamanNotifikasi = lazy(() => import('../features/10-notifikasi/pages/Hal
 // Settings
 const HalamanPengaturan = lazy(() => import('../features/pengaturan/pages/HalamanPengaturan'));
 const HalamanPerubahanData = lazy(() => import('../features/pengaturan/pages/HalamanPerubahanData'));
+const HalamanBackup = lazy(() => import('../features/pengaturan/pages/HalamanBackup'));
 const HalamanAuditLog = lazy(() => import('../features/audit-log/pages/HalamanAuditLog'));
 
 // Private Route
@@ -367,6 +368,13 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanAuditLog />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="backup" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <HalamanBackup />
             </Suspense>
           </PrivateRoute>
         } />

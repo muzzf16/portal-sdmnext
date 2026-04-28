@@ -16,5 +16,6 @@ export * from './orientasiAPI';
 export * from './pelatihanAPI';
 export * from './pelatihanAPI';
 export * from './auditLogAPI';
+export * from './backupAPI';
 export { default as penggunaService } from './pengguna.service';
 // export * from './perekrutanAPI'; // Module missing

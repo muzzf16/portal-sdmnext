@@ -11,9 +11,19 @@ export const backup = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
+export const list = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await service.listBackups();
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const restore = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await service.restoreDatabase();
+    const { filename } = req.body;
+    const result = await service.restoreDatabase(filename);
     res.json(result);
   } catch (error) {
     next(error);

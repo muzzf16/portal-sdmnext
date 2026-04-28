@@ -7,7 +7,7 @@ import { useCompanySettings } from '@/shared/contexts/CompanySettingsContext';
 import {
   Menu, X, Home, Users, Briefcase, DollarSign, Calendar,
   BarChart2, Settings, FileText, UserPlus, Award,
-  ChevronLeft, ChevronRight, LogOut, User, Bell, Shield
+  ChevronLeft, ChevronRight, LogOut, User, Bell, Shield, Database
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -127,6 +127,7 @@ const DashboardLayout: React.FC = () => {
         { to: '/dashboard/profil-admin', icon: <User size={18} />, text: 'Profil Saya', roles: ['admin'] },
         { to: '/dashboard/laporan', icon: <FileText size={18} />, text: 'Laporan', roles: ['admin'] },
         { to: '/dashboard/audit-log', icon: <Shield size={18} />, text: 'Audit Log', roles: ['admin'] },
+        { to: '/dashboard/backup', icon: <Database size={18} />, text: 'Backup & Restore', roles: ['admin'] },
         { to: '/dashboard/perubahan-data', icon: <FileText size={18} />, text: 'Perubahan Data', roles: ['admin'] },
         { to: '/dashboard/pengaturan', icon: <Settings size={18} />, text: 'Pengaturan', roles: ['admin'] },
       ],

@@ -1,4 +1,5 @@
 import PengingatOtomatisService from '../modules/notifikasi/pengingat.otomatis.service';
+import * as BackupService from '../modules/backup/backup.service';
 
 class Scheduler {
   private static instance: Scheduler;
@@ -15,6 +16,14 @@ class Scheduler {
 
   // Start all scheduled jobs
   startAllJobs() {
+    // Run database backup daily at 2 AM
+    this.scheduleDailyJob(() => {
+      console.log('Running daily database backup...');
+      BackupService.backupDatabase()
+        .then(result => console.log('Daily database backup created:', result.data.filename))
+        .catch(error => console.error('Error in daily database backup:', error));
+    }, 2, 0);
+
     // Run contract expiration reminders daily at 9 AM
     this.scheduleDailyJob(() => {
       console.log('Running contract expiration reminders...');

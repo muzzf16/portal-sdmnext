@@ -30,6 +30,10 @@ export const openDb = async () => {
     driver: sqlite3.Database
   });
 
+  // Optimization & Integrity: Enable Foreign Keys and WAL Mode
+  await dbInstance.exec('PRAGMA foreign_keys = ON;');
+  await dbInstance.exec('PRAGMA journal_mode = WAL;');
+
   return dbInstance;
 };
 
