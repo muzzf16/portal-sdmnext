@@ -106,3 +106,22 @@ export const restoreDatabase = async (filename: string) => {
     }
   };
 };
+
+/**
+ * Gets the absolute path of a backup file.
+ */
+export const getBackupFilePath = (filename: string) => {
+  if (!filename) {
+    throw new Error('Filename is required');
+  }
+
+  // Security: prevent path traversal
+  const sanitizedFilename = path.basename(filename);
+  const filePath = path.join(DB_BACKUP_DIR, sanitizedFilename);
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Backup file not found: ${sanitizedFilename}`);
+  }
+
+  return filePath;
+};

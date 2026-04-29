@@ -65,6 +65,18 @@ const HalamanBackup: React.FC = () => {
     }
   };
 
+  const handleDownload = async (filename: string) => {
+    setActionLoading(true);
+    try {
+      await backupAPI.download(filename);
+    } catch (error: any) {
+      console.error('Download error:', error);
+      setMessage({ type: 'error', text: 'Gagal mengunduh file backup.' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -198,6 +210,8 @@ const HalamanBackup: React.FC = () => {
                               <RefreshCw size={18} className={clsx(actionLoading && "animate-spin")} />
                             </button>
                             <button
+                              onClick={() => handleDownload(b.filename)}
+                              disabled={actionLoading}
                               title="Download Backup"
                               className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all"
                             >

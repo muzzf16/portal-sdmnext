@@ -19,5 +19,20 @@ export const backupAPI = {
   restore: async (filename: string) => {
     const response = await api.post('/backup/restore', { filename });
     return response.data;
+  },
+  download: async (filename: string) => {
+    const response = await api.get(`/backup/download/${filename}`, {
+      responseType: 'blob'
+    });
+    
+    // Create a temporary link and trigger download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
 };

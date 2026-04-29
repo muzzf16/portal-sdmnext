@@ -29,3 +29,13 @@ export const restore = async (req: Request, res: Response, next: NextFunction) =
     next(error);
   }
 };
+
+export const download = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { filename } = req.params;
+    const filePath = service.getBackupFilePath(filename as string);
+    res.download(filePath);
+  } catch (error) {
+    next(error);
+  }
+};

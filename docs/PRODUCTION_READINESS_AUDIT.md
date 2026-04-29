@@ -64,7 +64,8 @@
 ## 8. Dokumentasi Operasional
 - **Temuan**: Dokumentasi teknis untuk pengembang sudah cukup lengkap, namun SOP operasional untuk tim IT (cara restore data, cara update manual, cara bypass darurat) masih minim.
 - **Dampak**: Penanganan insiden akan memakan waktu lama karena bergantung pada memori pengembang aslinya.
-- **Prioritas**: P2
+- **Status**: ✅ COMPLETED (April 2026)
+- **Dokumentasi**: Tersedia di [OPERATIONAL_GUIDE.md](OPERATIONAL_GUIDE.md)
 - **Rekomendasi**: 
   - Buat file `docs/SOP_OPERASIONAL.md` yang berisi langkah-langkah praktis penanganan masalah umum (Troubleshooting Guide).
   - Dokumentasikan semua Environment Variables yang dibutuhkan beserta kegunaannya.
