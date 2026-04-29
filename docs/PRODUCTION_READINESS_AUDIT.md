@@ -6,10 +6,12 @@
 - **Temuan**: Deployment menggunakan Docker Compose sudah menggunakan multi-stage build untuk efisiensi. Namun, beberapa environment variables sensitif (seperti `JWT_SECRET`) memiliki nilai fallback default di kode sumber.
 - **Dampak**: Resiko keamanan tinggi jika admin lupa mengatur secret di lingkungan produksi, karena sistem akan menggunakan secret default yang diketahui publik.
 - **Prioritas**: P1
-- **Rekomendasi**: 
-  - Hapus fallback secret di kode; buat aplikasi *crash* saat startup jika variabel wajib tidak ada.
-  - Implementasikan file `.env.production.example` yang lengkap.
-  - Gunakan Docker Secrets atau Vault jika memungkinkan.
+- **Status**: ✅ COMPLETED (April 2026)
+- **Perubahan**: 
+  - Hardcoded fallbacks untuk `JWT_SECRET` telah dihapus.
+  - Aplikasi sekarang akan **otomatis berhenti (crash)** saat startup di mode produksi jika variabel wajib tidak terisi.
+  - File `.env.production.example` telah dibuat sebagai panduan konfigurasi aman.
+- **Rekomendasi Lanjutan**: Pertimbangkan penggunaan Docker Secrets untuk pengelolaan variabel sensitif di infrastruktur server.
 
 ## 2. Backup dan Restore (KRITIKAL)
 - **Temuan**: Modul backup dan restore di `apps/backend/src/modules/backup` saat ini hanya berisi fungsi kosong (placeholder). Tidak ada mekanisme otomatis untuk backup file `database.sqlite` maupun folder `uploads`.

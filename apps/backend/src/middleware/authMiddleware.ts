@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { TokenExpiredError } from 'jsonwebtoken';
+import config from '../config/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'temporary-secret-for-initial-deployment';
-if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET is not set in environment. Using temporary secret for stability.');
-}
+const JWT_SECRET = config.jwtSecret;
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
