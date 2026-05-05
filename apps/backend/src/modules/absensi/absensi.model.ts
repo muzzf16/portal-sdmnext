@@ -53,8 +53,16 @@ export interface ParsedMachineAttendanceLog {
   punches: string[];
 }
 
+export interface SkippedLogEntry {
+  machineEmployeeCode: string;
+  employeeName: string;
+  date: string;
+}
+
 export interface MachineLogImportResult {
   message: string;
   created: number;
   updated: number;
+  skipped: number;
+  skippedEntries: SkippedLogEntry[];
 }

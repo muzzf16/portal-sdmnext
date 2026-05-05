@@ -150,9 +150,9 @@ const LogAktivitasWlaForm: React.FC<LogAktivitasWlaFormProps> = ({ onSuccess, on
                     </div>
 
                     {/* Nominal Rupiah Field */}
-                    {(selectedActivity?.activityName?.toUpperCase().includes('NPL') || 
-                      selectedActivity?.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
-                      selectedActivity?.activityName?.toUpperCase().includes('PEMASARAN DANA')) && (
+                    {((selectedActivity?.activityName || '').toUpperCase().includes('NPL') || 
+                      (selectedActivity?.activityName || '').toUpperCase().includes('PEMASARAN KREDIT') || 
+                      (selectedActivity?.activityName || '').toUpperCase().includes('PEMASARAN DANA')) && (
                         <div className="col-span-1 md:col-span-2">
                              <label className="block text-sm font-medium text-indigo-700 mb-2">Capaian Nominal (Rp) *</label>
                              <div className="relative">

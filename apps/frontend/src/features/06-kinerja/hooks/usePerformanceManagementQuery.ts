@@ -25,8 +25,11 @@ import {
   rebalanceKpiWeights,
   syncKpiFromWla,
   updateActualValue,
-  updateKpiTarget
+  updateKpiTarget,
+  getNominalTargets,
+  updateNominalTargets
 } from '../api/kpiApi';
+import type { EmployeeNominalTargets } from '../api/kpiApi';
 import {
   getPenilaianKinerja,
   getPenilaianKinerjaByEmployeeId,
@@ -378,6 +381,30 @@ export const useKpiMonitoringSummary = (startDate: string, endDate: string, enab
     enabled: enabled && !!startDate && !!endDate,
     staleTime: 15 * 1000
   });
+
+export const useNominalTargets = (employeeId?: string, enabled = true) =>
+  useQuery({
+    queryKey: ['kpi', 'nominal-targets', employeeId],
+    queryFn: async () => {
+      if (!employeeId) return { npl: 50000000, kredit: 100000000, dana: 100000000 };
+      const response = await getNominalTargets(employeeId);
+      return response.data?.data || { npl: 50000000, kredit: 100000000, dana: 100000000 };
+    },
+    enabled: enabled && !!employeeId,
+    staleTime: 60 * 1000
+  });
+
+export const useUpdateNominalTargetsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ employeeId, targets }: { employeeId: string; targets: Partial<EmployeeNominalTargets> }) =>
+      updateNominalTargets(employeeId, targets),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kpi', 'nominal-targets', variables.employeeId] });
+      queryClient.invalidateQueries({ queryKey: ['kpi', 'monitoring-summary'] });
+    }
+  });
+};
 
 export const useKpiTemplates = (enabled = true) =>
   useQuery({

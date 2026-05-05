@@ -1,1 +1,0 @@
-import{e}from"./index-C16ccCUI.js";const s=()=>e.get("/attendance"),a=t=>e.get(`/attendance?employeeId=${t}`),o=t=>e.post("/attendance",t),d=(t,c)=>e.post("/attendance/clock-in",{employeeId:t,employeeName:c}),p=t=>e.post("/attendance/clock-out",{employeeId:t});export{p as a,d as b,o as c,a as d,s as g};

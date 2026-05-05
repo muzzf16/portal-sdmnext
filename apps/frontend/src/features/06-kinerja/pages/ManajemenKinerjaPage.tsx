@@ -12,6 +12,7 @@ const AdminWlaSummaryContent = lazy(() => import('./AdminWlaSummaryPage'));
 const LogWlaContent = lazy(() => import('./LogAktivitasWlaPage'));
 const ManajemenTugasAtasanContent = lazy(() => import('./ManajemenTugasAtasanPage'));
 const PerformanceCycleContent = lazy(() => import('./PerformanceCyclePage'));
+const KreditMonitoringContent = lazy(() => import('./KreditMonitoringPage'));
 
 interface TabDef {
     id: string;
@@ -102,6 +103,17 @@ const ManajemenKinerjaPage: React.FC = () => {
             ),
         },
         // ── Fase 3-6: PENILAIAN & REVIEW (Akhir Periode) ──
+        {
+            id: 'monitoring-kredit',
+            label: 'Monitoring Kredit',
+            icon: <BarChart2 size={18} />,
+            roles: ['admin'],
+            component: (
+                <Suspense fallback={<TabSpinner />}>
+                    <KreditMonitoringContent />
+                </Suspense>
+            ),
+        },
         {
             id: 'penilaian',
             label: 'Penilaian Kinerja',

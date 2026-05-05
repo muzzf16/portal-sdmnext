@@ -1,1 +1,0 @@
-import{l as r,j as a}from"./index-C16ccCUI.js";import{D as t}from"./DetailKinerja-CwyxTWAP.js";import"./kinerjaApi-sK1QEfhs.js";const l=()=>{const{id:e}=r();return a.jsxs("div",{children:[a.jsx("h1",{className:"text-3xl font-bold text-primary-dark-blue",children:"Detail Penilaian Kinerja"}),a.jsx(t,{performanceId:e})]})};export{l as default};

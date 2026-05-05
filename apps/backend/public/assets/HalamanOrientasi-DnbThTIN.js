@@ -1,1 +1,0 @@
-import{j as t}from"./index-Bxn4Ppb0.js";const a=()=>t.jsx("div",{children:t.jsx("h1",{className:"text-3xl font-bold text-primary-dark-blue",children:"Orientasi"})});export{a as default};

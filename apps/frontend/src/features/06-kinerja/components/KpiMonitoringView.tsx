@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { KpiTarget } from '../types';
-import { useAdminWlaDetailLogs, useDirectorNames } from '../hooks/usePerformanceManagementQuery';
+import { useAdminWlaDetailLogs, useDirectorNames, useNominalTargets } from '../hooks/usePerformanceManagementQuery';
 import { Printer } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -93,6 +93,12 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
     const { startDate, endDate } = getPeriodDates(selectedPeriod);
     const { data: wlaLogs = [] } = useAdminWlaDetailLogs(selectedEmployee, startDate, endDate);
 
+    // Fetch per-employee nominal targets
+    const { data: nominalTargets } = useNominalTargets(selectedEmployee || undefined);
+    const empNplTarget = nominalTargets?.npl ?? 50000000;
+    const empKreditTarget = nominalTargets?.kredit ?? 100000000;
+    const empDanaTarget = nominalTargets?.dana ?? 100000000;
+
     const selectedEmployeeName = useMemo(() => {
         const emp = employees.find(e => e.id === selectedEmployee);
         return emp ? `${emp.name} (${emp.nip})` : (selectedEmployee || '-');
@@ -120,24 +126,53 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
     if (!isActive) return null;
 
     const summary = useMemo(() => {
-        // 1. Identify KPI Khusus vs WLA
-        const isNPL = (name: string) => name.toLowerCase().includes('npl');
-        const isKredit = (name: string) => name.toLowerCase().includes('pemasaran kredit');
-        const isDana = (name: string) => name.toLowerCase().includes('pemasaran dana');
+        const isNominal = (name: string = '') => {
+            const n = name.toLowerCase();
+            return n.includes('npl') || n.includes('pemasaran kredit') || n.includes('pemasaran dana');
+        };
         
-        const isKpiKhusus = (name: string = '') => isNPL(name) || isKredit(name) || isDana(name);
+        const isKpiKhusus = (k: KpiTarget) => {
+            return k.category === 'outcome' || k.category === 'strategic' || isNominal(k.kpiName);
+        };
 
-        const rawKhususItems = kpis.filter(k => isKpiKhusus(k.kpiName));
+        const baseKhususKpiList = kpis.filter(isKpiKhusus);
+        
+        // Injek default nominal jika belum ada (NPL, Kredit, Dana)
+        const nominalTypes = [
+            { name: 'Penanganan NPL', key: 'npl', default: 50000000 },
+            { name: 'Pemasaran Kredit', key: 'kredit', default: 100000000 },
+            { name: 'Pemasaran Dana', key: 'dana', default: 100000000 }
+        ];
 
-        // ===== WLA FTE Calculation (matching Rekap WLA tab) =====
-        // Include ALL approved logs for FTE calculation (same as Rekap WLA)
+        const khususKpiList = [...baseKhususKpiList];
+        
+        nominalTypes.forEach(type => {
+            const exists = khususKpiList.some(item => (item.kpiName || '').toLowerCase().includes(type.name.toLowerCase()));
+            if (!exists) {
+                // Ambil target dari nominalTargets atau default
+                const targetVal = nominalTargets?.[type.key as keyof typeof nominalTargets] || type.default;
+                
+                khususKpiList.push({
+                    id: `default-${type.key}`,
+                    employeeId: String(selectedEmployee),
+                    kpiName: type.name,
+                    targetValue: targetVal,
+                    actualValue: 0,
+                    targetUnit: 'Rp',
+                    category: 'outcome',
+                    period: 'N/A',
+                    score: 0
+                } as any);
+            }
+        });
+
+        // ===== WLA FTE Calculation =====
         const allApprovedLogs = wlaLogs.filter(log => log.status_approval === 'approved');
 
-        // Group ALL approved WLA logs by activity for the rincian table (excluding KPI Khusus for display)
         const wlaActivityMap = new Map<string, { activityName: string; category: string; totalDurasi: number; totalFrekuensi: number }>();
         allApprovedLogs.forEach(log => {
-            // Skip KPI Khusus activities for rincian table (they show in KPI Khusus section)
-            if (isKpiKhusus(log.activityName || '')) return;
+            // Skip nominal/special activities for rincian table
+            if (isNominal(log.activityName || '')) return;
             const key = String(log.id_activity_library || log.activityName);
             const existing = wlaActivityMap.get(key);
             if (existing) {
@@ -154,56 +189,53 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         });
         const wlaActivityItems = Array.from(wlaActivityMap.values()).sort((a, b) => b.totalDurasi - a.totalDurasi);
 
-        // Calculate FTE using ALL approved logs (including KPI Khusus activities)
-        // This matches Rekap WLA which counts all activities toward workload
         const totalDurasiMenit = allApprovedLogs.reduce((sum, log) => sum + (Number(log.total_durasi_terhitung) || 0), 0);
         const totalFrekuensi = allApprovedLogs.reduce((sum, log) => sum + (Number(log.frekuensi) || 0), 0);
-        // Cap endDate to today so future working days don't inflate the denominator
         const today = new Date().toISOString().slice(0, 10);
         const effectiveEndDate = endDate && endDate > today ? today : endDate;
         const workingDays = startDate && effectiveEndDate ? getWorkingDays(startDate, effectiveEndDate) : 1;
         const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
         const wlaPercentage = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
 
-        // ===== KPI Khusus Calculation (unchanged) =====
-        const aggregateKhususWla = (categoryName: string, filterFn: (name: string) => boolean, defaultTarget: number) => {
-            const explicitTargets = rawKhususItems.filter(k => filterFn(k.kpiName));
-            const explicitTargetTotal = explicitTargets.reduce((sum, i) => sum + (Number(i.targetValue) || 0), 0);
+        // ===== KPI Khusus Calculation (Dynamic) =====
+        const khususItemsWithPct = khususKpiList.map(k => {
+            const name = (k.kpiName || '').toLowerCase();
+            const nominalFlag = isNominal(name);
             
-            const matchingLogs = wlaLogs.filter(log => filterFn(log.activityName || '') && log.status_approval === 'approved');
-            const wlaActualNominal = matchingLogs.reduce((sum, log) => sum + (Number(log.nominal_rupiah) || 0), 0);
-            
-            const target = explicitTargetTotal >= 1000000 ? explicitTargetTotal : defaultTarget;
-            const percentage = target === 0 ? (wlaActualNominal > 0 ? 100 : 0) : Math.min((wlaActualNominal / target) * 100, 100);
+            let actual = Number(k.actualValue) || 0;
+            let target = Number(k.targetValue) || 0;
+
+            // Handle default nominal targets if not set in KPI
+            if (nominalFlag && target < 1000000) {
+                if (name.includes('npl')) target = empNplTarget;
+                else if (name.includes('pemasaran kredit')) target = empKreditTarget;
+                else if (name.includes('pemasaran dana')) target = empDanaTarget;
+            }
+
+            // Sync from WLA if nominal and actual is empty
+            if (nominalFlag && actual === 0) {
+                const matchingLogs = wlaLogs.filter(log => (log.activityName || '').toLowerCase().includes(name) && log.status_approval === 'approved');
+                actual = matchingLogs.reduce((sum, log) => sum + (Number(log.nominal_rupiah) || 0), 0);
+            }
+
+            const percentage = target === 0 ? (actual > 0 ? 100 : 0) : Math.min((actual / target) * 100, 100);
 
             return {
-                id: categoryName,
-                kpiName: categoryName,
-                targetValue: target, 
-                actualValue: wlaActualNominal, 
-                targetUnit: 'Rp',
+                id: k.id,
+                kpiName: k.kpiName,
+                targetValue: target,
+                actualValue: actual,
+                targetUnit: nominalFlag ? 'Rp' : (k.targetUnit || '%'),
                 pct: percentage,
-                count: explicitTargets.length > 0 ? explicitTargets.length : (wlaActualNominal > 0 ? 1 : 0),
-                isNominal: true
+                isNominal: nominalFlag
             };
-        };
-
-        const khususItemsWithPct = [
-            aggregateKhususWla('Penanganan NPL', isNPL, 50000000),
-            aggregateKhususWla('Perolehan Pemasaran Kredit', isKredit, 100000000),
-            aggregateKhususWla('Perolehan Pemasaran Dana', isDana, 100000000)
-        ];
+        });
 
         let khususPercentage = 0;
         if (khususItemsWithPct.length > 0) {
-            const totalActual = khususItemsWithPct.reduce((sum, i) => sum + (Number(i.actualValue) || 0), 0);
-            const totalTarget = khususItemsWithPct.reduce((sum, i) => sum + (Number(i.targetValue) || 0), 0);
-            
-            if (totalTarget > 0) {
-                khususPercentage = Math.min((totalActual / totalTarget) * 100, 100);
-            } else {
-                khususPercentage = totalActual > 0 ? 100 : 0;
-            }
+            // Calculate weighted average or simple average? 
+            // The request implies they represent the 20% portion.
+            khususPercentage = khususItemsWithPct.reduce((sum, i) => sum + i.pct, 0) / khususItemsWithPct.length;
         }
 
         // Apply 80/20 rule
@@ -212,7 +244,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         const finalTotal = finalKhusus + finalWla;
 
         return {
-            khususRawCount: rawKhususItems.length,
+            khususRawCount: khususKpiList.length,
             khususItems: khususItemsWithPct,
             wlaActivityItems,
             totalDurasiMenit,

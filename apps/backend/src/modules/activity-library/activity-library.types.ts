@@ -6,6 +6,7 @@ export interface ActivityLibraryItem {
   durationMinutes: number;
   outputUnit: string;
   category: string;
+  default_nominal?: number;
   created_at?: string;
 }
 
@@ -23,6 +24,7 @@ export interface CreateActivityLibraryPayload {
   durationMinutes: number;
   outputUnit?: string;
   category?: string;
+  default_nominal?: number;
 }
 
 export interface UpdateActivityLibraryPayload extends Partial<CreateActivityLibraryPayload> {}

@@ -43,9 +43,17 @@ export interface AttendanceClockInPayload {
   employeeName: string;
 }
 
+export interface SkippedLogEntry {
+  machineEmployeeCode: string;
+  employeeName: string;
+  date: string;
+}
+
 export interface AttendanceUploadResult {
   success?: boolean;
   message: string;
   created: number;
   updated: number;
+  skipped: number;
+  skippedEntries: SkippedLogEntry[];
 }

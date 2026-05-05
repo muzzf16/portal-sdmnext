@@ -1,1 +1,0 @@
-import{j as a}from"./index-C16ccCUI.js";import{D as t}from"./DaftarPelatihan-Lu73Ue-v.js";import"./Table-C6n0ii_3.js";const i=()=>a.jsxs("div",{children:[a.jsx("h1",{className:"text-3xl font-bold text-primary-dark-blue",children:"Pelatihan"}),a.jsx(t,{})]});export{i as default};

@@ -3,6 +3,7 @@ import { ActivityLibraryItem } from '../types';
 import { Jabatan } from '../../01-pegawai/api/jabatanApi';
 import { useToast } from '@/app/providers/ToastContext';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Modal } from '../../../shared/components/ui/Modal';
 import {
     useActivityLibraryList,
     useActivityPositions,
@@ -39,12 +40,13 @@ const ActivityLibraryPage: React.FC = () => {
     // Form state
     const [form, setForm] = useState<{
         position: string; department: string; activityName: string; durationMinutes: number | string; outputUnit: string; category: string;
+        default_nominal?: number | string;
     }>({
-        position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: ''
+        position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: '', default_nominal: ''
     });
 
     const resetForm = () => {
-        setForm({ position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: '' });
+        setForm({ position: '', department: '', activityName: '', durationMinutes: '', outputUnit: '', category: '', default_nominal: '' });
         setEditingItem(null);
         setShowForm(false);
     };
@@ -53,7 +55,8 @@ const ActivityLibraryPage: React.FC = () => {
         setEditingItem(item);
         setForm({
             position: item.position, department: item.department, activityName: item.activityName,
-            durationMinutes: item.durationMinutes, outputUnit: item.outputUnit, category: item.category
+            durationMinutes: item.durationMinutes, outputUnit: item.outputUnit, category: item.category,
+            default_nominal: item.default_nominal ?? ''
         });
         setShowForm(true);
     };
@@ -67,7 +70,8 @@ const ActivityLibraryPage: React.FC = () => {
                 activityName: form.activityName,
                 durationMinutes: Number(form.durationMinutes),
                 outputUnit: form.outputUnit,
-                category: form.category
+                category: form.category,
+                default_nominal: form.default_nominal ? Number(form.default_nominal) : undefined
             };
             if (editingItem) {
                 await updateActivityMutation.mutateAsync({ id: editingItem.id, data: payload });
@@ -141,9 +145,13 @@ const ActivityLibraryPage: React.FC = () => {
             </div>
 
             {/* Form Modal */}
-            {showForm && (
-                <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-medium mb-4">{editingItem ? 'Edit Aktivitas' : 'Tambah Aktivitas Baru'}</h3>
+            <Modal
+                isOpen={showForm}
+                onClose={resetForm}
+                title={editingItem ? 'Edit Aktivitas' : 'Tambah Aktivitas Baru'}
+                size="lg"
+            >
+                <div className="mb-2">
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Posisi/Jabatan <span className="text-red-500">*</span></label>
@@ -197,7 +205,15 @@ const ActivityLibraryPage: React.FC = () => {
                                 <option value="lapangan">Lapangan</option>
                             </select>
                         </div>
-                        <div className="md:col-span-3 flex gap-2 justify-end">
+                        {form.outputUnit.toLowerCase().includes('nominal') && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 text-blue-600 font-bold">Default Target Nominal (Rp)</label>
+                                <input type="number" value={form.default_nominal} onChange={e => setForm({ ...form, default_nominal: e.target.value })}
+                                    className="w-full border border-blue-300 rounded-md px-3 py-2 text-sm bg-blue-50 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. 50000000" />
+                                <p className="text-[10px] text-blue-500 mt-1">* Berlaku sebagai target standar jika tidak di-set per-pegawai</p>
+                            </div>
+                        )}
+                        <div className="md:col-span-3 flex gap-2 justify-end mt-4 pt-4 border-t">
                             <button type="button" onClick={resetForm} className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">Batal</button>
                             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
                                 {editingItem ? 'Update' : 'Simpan'}
@@ -205,7 +221,7 @@ const ActivityLibraryPage: React.FC = () => {
                         </div>
                     </form>
                 </div>
-            )}
+            </Modal>
 
             {/* Table */}
             {loading ? (

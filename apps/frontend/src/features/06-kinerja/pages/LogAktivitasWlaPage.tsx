@@ -1,39 +1,132 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { List, Clock, Save, Activity as ActivityIcon } from 'lucide-react';
+import { List, Clock, Save, Activity as ActivityIcon, Target } from 'lucide-react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { useToast } from '@/app/providers/ToastContext';
 import { LogAktivitasHarian, ActivityLibraryItem } from '../types';
 import { AssignedTask } from '../../../shared/types/types';
+import { Pegawai } from '../../01-pegawai/types';
 import clsx from 'clsx';
 import {
     useActivityLibraryList,
     useCreateBulkWlaMutation,
     useEmployeeTasks,
     useMyWlaLogs,
-    useUpdateTaskStatusMutation
+    useUpdateTaskStatusMutation,
+    useNominalTargets,
+    useUpdateNominalTargetsMutation,
+    useSelectablePerformanceEmployees,
+    useKpiTargetList,
+    useUpdateKpiActualMutation
 } from '../hooks/usePerformanceManagementQuery';
+import { KreditBerkasModal } from '../components/KreditBerkasModal';
+import { KreditBerkasPending } from '../components/KreditBerkasPending';
+import * as kreditApi from '../api/kreditBerkasApi';
+import { KreditBerkas } from '../types';
+import { PlusCircle } from 'lucide-react';
 
 const LogAktivitasWlaPage: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
     const [submitting, setSubmitting] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const employeeId = user?.employeeId || user?.id;
-    const userPosition = user?.employeeDetails?.position || (user as any)?.position || undefined;
+    const role = user?.role || 'employee';
+    const isAdmin = role === 'admin';
+    const isSupervisor = role === 'supervisor' || role === 'pimpinan';
+    
+    // Employee selector state
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(user?.employeeId || user?.id || '');
+    
+    // Queries
+    const selectableEmployeesQuery = useSelectablePerformanceEmployees(role, user?.employeeId || user?.id, user?.name);
+    const selectableEmployees = (selectableEmployeesQuery.data ?? []) as Pegawai[];
+    const selectedEmployee = useMemo(() => 
+        selectableEmployees.find(e => String(e.id) === String(selectedEmployeeId)),
+        [selectableEmployees, selectedEmployeeId]
+    );
+
+    const employeeId = selectedEmployeeId;
+    const userPosition = selectedEmployee?.position || user?.employeeDetails?.position || (user as any)?.position || undefined;
+    
     const myLogsQuery = useMyWlaLogs(selectedDate, employeeId ? String(employeeId) : undefined);
     const libraryQuery = useActivityLibraryList(userPosition ? { position: userPosition } : undefined);
     const assignedTasksQuery = useEmployeeTasks(employeeId ? String(employeeId) : undefined, 'pending');
     const createBulkWlaMutation = useCreateBulkWlaMutation();
     const updateTaskStatusMutation = useUpdateTaskStatusMutation();
+    const nominalTargetsQuery = useNominalTargets(employeeId ? String(employeeId) : undefined);
+    const updateNominalTargetsMutation = useUpdateNominalTargetsMutation();
+    const kpiTargetsQuery = useKpiTargetList({ employeeId: employeeId ? String(employeeId) : undefined });
+    const updateKpiActualMutation = useUpdateKpiActualMutation();
+    
+    const nominalTargets = nominalTargetsQuery.data || { npl: 50000000, kredit: 100000000, dana: 100000000 };
     const myLogs = (myLogsQuery.data ?? []) as LogAktivitasHarian[];
-    const library = (libraryQuery.data ?? []) as ActivityLibraryItem[];
+    
+    // Extrak KPI Custom (Outcome/Strategic)
+    const customKpiTargets = useMemo(() => {
+        const kpis = (kpiTargetsQuery.data ?? []);
+        return kpis.filter(k => {
+            // Safety: Only show if it matches the selected employee
+            if (String(k.employeeId) !== String(employeeId)) return false;
+
+            const name = (k.kpiName || '').toLowerCase();
+            const isDefaultNominal = name.includes('npl') || name.includes('pemasaran kredit') || name.includes('pemasaran dana');
+            return !isDefaultNominal && (k.category === 'outcome' || k.category === 'strategic');
+        });
+    }, [kpiTargetsQuery.data, employeeId]);
+
+    const library = useMemo(() => {
+        const libs = (libraryQuery.data ?? []) as ActivityLibraryItem[];
+        const kpis = (kpiTargetsQuery.data ?? []);
+        
+        // Names of KPIs already shown in the Indigo section
+        const customKpiNames = new Set(
+            customKpiTargets.map(k => (k.kpiName || '').toLowerCase().replace(/^penyelesaian\s+/i, '').trim())
+        );
+
+        // Names of all KPIs assigned to this employee (including those not in Indigo)
+        const myKpiNames = new Set(
+            kpis.map(k => (k.kpiName || '').toLowerCase().replace(/^penyelesaian\s+/i, '').trim())
+        );
+
+        return libs.filter(act => {
+            const name = (act.activityName || '').toLowerCase().trim();
+            
+            // 1. Deduplication: Hide if already in Indigo section
+            if (customKpiNames.has(name)) return false;
+
+            // 2. Leakage Prevention: If it's a "Tugas Khusus KPI", only show if it's assigned to ME
+            const isTugasKhusus = act.category === 'Tugas Khusus KPI';
+            if (isTugasKhusus && !myKpiNames.has(name)) {
+                // Exception: allow default nominal KPIs (NPL, Kredit, Dana) even if not assigned yet
+                const isDefaultNominal = name.includes('npl') || name.includes('pemasaran kredit') || name.includes('pemasaran dana');
+                if (!isDefaultNominal) return false;
+            }
+
+            return true;
+        });
+    }, [libraryQuery.data, kpiTargetsQuery.data, customKpiTargets]);
+
     const assignedTasks = (assignedTasksQuery.data ?? []) as AssignedTask[];
+
+    const [kpiForm, setKpiForm] = useState<Record<string, string | number>>({});
+
+    useEffect(() => {
+        if (customKpiTargets.length > 0) {
+            const initialForm: Record<string, string | number> = {};
+            customKpiTargets.forEach(k => {
+                initialForm[k.id] = k.actualValue || '';
+            });
+            setKpiForm(initialForm);
+        }
+    }, [customKpiTargets]);
+
+
     const loadingLogs = myLogsQuery.isLoading;
-    const loadingLibrary = libraryQuery.isLoading;
+    const loadingLibrary = libraryQuery.isLoading || kpiTargetsQuery.isLoading;
     const error = (myLogsQuery.error as Error | null)?.message
         || (libraryQuery.error as Error | null)?.message
+        || (kpiTargetsQuery.error as Error | null)?.message
         || null;
 
     // Map of activity ID to { frekuensi, catatan, files, target, nominal_rupiah }
@@ -48,6 +141,28 @@ const LogAktivitasWlaPage: React.FC = () => {
         catatan: '',
         files: [] as File[]
     });
+    
+    // Kredit Berkas state
+    const [pendingKredit, setPendingKredit] = useState<(KreditBerkas & { stage_received_at: string })[]>([]);
+    const [showKreditModal, setShowKreditModal] = useState(false);
+    const [kreditModalMode, setKreditModalMode] = useState<'create' | 'process'>('create');
+    const [selectedKredit, setSelectedKredit] = useState<KreditBerkas | undefined>(undefined);
+    const [loadingKredit, setLoadingKredit] = useState(false);
+
+    const fetchPendingKredit = async () => {
+        try {
+            const res = await kreditApi.getPendingKreditBerkas();
+            if (res.data.success) {
+                setPendingKredit(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch pending kredit:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchPendingKredit();
+    }, [user?.employeeId]);
 
     // Pre-fill form inputs whenever myLogs changes (e.g. initial load or after changing date)
     useEffect(() => {
@@ -88,8 +203,9 @@ const LogAktivitasWlaPage: React.FC = () => {
     };
 
     const handleBulkSubmit = async () => {
+        // 1. Filter log untuk WLA (Hanya yang id-nya BUKAN berawalan kpi-)
         const payloadLogs = Object.entries(formInputs)
-            .filter(([_, data]) => Number(data.frekuensi) > 0)
+            .filter(([id, data]) => Number(data.frekuensi) > 0 && !id.startsWith('kpi-'))
             .map(([id, data]) => {
                 let finalCatatan = data.catatan;
                 if (data.target && data.target.trim() !== '') {
@@ -104,7 +220,25 @@ const LogAktivitasWlaPage: React.FC = () => {
                 };
             });
 
-        if (payloadLogs.length === 0) {
+        // 2. Filter log untuk KPI Custom (Kombinasi dari checklist dan form individu)
+        const payloadKpis = [
+            // Dari checklist (orange)
+            ...Object.entries(formInputs)
+                .filter(([id, data]) => Number(data.frekuensi) > 0 && id.startsWith('kpi-'))
+                .map(([id, data]) => ({
+                    id: id.replace('kpi-', ''),
+                    actualValue: Number(data.nominal_rupiah || data.frekuensi || 0)
+                })),
+            // Dari form khusus (indigo)
+            ...Object.entries(kpiForm)
+                .filter(([_, val]) => val !== '' && val !== undefined)
+                .map(([id, val]) => ({
+                    id,
+                    actualValue: Number(val)
+                }))
+        ];
+
+        if (payloadLogs.length === 0 && payloadKpis.length === 0) {
             addToast("Tidak ada aktivitas yang dicentang.", "error");
             return;
         }
@@ -118,14 +252,24 @@ const LogAktivitasWlaPage: React.FC = () => {
 
         setSubmitting(true);
         try {
-            await createBulkWlaMutation.mutateAsync({
-                id_pegawai: String(employeeId),
-                tanggal: selectedDate,
-                logs: payloadLogs
-            });
-            addToast(`Berhasil! ${payloadLogs.length} aktivitas berhasil disimpan.`, "success");
+            if (payloadLogs.length > 0) {
+                await createBulkWlaMutation.mutateAsync({
+                    id_pegawai: String(employeeId),
+                    tanggal: selectedDate,
+                    logs: payloadLogs
+                });
+            }
+            if (payloadKpis.length > 0) {
+                for (const kpi of payloadKpis) {
+                    await updateKpiActualMutation.mutateAsync({
+                        id: kpi.id,
+                        actualValue: kpi.actualValue
+                    });
+                }
+            }
+            addToast(`Berhasil! Data aktivitas dan KPI berhasil disimpan.`, "success");
         } catch (err: any) {
-            addToast(err.response?.data?.message || 'Gagal menyimpan log massal.', "error");
+            addToast(err.response?.data?.message || 'Gagal menyimpan data.', "error");
         } finally {
             setSubmitting(false);
         }
@@ -164,6 +308,25 @@ const LogAktivitasWlaPage: React.FC = () => {
         }
     };
 
+    const handleKreditSubmit = async (data: any) => {
+        setLoadingKredit(true);
+        try {
+            if (kreditModalMode === 'create') {
+                await kreditApi.createKreditBerkas(data);
+                addToast('Berkas pengajuan kredit berhasil disimpan!', 'success');
+            } else if (selectedKredit) {
+                await kreditApi.processKreditStage(selectedKredit.id, data);
+                addToast('Status berkas berhasil diupdate!', 'success');
+            }
+            setShowKreditModal(false);
+            fetchPendingKredit();
+        } catch (err: any) {
+            addToast(err.response?.data?.message || 'Gagal menyimpan data berkas.', 'error');
+        } finally {
+            setLoadingKredit(false);
+        }
+    };
+
     const totalDurasi = useMemo(() => myLogs.reduce((sum, act) => sum + act.total_durasi_terhitung, 0), [myLogs]);
 
     return (
@@ -178,16 +341,41 @@ const LogAktivitasWlaPage: React.FC = () => {
                         Centang aktivitas yang dikerjakan hari ini berdasarkan Norma Waktu (ABK).
                     </p>
                 </div>
-                <div className="bg-white px-4 py-2 border border-gray-200 rounded-lg shadow-sm flex items-center mt-4 sm:mt-0">
-                    <label className="text-sm font-medium text-gray-700 mr-3">Tanggal:</label>
-                    <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="border-none focus:ring-0 text-sm text-indigo-700 font-semibold cursor-pointer p-0"
-                    />
+                <div className="flex flex-col sm:flex-row gap-4 mt-4 sm:mt-0">
+                    {(isAdmin || isSupervisor) && (
+                        <div className="bg-white px-4 py-2 border border-gray-200 rounded-lg shadow-sm flex items-center">
+                            <label className="text-sm font-medium text-gray-700 mr-3">Pegawai:</label>
+                            <select
+                                value={selectedEmployeeId}
+                                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                                className="border-none focus:ring-0 text-sm text-indigo-700 font-semibold cursor-pointer p-0 bg-transparent"
+                            >
+                                {selectableEmployees.map(emp => (
+                                    <option key={emp.id} value={emp.id}>
+                                        {emp.name} ({emp.nip})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <div className="bg-white px-4 py-2 border border-gray-200 rounded-lg shadow-sm flex items-center">
+                        <label className="text-sm font-medium text-gray-700 mr-3">Tanggal:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="border-none focus:ring-0 text-sm text-indigo-700 font-semibold cursor-pointer p-0 bg-transparent"
+                        />
+                    </div>
                 </div>
             </div>
+
+            {selectedEmployee && (isAdmin || isSupervisor) && selectedEmployeeId !== user?.employeeId && (
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-center text-amber-800 text-sm">
+                    <ActivityIcon className="h-4 w-4 mr-2" />
+                    <span>Sedang mengelola data: <strong>{selectedEmployee.name}</strong> ({selectedEmployee.position})</span>
+                </div>
+            )}
 
             {error && (
                 <div className="bg-red-50 p-4 rounded-md text-sm text-red-600 border border-red-200">
@@ -199,6 +387,17 @@ const LogAktivitasWlaPage: React.FC = () => {
 
                 {/* LEFT COLUMN: TASKS + CHECKLIST */}
                 <div className="flex flex-col gap-6 h-[700px]">
+
+                    {/* KREDIT PENDING SECTION (For non-CS roles) */}
+                    <KreditBerkasPending 
+                        items={pendingKredit} 
+                        onProcess={(berkas) => {
+                            setSelectedKredit(berkas);
+                            setKreditModalMode('process');
+                            setShowKreditModal(true);
+                        }}
+                        isLoading={loadingKredit}
+                    />
 
                     {/* ASSIGNED TASKS SECTION */}
                     {assignedTasks.length > 0 && (
@@ -250,7 +449,8 @@ const LogAktivitasWlaPage: React.FC = () => {
                                     <span className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></span>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-6">
+                                    <div className="space-y-4">
                                     {library.slice().sort((a, b) => {
                                         if (a.position === 'Semua Jabatan' && b.position !== 'Semua Jabatan') return 1;
                                         if (a.position !== 'Semua Jabatan' && b.position === 'Semua Jabatan') return -1;
@@ -259,12 +459,17 @@ const LogAktivitasWlaPage: React.FC = () => {
                                         const actId = String(act.id || '');
                                         const val = formInputs[actId] || { frekuensi: '', catatan: '', files: [] };
                                         const isSemuaJabatan = act.position === 'Semua Jabatan';
-                                        const isNominalOnlyActivity = act.activityName?.toUpperCase().includes('NPL') || 
-                                                                      act.activityName?.toUpperCase().includes('PEMASARAN KREDIT') || 
-                                                                      act.activityName?.toUpperCase().includes('PEMASARAN DANA');
+                                        const actNameSafe = (act.activityName || '').toUpperCase();
+                                        const isNominalOnlyActivity = actNameSafe.includes('NPL') || 
+                                                                       actNameSafe.includes('PEMASARAN KREDIT') || 
+                                                                       actNameSafe.includes('PEMASARAN DANA');
                                         
                                         return (
-                                            <div key={act.id || `act-${index}`} className={clsx("p-4 rounded-lg hover:shadow-md transition-all", isSemuaJabatan ? "border-2 border-amber-400 bg-amber-50" : "border border-gray-200 hover:border-indigo-300 bg-white")}>
+                                            <div key={act.id || `act-${index}`} className={clsx(
+                                                "p-4 rounded-lg hover:shadow-md transition-all", 
+                                                isSemuaJabatan ? "border-2 border-amber-400 bg-amber-50" : 
+                                                "border border-gray-200 hover:border-indigo-300 bg-white"
+                                            )}>
                                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3">
                                                     <div className="flex-1">
                                                         <h3 className="text-sm font-bold text-gray-900 flex items-center flex-wrap gap-2">
@@ -274,7 +479,13 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                             )}
                                                         </h3>
                                                         <div className="text-xs text-gray-500 mt-1 flex gap-2">
-                                                            <span className={clsx("px-2 py-0.5 rounded", isSemuaJabatan ? "bg-white border border-amber-200 text-amber-700 font-medium" : "bg-gray-100 text-gray-600")}>{act.category || 'Umum'}</span>
+                                                            <span className={clsx(
+                                                                "px-2 py-0.5 rounded", 
+                                                                isSemuaJabatan ? "bg-white border border-amber-200 text-amber-700 font-medium" : 
+                                                                "bg-gray-100 text-gray-600"
+                                                            )}>
+                                                                {act.category || 'Umum'}
+                                                            </span>
                                                             <span className={clsx("font-medium", isSemuaJabatan ? "text-amber-700" : "text-indigo-600")}>{act.durationMinutes} Menit / {act.outputUnit}</span>
                                                         </div>
                                                     </div>
@@ -283,19 +494,48 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                     {isSemuaJabatan && (
                                                         <div className="mt-3 sm:mt-0 sm:ml-4 flex-1 min-w-[150px]">
                                                             <div className="flex bg-white border border-amber-200 rounded p-2 shadow-sm min-h-[60px]">
-                                                                <label className="text-xs text-amber-700 font-medium mr-2 whitespace-nowrap pt-1">Target:</label>
+                                                                <label className="text-xs font-medium text-amber-700 mr-2 whitespace-nowrap pt-1">Target:</label>
                                                                 {(() => {
+
                                                                     const name = act.activityName || '';
                                                                     const n = name.toLowerCase();
-                                                                    let lockedLabel = '';
-                                                                    if (n.includes('npl')) lockedLabel = "Rp 50 Juta";
-                                                                    else if (n.includes('pemasaran kredit')) lockedLabel = "Rp 100 Juta";
-                                                                    else if (n.includes('pemasaran dana')) lockedLabel = "Rp 100 Juta";
+                                                                    let targetCategory: 'npl' | 'kredit' | 'dana' | null = null;
+                                                                    if (n.includes('npl')) targetCategory = 'npl';
+                                                                    else if (n.includes('pemasaran kredit')) targetCategory = 'kredit';
+                                                                    else if (n.includes('pemasaran dana')) targetCategory = 'dana';
 
-                                                                    if (lockedLabel) {
+                                                                    if (targetCategory) {
+                                                                        const currentTarget = nominalTargets[targetCategory];
+                                                                        const formattedTarget = `Rp ${Number(currentTarget).toLocaleString('id-ID')}`;
+
+                                                                        if (isAdmin) {
+                                                                            return (
+                                                                                <div className="flex flex-col gap-1 flex-1">
+                                                                                    <div className="relative">
+                                                                                        <span className="absolute left-1 top-1 text-[10px] text-amber-500">Rp</span>
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            value={currentTarget}
+                                                                                            onChange={(e) => {
+                                                                                                const newVal = Number(e.target.value) || 0;
+                                                                                                updateNominalTargetsMutation.mutate({
+                                                                                                    employeeId: String(employeeId),
+                                                                                                    targets: { [targetCategory!]: newVal }
+                                                                                                });
+                                                                                            }}
+                                                                                            className="w-full pl-6 pr-1 py-1 text-xs border border-amber-300 rounded bg-amber-50 focus:ring-amber-500 focus:border-amber-500 font-bold text-indigo-700"
+                                                                                            min={0}
+                                                                                            step={1000000}
+                                                                                        />
+                                                                                    </div>
+                                                                                    <span className="text-[9px] text-amber-600 italic">Admin: edit target</span>
+                                                                                </div>
+                                                                            );
+                                                                        }
+
                                                                         return (
                                                                             <div className="text-xs text-indigo-700 font-bold pt-1">
-                                                                                {lockedLabel}
+                                                                                {formattedTarget}
                                                                             </div>
                                                                         );
                                                                     }
@@ -314,9 +554,9 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                         </div>
                                                     )}
 
-                                                    <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center justify-end w-24">
+                                                    <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center justify-end flex-shrink-0">
                                                         <label className="text-xs text-gray-500 mr-2">Aktivitas:</label>
-                                                        <div className="flex rounded-md w-6 justify-end">
+                                                        <div className="flex rounded-md justify-end">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={Number(val.frekuensi) > 0}
@@ -324,6 +564,21 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                                 className={clsx("h-5 w-5 rounded focus:ring-offset-1 cursor-pointer", isSemuaJabatan ? "text-amber-600 border-amber-400 focus:ring-amber-500" : "text-indigo-600 border-gray-300 focus:ring-indigo-500")}
                                                             />
                                                         </div>
+                                                        
+                                                        {/* Kredit Berkas Trigger Button */}
+                                                        {Number(val.frekuensi) > 0 && (act.activityName || '').toLowerCase().includes('menerima berkas pengajuan') && (
+                                                            <Button 
+                                                                size="sm" 
+                                                                className="ml-2 bg-green-600 hover:bg-green-700 h-8 text-[10px] px-2 animate-bounce"
+                                                                onClick={() => {
+                                                                    setKreditModalMode('create');
+                                                                    setShowKreditModal(true);
+                                                                }}
+                                                            >
+                                                                <PlusCircle className="w-3 h-3 mr-1" />
+                                                                Input Berkas
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {Number(val.frekuensi) > 0 && (
@@ -344,15 +599,15 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                             {/* Nominal Rupiah Input (Specific for KPI Khusus) */}
                                                             {isNominalOnlyActivity && (
                                                                 <div className="flex items-center flex-1 min-w-[240px]">
-                                                                    <label className="text-xs text-indigo-700 font-bold mr-2 whitespace-nowrap">Nominal (Rp):</label>
+                                                                    <label className="text-xs text-indigo-700 font-bold mr-2 whitespace-nowrap">Realisasi:</label>
                                                                     <div className="relative flex-1">
-                                                                        <span className="absolute left-2 top-1.5 text-xs text-gray-400">Rp</span>
+                                                                        {isNominalOnlyActivity && <span className="absolute left-2 top-1.5 text-xs text-gray-400">Rp</span>}
                                                                         <input
                                                                             type="number"
                                                                             value={val.nominal_rupiah || ''}
                                                                             onChange={(e) => handleInputChange(actId, 'nominal_rupiah', e.target.value)}
                                                                             placeholder="Misal: 100000000"
-                                                                            className="w-full pl-8 pr-2 py-1.5 text-xs border border-indigo-200 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-indigo-50/30"
+                                                                            className={clsx("w-full pr-2 py-1.5 text-xs border border-indigo-200 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-indigo-50/30", isNominalOnlyActivity ? "pl-8" : "pl-2")}
                                                                         />
                                                                     </div>
                                                                     <div className="ml-2 text-[10px] text-gray-500 italic min-w-[100px]">
@@ -390,6 +645,55 @@ const LogAktivitasWlaPage: React.FC = () => {
                                             </div>
                                         )
                                     })}
+                                    </div>
+
+                                    {/* Section: Target Khusus Individu (Manual) - moved below checklist */}
+                                    {customKpiTargets.length > 0 && (
+                                        <div className="mt-8 p-4 bg-indigo-50/50 border border-indigo-200 rounded-xl shadow-sm">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                                                    <Target className="w-4 h-4 text-indigo-600" /> 🎯 Target Khusus Anda (Individu)
+                                                </h3>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {customKpiTargets.map(kpi => (
+                                                    <div key={kpi.id} className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm flex flex-col gap-2 hover:border-indigo-300 transition-colors">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex-1">
+                                                                 <p className="text-xs font-bold text-gray-900 leading-tight">{kpi.kpiName}</p>
+                                                                 <p className="text-[10px] text-gray-500 mt-1 italic">
+                                                                    Kategori: {kpi.category === 'outcome' ? 'Outcome' : 'Strategic'}
+                                                                 </p>
+                                                            </div>
+                                                            <div className="text-right ml-2">
+                                                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">
+                                                                    Target: {kpi.targetValue} {kpi.targetUnit}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Realisasi:</label>
+                                                            <div className="relative flex-1">
+                                                                <input 
+                                                                    type="number"
+                                                                    value={kpiForm[kpi.id] || ''}
+                                                                    onChange={(e) => setKpiForm({...kpiForm, [kpi.id]: e.target.value})}
+                                                                    placeholder="0"
+                                                                    className="w-full pl-2 pr-8 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                                                />
+                                                                <span className="absolute right-2 top-1.5 text-[10px] text-gray-400 font-medium">
+                                                                    {kpi.targetUnit}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <p className="text-[10px] text-indigo-500 mt-3 flex items-center gap-1">
+                                                <ActivityIcon className="w-3 h-3" /> Info: Target di atas adalah KPI spesifik yang ditetapkan manajemen untuk Anda. Nilai di atas akan disimpan bersamaan dengan checklist di atas.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -581,6 +885,16 @@ const LogAktivitasWlaPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* KREDIT BERKAS MODAL */}
+            <KreditBerkasModal 
+                isOpen={showKreditModal}
+                onClose={() => setShowKreditModal(false)}
+                onSubmit={handleKreditSubmit}
+                mode={kreditModalMode}
+                berkas={selectedKredit}
+                isLoading={loadingKredit}
+            />
         </div>
     );
 };

@@ -13,6 +13,7 @@ import {
     useGenerateKpiFromAbkMutation,
     useKpiTargetList,
     useKpiTemplates,
+    useNominalTargets,
     useRebalanceKpiMutation,
     useSelectablePerformanceEmployees,
     useSyncKpiFromWlaMutation,
@@ -69,6 +70,12 @@ const KpiTargetPage: React.FC = () => {
     const templates = kpiTemplateQuery.data?.templates || [];
     const templateDepts = kpiTemplateQuery.data?.departments || [];
     const templateLoading = kpiTemplateQuery.isLoading || kpiTemplateQuery.isFetching;
+
+    // Per-employee nominal targets
+    const { data: nominalTargets } = useNominalTargets(selectedEmployee || undefined);
+    const empNplTarget = nominalTargets?.npl ?? 50000000;
+    const empKreditTarget = nominalTargets?.kredit ?? 100000000;
+    const empDanaTarget = nominalTargets?.dana ?? 100000000;
 
     // Form state
     const [form, setForm] = useState({
@@ -335,6 +342,31 @@ const KpiTargetPage: React.FC = () => {
         ? kpis.reduce((sum, k) => sum + (k.score || 0) * (k.weight || 0), 0) / totalWeight
         : 0;
 
+    // Identify fixed KPIs (3 KPI Khusus semua jabatan)
+    const isFixedKpi = (name: string) => {
+        const lower = name.toLowerCase();
+        return lower.includes('npl') || lower.includes('pemasaran kredit') || lower.includes('pemasaran dana');
+    };
+    const fixedKpis = kpis.filter(k => isFixedKpi(k.kpiName));
+    const customKpis = kpis.filter(k => !isFixedKpi(k.kpiName));
+
+    // Handler: tambah KPI Custom langsung dengan pre-fill pegawai+periode
+    const handleAddCustomKpi = () => {
+        setEditingId(null);
+        setForm({
+            employeeId: selectedEmployee || (role === 'employee' ? user?.employeeId || '' : ''),
+            period: selectedPeriod || '',
+            kpiName: '',
+            targetValue: 0,
+            targetUnit: '%',
+            weight: 0,
+            notes: '',
+            category: 'outcome'
+        });
+        setShowForm(true);
+        setTimeout(() => document.getElementById('kpi-form-section')?.scrollIntoView({ behavior: 'smooth' }), 100);
+    };
+
     // Approval workflow handlers (Gap 4)
     const handleSubmitForApproval = async (kpi: KpiTarget) => {
         try {
@@ -534,9 +566,29 @@ const KpiTargetPage: React.FC = () => {
                 </div>
             )}
 
+            {/* Tombol Tambah KPI Custom per Karyawan */}
+            {role !== 'employee' && selectedEmployee && (
+                <div className="mb-4 flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex-1">
+                        <p className="text-sm font-medium text-emerald-800">
+                            🎯 KPI Custom per Karyawan
+                        </p>
+                        <p className="text-xs text-emerald-600 mt-0.5">
+                            Tambahkan target KPI sesuai SOP jabatan karyawan ini, di luar 3 KPI Khusus bawaan (NPL, Kredit, Dana).
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleAddCustomKpi}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium whitespace-nowrap"
+                    >
+                        + Tambah KPI Custom
+                    </button>
+                </div>
+            )}
+
             {/* Create Form */}
             {showForm && (
-                <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                <div id="kpi-form-section" className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-6">
                     <h3 className="text-lg font-medium mb-4">{editingId ? 'Edit KPI Target' : 'Tambah KPI Target'}</h3>
                     <form onSubmit={handleCreateKpi} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
@@ -568,10 +620,13 @@ const KpiTargetPage: React.FC = () => {
                                 let targetUnit = form.targetUnit;
                                 
                                 if (lower.includes('npl')) {
-                                    targetVal = 50000000;
+                                    targetVal = empNplTarget;
                                     targetUnit = 'Rp';
-                                } else if (lower.includes('pemasaran kredit') || lower.includes('pemasaran dana')) {
-                                    targetVal = 100000000;
+                                } else if (lower.includes('pemasaran kredit')) {
+                                    targetVal = empKreditTarget;
+                                    targetUnit = 'Rp';
+                                } else if (lower.includes('pemasaran dana')) {
+                                    targetVal = empDanaTarget;
                                     targetUnit = 'Rp';
                                 }
 
@@ -584,9 +639,10 @@ const KpiTargetPage: React.FC = () => {
                             <input type="number" step="1" value={form.targetValue} onChange={e => setForm({ ...form, targetValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" 
                                 required 
-                                disabled={form.kpiName.toLowerCase().includes('npl') || 
-                                          form.kpiName.toLowerCase().includes('pemasaran kredit') || 
-                                          form.kpiName.toLowerCase().includes('pemasaran dana')} 
+                                disabled={role !== 'admin' && (
+                                    form.kpiName.toLowerCase().includes('npl') || 
+                                    form.kpiName.toLowerCase().includes('pemasaran kredit') || 
+                                    form.kpiName.toLowerCase().includes('pemasaran dana'))} 
                             />
                         </div>
                         <div>
@@ -655,8 +711,107 @@ const KpiTargetPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {kpis.map(kpi => (
-                                <tr key={kpi.id} className="hover:bg-gray-50">
+                            {/* ===== KPI KHUSUS (3 Fixed) ===== */}
+                            {fixedKpis.length > 0 && (
+                                <tr>
+                                    <td colSpan={8} className="px-4 py-2 bg-amber-50 border-y border-amber-200">
+                                        <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">🔒 KPI Khusus Semua Jabatan ({fixedKpis.length})</span>
+                                        <span className="text-xs text-amber-500 ml-2">— NPL, Pemasaran Kredit, Pemasaran Dana</span>
+                                    </td>
+                                </tr>
+                            )}
+                            {fixedKpis.map(kpi => (
+                                <tr key={kpi.id} className="hover:bg-amber-50/40 bg-amber-50/20">
+                                    <td className="px-4 py-3">
+                                        <div className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                                            <span className="text-amber-500 text-xs">🔒</span>
+                                            {kpi.kpiName}
+                                        </div>
+                                        {kpi.notes && <div className="text-xs text-gray-500 mt-1">{kpi.notes}</div>}
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm font-mono">{kpi.targetValue} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        {role !== 'employee' ? (
+                                            <button onClick={() => handleUpdateActual(kpi)}
+                                                className="font-mono text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer">
+                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
+                                            </button>
+                                        ) : (
+                                            <span className="font-mono text-sm text-gray-700">
+                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
+                                            </span>
+                                        )}
+                                        {kpi.evidenceUrl && (
+                                            <a href={kpi.evidenceUrl} target="_blank" rel="noreferrer" className="inline-flex ml-1 text-green-600 hover:text-green-800" title="Lihat Bukti">
+                                                <Paperclip className="w-3.5 h-3.5" />
+                                            </a>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold ${getScoreColor(kpi.score)}`}>
+                                            {kpi.score || '-'}
+                                        </span>
+                                        <div className="text-xs text-gray-500 mt-0.5">{getScoreLabel(kpi.score)}</div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm font-mono">{kpi.weight}%</td>
+                                    <td className="px-4 py-3 text-center">
+                                        {(() => {
+                                            const s = getStatusBadge(kpi.status); return (
+                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${s.className}`}>
+                                                    {s.label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm">
+                                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${kpi.category === 'process' ? 'bg-blue-100 text-blue-800' :
+                                            kpi.category === 'strategic' ? 'bg-purple-100 text-purple-800' :
+                                                'bg-amber-100 text-amber-800'
+                                            }`}>
+                                            {kpi.category === 'process' ? '📊 Proses' : kpi.category === 'strategic' ? '🏢 Strategis' : '🎯 Outcome'}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        {role !== 'employee' && (
+                                            <div className="flex items-center justify-center gap-1 flex-wrap">
+                                                {kpi.status === 'draft' && (
+                                                    <button onClick={() => handleSubmitForApproval(kpi)} className="text-amber-600 hover:text-amber-800 text-xs font-medium px-2 py-1 rounded border border-amber-300 hover:bg-amber-50">Ajukan</button>
+                                                )}
+                                                {kpi.status === 'waiting_approval' && (
+                                                    <button onClick={() => handleApproveKpi(kpi)} className="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 rounded border border-emerald-300 hover:bg-emerald-50">Aktifkan</button>
+                                                )}
+                                                {kpi.status === 'active' && (
+                                                    <button onClick={() => handleCompleteKpi(kpi)} className="text-green-600 hover:text-green-800 text-xs font-medium px-2 py-1 rounded border border-green-300 hover:bg-green-50">✓ Selesai</button>
+                                                )}
+                                                <button onClick={() => handleEditClick(kpi)} className="text-indigo-600 hover:text-indigo-800 text-xs px-2 py-1">Edit</button>
+                                                <button onClick={() => handleDelete(kpi.id)} className="text-red-600 hover:text-red-800 text-xs px-2 py-1">Hapus</button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+
+                            {/* ===== KPI CUSTOM per KARYAWAN ===== */}
+                            <tr>
+                                <td colSpan={8} className="px-4 py-2 bg-emerald-50 border-y border-emerald-200">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">🎯 KPI Custom per Karyawan ({customKpis.length})</span>
+                                            <span className="text-xs text-emerald-500 ml-2">— Target sesuai SOP jabatan individu</span>
+                                        </div>
+                                        {role !== 'employee' && selectedEmployee && (
+                                            <button
+                                                onClick={handleAddCustomKpi}
+                                                className="text-xs px-2.5 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium"
+                                            >
+                                                + Tambah
+                                            </button>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                            {customKpis.map(kpi => (
+                                <tr key={kpi.id} className="hover:bg-emerald-50/30">
                                     <td className="px-4 py-3">
                                         <div className="text-sm font-medium text-gray-900">{kpi.kpiName}</div>
                                         {kpi.notes && <div className="text-xs text-gray-500 mt-1">{kpi.notes}</div>}
@@ -722,6 +877,13 @@ const KpiTargetPage: React.FC = () => {
                                     </td>
                                 </tr>
                             ))}
+                            {customKpis.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="px-4 py-4 text-center text-sm text-gray-400 italic">
+                                        Belum ada KPI custom. {role !== 'employee' && selectedEmployee ? 'Klik "+ Tambah" di atas untuk menambahkan.' : 'Pilih pegawai untuk menambahkan KPI custom.'}
+                                    </td>
+                                </tr>
+                            )}
                             {kpis.length === 0 && (
                                 <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Belum ada KPI target. Buat manual atau generate dari ABK.</td></tr>
                             )}

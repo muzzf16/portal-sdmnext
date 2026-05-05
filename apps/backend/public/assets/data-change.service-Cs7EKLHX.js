@@ -1,0 +1,1 @@
+import{e as t}from"./index-DNxQ4Ria.js";const r=(e,a)=>t.post("/data-change-requests",{employeeId:e,requestedChanges:a}),h=()=>t.get("/data-change-requests"),u=(e,a,s)=>t.patch(`/data-change-requests/${e}/handle`,{status:a,reviewNotes:s});export{h as g,u as h,r as s};

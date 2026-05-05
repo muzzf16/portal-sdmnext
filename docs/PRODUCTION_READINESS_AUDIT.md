@@ -52,8 +52,12 @@
 - **Temuan**: Konfigurasi SQLite saat ini tidak secara eksplisit mengaktifkan Foreign Key constraints (`PRAGMA foreign_keys = ON`). Juga belum mengaktifkan WAL (Write-Ahead Logging) mode.
 - **Dampak**: SQLite secara default mengabaikan foreign key, sehingga data bisa menjadi "orphan" atau tidak konsisten. Tanpa WAL, performa saat banyak user melakukan tulis data secara bersamaan akan sangat lambat (database lock).
 - **Prioritas**: P1
-- **Rekomendasi**: 
-  - Tambahkan perintah `PRAGMA foreign_keys = ON;` dan `PRAGMA journal_mode = WAL;` pada saat inisialisasi koneksi database di `sqlite.ts`.
+- **Status**: ✅ COMPLETED (April 2026)
+- **Perubahan**:
+  - `PRAGMA foreign_keys = ON;` dan `PRAGMA journal_mode = WAL;` sudah ditambahkan di `core/database/sqlite.ts`.
+  - **Fix**: Import log mesin absensi (`parseAndSaveLog`) sebelumnya memasukkan `machineEmployeeCode` sebagai `employeeId` untuk pegawai yang tidak cocok, menyebabkan FOREIGN KEY violation. Sekarang entri yang tidak cocok di-skip dan dilaporkan ke pengguna.
+- **Rekomendasi Lanjutan**:
+  - Audit modul lain untuk memastikan tidak ada operasi INSERT/UPDATE yang menggunakan `employeeId` tidak valid.
 
 ## 7. Scheduler / Batch Job
 - **Temuan**: Scheduler menggunakan `setInterval` in-memory yang dibuat secara custom.

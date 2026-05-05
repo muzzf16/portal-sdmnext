@@ -1,1 +1,0 @@
-import{u as e}from"./useQuery-C_kx9Ks3.js";import{e as t}from"./index-Bxn4Ppb0.js";const s=async()=>(await t.get("/company-settings")).data,a=()=>e({queryKey:["company-settings"],queryFn:s});export{a as u};

@@ -1,1 +1,0 @@
-import{l as e,j as a}from"./index-C16ccCUI.js";import{D as r}from"./DetailPenggajian-CtGEKvSG.js";import"./penggajianApi-Q1NY97Dz.js";import"./arrow-left-Dw3tOudp.js";const o=()=>{const{id:t}=e();return a.jsxs("div",{children:[a.jsx("h1",{className:"text-3xl font-bold text-primary-dark-blue",children:"Detail Penggajian"}),a.jsx(r,{payrollId:t})]})};export{o as default};

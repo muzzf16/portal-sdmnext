@@ -7,7 +7,8 @@ import {
   AbsensiUpdatePayload,
   AttendanceClockPayload,
   MachineLogImportResult,
-  ParsedMachineAttendanceLog
+  ParsedMachineAttendanceLog,
+  SkippedLogEntry
 } from './absensi.model';
 import { AbsensiRepository } from './absensi.repository';
 
@@ -102,7 +103,7 @@ const parseMachineLogs = (buffer: Buffer): ParsedMachineAttendanceLog[] => {
 const resolveEmployeeFromMachineLog = (
   machineLog: ParsedMachineAttendanceLog,
   employees: Awaited<ReturnType<typeof PegawaiRepository.findAll>>
-) => {
+): { employeeId: string; employeeName: string } | null => {
   const matchedEmployee = employees.find((employee) => {
     const normalizedLogName = machineLog.employeeName.toLowerCase();
     const normalizedEmployeeName = employee.name.toLowerCase();
@@ -115,10 +116,7 @@ const resolveEmployeeFromMachineLog = (
   });
 
   if (!matchedEmployee) {
-    return {
-      employeeId: machineLog.machineEmployeeCode,
-      employeeName: machineLog.employeeName
-    };
+    return null;
   }
 
   return {
@@ -331,9 +329,22 @@ class AbsensiService {
       const employees = (await PegawaiRepository.findAll()).filter((employee: any) => Number(employee.isActive ?? 1) === 1);
       let createdCount = 0;
       let updatedCount = 0;
+      const skippedEntries: SkippedLogEntry[] = [];
 
       for (const parsedLog of parsedLogs) {
         const resolvedEmployee = resolveEmployeeFromMachineLog(parsedLog, employees);
+
+        // Skip entries that can't be matched to a real pegawai record
+        // to avoid FOREIGN KEY constraint violations
+        if (!resolvedEmployee) {
+          skippedEntries.push({
+            machineEmployeeCode: parsedLog.machineEmployeeCode,
+            employeeName: parsedLog.employeeName,
+            date: parsedLog.date
+          });
+          continue;
+        }
+
         const punches = [...parsedLog.punches].sort();
         let clockIn: string | null = punches[0] ?? null;
         let clockOut: string | null = punches.length > 1 ? punches[punches.length - 1] : null;
@@ -380,9 +391,13 @@ class AbsensiService {
       }
 
       return {
-        message: 'Log processed successfully',
+        message: skippedEntries.length > 0
+          ? `Log processed with ${skippedEntries.length} unmatched entries skipped`
+          : 'Log processed successfully',
         created: createdCount,
-        updated: updatedCount
+        updated: updatedCount,
+        skipped: skippedEntries.length,
+        skippedEntries
       };
     } catch (error: any) {
       throw new AppError(`Error parsing and saving log: ${error.message}`, 500);

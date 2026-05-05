@@ -1,1 +1,0 @@
-import{e as r}from"./index-C16ccCUI.js";const s=async()=>{var a;try{const t=await r.get("/dashboard/recent-activity");return((a=t.data)==null?void 0:a.data)||t.data||[]}catch(t){throw console.error("Error in getRecentActivity:",t),t}},o=async()=>(await r.get("/dashboard/supervisor")).data;export{o as a,s as g};

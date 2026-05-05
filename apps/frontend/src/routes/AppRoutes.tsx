@@ -53,6 +53,7 @@ const HalamanKinerjaSaya = lazy(() => import('../features/06-kinerja/pages/Halam
 const HalamanDetailKinerja = lazy(() => import('../features/06-kinerja/pages/HalamanDetailKinerja'));
 const LogAktivitasWlaPage = lazy(() => import('../features/06-kinerja/pages/LogAktivitasWlaPage'));
 const AdminWlaSummaryPage = lazy(() => import('../features/06-kinerja/pages/AdminWlaSummaryPage'));
+const KreditMonitoringPage = lazy(() => import('../features/06-kinerja/pages/KreditMonitoringPage'));
 
 // Recruitment
 const HalamanPerekrutan = lazy(() => import('../features/07-perekrutan/pages/HalamanPerekrutan'));
@@ -263,6 +264,13 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <AdminWlaSummaryPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="monitoring-kredit" element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <KreditMonitoringPage />
             </Suspense>
           </PrivateRoute>
         } />

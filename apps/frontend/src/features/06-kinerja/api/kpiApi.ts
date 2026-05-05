@@ -77,3 +77,19 @@ export const getKpiTemplates = (department?: string) =>
 
 export const applyKpiTemplates = (data: { employeeId: string; period: string; department?: string; templateIds?: string[] }) =>
     api.post('/kpi-templates/apply', data);
+
+// ── Nominal KPI Targets (per-employee) ──
+export interface EmployeeNominalTargets {
+    npl: number;
+    kredit: number;
+    dana: number;
+}
+
+export const getNominalTargets = (employeeId: string) =>
+    api.get<{ success: boolean; data: EmployeeNominalTargets }>(`/kpi-targets/nominal-targets/employee/${employeeId}`);
+
+export const getNominalTargetsBatch = (employeeIds: string[]) =>
+    api.get<{ success: boolean; data: Record<string, EmployeeNominalTargets> }>(`/kpi-targets/nominal-targets/batch?ids=${employeeIds.join(',')}`);
+
+export const updateNominalTargets = (employeeId: string, targets: Partial<EmployeeNominalTargets>) =>
+    api.put(`/kpi-targets/nominal-targets/employee/${employeeId}`, targets);

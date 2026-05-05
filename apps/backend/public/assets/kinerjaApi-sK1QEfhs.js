@@ -1,1 +1,0 @@
-import{e as a}from"./index-C16ccCUI.js";const r=()=>a.get("/performance-reviews"),i=e=>a.get(`/performance-reviews/${e}`),o=e=>a.get(`/performance-reviews?employeeId=${e}`),s=e=>a.post("/performance-reviews",e);export{i as a,r as b,s as c,o as g};

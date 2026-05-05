@@ -5,6 +5,7 @@ import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import JabatanService from '../jabatan/jabatan.service';
 import { AppError } from '../../utils/errors';
 import { openDb } from '../../config/db';
+import { KpiNominalTargetService } from './kpi-nominal-target.service';
 import {
     CreateKpiPayload,
     KpiCategory,
@@ -328,12 +329,21 @@ export default class KpiService {
             if (employees.length === 0) return [];
             const empIds = employees.map(e => e.employeeId);
 
+            // Fetch per-employee nominal targets (NPL/Kredit/Dana)
+            const nominalTargetsMap = await KpiNominalTargetService.getByEmployeeIds(empIds.map(String));
+
             const db = await openDb();
             const placeholders = empIds.map(() => '?').join(',');
 
-            // fetch all KPIs
-            let kpiQuery = `SELECT * FROM kpi_targets WHERE employeeId IN (${placeholders})`;
-            let kpiParams = [...empIds];
+            // fetch all KPIs (Individual + Semua Jabatan)
+            let kpiQuery = `SELECT * FROM kpi_targets WHERE position = 'Semua Jabatan'`;
+            let kpiParams: any[] = [];
+            
+            if (empIds.length > 0) {
+                const placeholders = empIds.map(() => '?').join(',');
+                kpiQuery = `SELECT * FROM kpi_targets WHERE (employeeId IN (${placeholders}) OR position = 'Semua Jabatan')`;
+                kpiParams = [...empIds];
+            }
 
             if (filters.period) {
                 kpiQuery += ` AND period = ?`;
@@ -357,30 +367,80 @@ export default class KpiService {
             ) as any[];
 
             return employees.map(emp => {
-                const empKpis = kpis.filter(k => String(k.employeeId) === String(emp.employeeId));
+                const empKpis = kpis.filter(k => 
+                    String(k.employeeId) === String(emp.employeeId) || 
+                    (k.position === 'Semua Jabatan' && (!k.department || k.department === emp.department))
+                );
                 const empLogs = logs.filter(l => String(l.id_pegawai) === String(emp.employeeId));
 
                 const totalDurasiMenit = empLogs.reduce((sum, log) => sum + (Number(log.total_durasi_terhitung) || 0), 0);
 
-                const isNPL = (name: string) => name.toLowerCase().includes('npl');
-                const isKredit = (name: string) => name.toLowerCase().includes('pemasaran kredit');
-                const isDana = (name: string) => name.toLowerCase().includes('pemasaran dana');
+                const isNominal = (name: string) => {
+                    const n = name.toLowerCase();
+                    return n.includes('npl') || n.includes('pemasaran kredit') || n.includes('pemasaran dana');
+                };
 
-                const nplLogs = empLogs.filter(l => isNPL(l.activityName || ''));
-                const kreditLogs = empLogs.filter(l => isKredit(l.activityName || ''));
-                const danaLogs = empLogs.filter(l => isDana(l.activityName || ''));
+                const khususItems = empKpis.filter(k => 
+                    k.category === 'outcome' || 
+                    k.category === 'strategic' || 
+                    isNominal(k.kpiName || '')
+                );
 
-                const nplActual = nplLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
-                const kreditActual = kreditLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
-                const danaActual = danaLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
+                const khususDetails = khususItems.map(k => {
+                    let actual = Number(k.actualValue) || 0;
+                    if (actual === 0 && isNominal(k.kpiName || '')) {
+                        const matchingLogs = empLogs.filter(l => (l.activityName || '').toLowerCase().includes((k.kpiName || '').toLowerCase()));
+                        actual = matchingLogs.reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
+                    }
+                    
+                    return {
+                        id: k.id,
+                        kpiName: k.kpiName,
+                        targetValue: Number(k.targetValue) || 0,
+                        actualValue: actual,
+                        targetUnit: k.targetUnit || 'Rp',
+                        weight: Number(k.weight) || 0,
+                        score: Number(k.score) || 0
+                    };
+                });
 
-                const nplTargets = empKpis.filter(k => isNPL(k.kpiName || ''));
-                const kreditTargets = empKpis.filter(k => isKredit(k.kpiName || ''));
-                const danaTargets = empKpis.filter(k => isDana(k.kpiName || ''));
+                // Per-employee configured nominal targets (admin-set)
+                const empNominalTargets = nominalTargetsMap[String(emp.employeeId)] || KpiNominalTargetService.getDefaults();
 
-                const nplTarget = nplTargets.reduce((sum, k) => sum + (Number(k.targetValue) || 0), 0);
-                const kreditTarget = kreditTargets.reduce((sum, k) => sum + (Number(k.targetValue) || 0), 0);
-                const danaTarget = danaTargets.reduce((sum, k) => sum + (Number(k.targetValue) || 0), 0);
+                // Injek default nominal jika belum ada (NPL, Kredit, Dana) agar tetap muncul di monitoring
+                const nominalTypes = [
+                    { name: 'Penanganan NPL', key: 'npl', default: 50000000 },
+                    { name: 'Pemasaran Kredit', key: 'kredit', default: 100000000 },
+                    { name: 'Pemasaran Dana', key: 'dana', default: 100000000 }
+                ];
+
+                nominalTypes.forEach(type => {
+                    const exists = khususDetails.some(item => (item.kpiName || '').toLowerCase().includes(type.name.toLowerCase()));
+                    if (!exists) {
+                        const actual = empLogs
+                            .filter(l => (l.activityName || '').toLowerCase().includes(type.name.toLowerCase()))
+                            .reduce((sum, l) => sum + (Number(l.nominal_rupiah) || 0), 0);
+                        
+                        const target = empNominalTargets[type.key as keyof typeof empNominalTargets] || type.default;
+
+                        khususDetails.push({
+                            id: `default-${type.key}-${emp.employeeId}`,
+                            kpiName: type.name,
+                            targetValue: target,
+                            actualValue: actual,
+                            targetUnit: 'Rp',
+                            weight: 0,
+                            score: 0
+                        });
+                    }
+                });
+
+                const khususPercentage = khususDetails.length > 0
+                    ? khususDetails.reduce((sum, k) => {
+                        const cap = k.targetValue > 0 ? (k.actualValue / k.targetValue) * 100 : 0;
+                        return sum + Math.min(cap, 100);
+                    }, 0) / khususDetails.length
+                    : 0;
 
                 return {
                     employeeId: emp.employeeId,
@@ -389,11 +449,9 @@ export default class KpiService {
                     department: emp.department,
                     position: emp.position,
                     totalDurasiMenit,
-                    khusus: {
-                        nplTarget, nplActual, nplCount: nplTargets.length,
-                        kreditTarget, kreditActual, kreditCount: kreditTargets.length,
-                        danaTarget, danaActual, danaCount: danaTargets.length
-                    }
+                    nominalTargets: empNominalTargets,
+                    khususItems: khususDetails,
+                    khususPercentage
                 };
             });
         } catch (error: any) {
@@ -436,26 +494,7 @@ export default class KpiService {
         }
 
         try {
-            // Check if source is manual (default) and abkActivityId is missing
-            if ((!payload.source || payload.source === 'manual') && !payload.abkActivityId) {
-                const db = await openDb();
-                const cleanName = payload.kpiName.replace(/^Penyelesaian\s+/i, '').trim();
-                let match = await db.get('SELECT id FROM activity_library WHERE LOWER(activityName) = LOWER(?) LIMIT 1', cleanName);
-
-                if (!match) {
-                    const activityId = `act-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                    const now = new Date().toISOString();
-                    await db.run(
-                        `INSERT INTO activity_library (id, position, department, activityName, durationMinutes, outputUnit, category, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                        activityId, 'Semua Jabatan', '', cleanName, 60, payload.targetUnit === 'jumlah' ? 'Kali' : (payload.targetUnit || 'Selesai'), 'Tugas Khusus KPI', now
-                    );
-                    payload.abkActivityId = activityId;
-                } else {
-                    payload.abkActivityId = match.id;
-                }
-            }
-
+            // Manual KPIs should not automatically create library entries to avoid duplication and leakage
             return await KpiRepository.create(payload);
         } catch (error: any) {
             throw new AppError(`Error creating KPI target: ${error.message}`, 500);

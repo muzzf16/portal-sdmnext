@@ -5,11 +5,18 @@ interface LogMachineUploadProps {
     onUploadComplete?: () => void;
 }
 
+interface SkippedEntry {
+    machineEmployeeCode: string;
+    employeeName: string;
+    date: string;
+}
+
 const LogMachineUpload: React.FC<LogMachineUploadProps> = ({ onUploadComplete }) => {
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [skippedEntries, setSkippedEntries] = useState<SkippedEntry[]>([]);
     const uploadMutation = useUploadMachineLogMutation();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -18,6 +25,7 @@ const LogMachineUpload: React.FC<LogMachineUploadProps> = ({ onUploadComplete })
             setFile(selectedFile);
             setError(null);
             setSuccess(null);
+            setSkippedEntries([]);
         }
     };
 
@@ -27,13 +35,23 @@ const LogMachineUpload: React.FC<LogMachineUploadProps> = ({ onUploadComplete })
             return;
         }
         setLoading(true);
+        setSkippedEntries([]);
         try {
             const data = await uploadMutation.mutateAsync(file);
             setLoading(false);
             setError(null);
-            setSuccess(`Berhasil mengunggah log. Dibuat: ${data.created || 0}, Diperbarui: ${data.updated || 0}`);
+
+            const parts = [`Dibuat: ${data.created || 0}`, `Diperbarui: ${data.updated || 0}`];
+            if (data.skipped) {
+                parts.push(`Dilewati: ${data.skipped}`);
+            }
+            setSuccess(`Berhasil mengunggah log. ${parts.join(', ')}`);
+
+            if (data.skippedEntries?.length > 0) {
+                setSkippedEntries(data.skippedEntries);
+            }
+
             setFile(null);
-            setTimeout(() => setSuccess(null), 5000);
 
             if (onUploadComplete) {
                 onUploadComplete();
@@ -86,12 +104,44 @@ const LogMachineUpload: React.FC<LogMachineUploadProps> = ({ onUploadComplete })
                 </div>
             )}
 
+            {skippedEntries.length > 0 && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
+                    <p className="font-medium text-yellow-800 mb-2">
+                        ⚠️ {skippedEntries.length} data log tidak dapat dicocokkan dengan pegawai:
+                    </p>
+                    <div className="max-h-40 overflow-y-auto">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="text-left text-yellow-700">
+                                    <th className="py-1 pr-2">Kode Mesin</th>
+                                    <th className="py-1 pr-2">Nama di Mesin</th>
+                                    <th className="py-1">Tanggal</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-yellow-800">
+                                {skippedEntries.map((entry, idx) => (
+                                    <tr key={idx} className="border-t border-yellow-100">
+                                        <td className="py-1 pr-2 font-mono">{entry.machineEmployeeCode}</td>
+                                        <td className="py-1 pr-2">{entry.employeeName}</td>
+                                        <td className="py-1">{entry.date}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p className="mt-2 text-yellow-700 text-xs">
+                        Pastikan NIP pegawai di sistem sesuai dengan ID di mesin absensi, atau nama pegawai cocok.
+                    </p>
+                </div>
+            )}
+
             <div className="mt-4 text-sm text-gray-600">
                 <p className="font-medium">Catatan:</p>
                 <ul className="list-disc list-inside mt-1 space-y-1">
                     <li>Pilih file berformat <code className="bg-gray-100 px-1 rounded">.txt</code> yang ditarik dari mesin absensi.</li>
                     <li>Sistem akan mencocokkan ID Mesin (EnNo) atau Nama dengan data Pegawai.</li>
                     <li>Jika ada dua log (masuk & keluar) pada tanggal yang sama, sistem akan menghitung durasi jam kerja secara otomatis.</li>
+                    <li>Data yang tidak cocok dengan pegawai manapun akan dilewati dan dilaporkan.</li>
                 </ul>
             </div>
         </div>

@@ -4,7 +4,7 @@ import { Download, Search, Target } from 'lucide-react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
-import { useKpiMonitoringSummary } from '../hooks/usePerformanceManagementQuery';
+import { useKpiMonitoringSummary, useDirectorNames } from '../hooks/usePerformanceManagementQuery';
 
 interface KpiSummaryViewProps {
     isActive: boolean;
@@ -42,6 +42,11 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
     const [startDate, setStartDate] = useState<string>(getTodayString());
     const [endDate, setEndDate] = useState<string>(getTodayString());
     const { settings: companySettings } = useCompanySettings();
+    const { data: fetchedDirectorNames } = useDirectorNames();
+    const directorNames = {
+        direkturUtama: fetchedDirectorNames?.utama && fetchedDirectorNames?.utama !== '..............................' ? fetchedDirectorNames.utama : 'SAPTO NUGROHO SE.,MSi',
+        direkturYmfk: fetchedDirectorNames?.ymfk && fetchedDirectorNames?.ymfk !== '..............................' ? fetchedDirectorNames.ymfk : 'IFAN ARDANA ,SE,.MSi'
+    };
     
     // Pass startDate/endDate as period filters
     const summaryQuery = useKpiMonitoringSummary(startDate, endDate, isActive && !!startDate && !!endDate && startDate <= endDate);
@@ -63,22 +68,8 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
             const totalDurasiMenit = summary.totalDurasiMenit || 0;
             const wlaPercentageRaw = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
 
-            const nplTargetFinal = summary.khusus.nplTarget >= 1000000 ? summary.khusus.nplTarget : 50000000;
-            const kreditTargetFinal = summary.khusus.kreditTarget >= 1000000 ? summary.khusus.kreditTarget : 100000000;
-            const danaTargetFinal = summary.khusus.danaTarget >= 1000000 ? summary.khusus.danaTarget : 100000000;
-
-            const totalActual = summary.khusus.nplActual + summary.khusus.kreditActual + summary.khusus.danaActual;
-            const totalTarget = nplTargetFinal + kreditTargetFinal + danaTargetFinal;
-
-            let khususPercentageRaw = 0;
-            if (totalTarget > 0) {
-                khususPercentageRaw = Math.min((totalActual / totalTarget) * 100, 100);
-            } else {
-                khususPercentageRaw = totalActual > 0 ? 100 : 0;
-            }
-
             const wlaPercentage = Number(wlaPercentageRaw.toFixed(1));
-            const khususPercentage = Number(khususPercentageRaw.toFixed(1));
+            const khususPercentage = Number((summary.khususPercentage || 0).toFixed(1));
             const finalTotal = (wlaPercentage * 0.8) + (khususPercentage * 0.2);
 
             return {
@@ -285,6 +276,30 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
                     </div>
                 </div>
             </Card>
+
+            {/* Signature Footer */}
+            <div className="mt-20 pt-8 border-t border-gray-200 print:mt-16 print:border-t-0 print:break-inside-avoid">
+                <div className="text-center text-sm font-semibold text-gray-800 mb-12">
+                    Mengetahui
+                </div>
+                <div className="flex justify-between items-center text-center px-8 sm:px-16 lg:px-32">
+                    <div className="w-1/3 flex flex-col items-center">
+                        <p className="text-sm font-bold text-gray-800 mb-20">
+                            Direktur Utama
+                        </p>
+                        <div className="w-64 border-b-2 border-gray-800"></div>
+                        <p className="text-sm font-bold text-gray-800 mt-2 uppercase">{directorNames.direkturUtama}</p>
+                    </div>
+
+                    <div className="w-1/3 flex flex-col items-center">
+                        <p className="text-sm font-bold text-gray-800 mb-20">
+                            Direktur YMFK
+                        </p>
+                        <div className="w-64 border-b-2 border-gray-800"></div>
+                        <p className="text-sm font-bold text-gray-800 mt-2 uppercase">{directorNames.direkturYmfk}</p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

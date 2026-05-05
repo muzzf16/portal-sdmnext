@@ -799,6 +799,43 @@ Contoh Error Response:
 - Success: task orientasi dibuat.
 - Error: employee tidak ditemukan.
 
+## Aturan & Checklist Mencegah Error Berulang (Pre-flight Checks)
+
+Bagian ini ditambahkan berdasarkan evaluasi dari beberapa bug yang sempat terjadi pada tahap pengembangan sebelumnya. Selalu periksa daftar ini *sebelum* Anda melakukan implementasi (*development*) atau modifikasi pada fitur berikutnya:
+
+### 1. Keamanan Pengecekan Properti Frontend (React Rendering)
+**Penyebab Error Sebelumnya:** 
+Error *force close* layar putih (TypeError) pada halaman Entry WLA Harian terjadi karena pengecekan properti dengan `optional chaining` tidak dilakukan secara tuntas, contohnya: `obj.property?.toUpperCase().includes('keyword')`. Jika `property` adalah `undefined`, maka `.includes()` dipanggil pada `undefined`, yang menyebabkan komponen React *crash*.
+**Aturan Baru (Checklist):**
+- [ ] Setiap kali memanggil metode rantai (seperti `.toUpperCase()`, `.toLowerCase()`, atau `.includes()`), berikan *fallback* nilai default secara eksplisit.
+- [ ] **Jangan gunakan:** `act.activityName?.toUpperCase().includes('...')`
+- [ ] **Gunakan:** `(act.activityName || '').toUpperCase().includes('...')`
+- [ ] Selalu validasi bahwa respons array atau objek dari backend tidak membuat *mapping* `map()` frontend rusak karena ekspektasi tipe data yang salah.
+
+### 2. Inkonsistensi Penamaan Kolom di Backend & Skema SQLite
+**Penyebab Error Sebelumnya:**
+Backend mengalami *Internal Server Error 500* karena kueri SQL menggunakan nama kolom usang (`id` dan `activity_library_id`), sedangkan struktur database tabel SQLite sebenarnya adalah `id_log` dan `id_activity_library`.
+**Aturan Baru (Checklist):**
+- [ ] Sebelum menyusun kueri SQL (terutama untuk tabel yang kompleks seperti `log_aktivitas_harian`), SELALU periksa struktur aslinya terlebih dahulu. 
+- [ ] Cara validasi: gunakan *script check_db* atau tanyakan skema tabel yang sebenarnya di dalam *SQLite* sebelum menulis *Query* manual pada layer *Service* atau *Repository*.
+
+### 3. Validasi Properti Auth User (JWT Payload)
+**Penyebab Error Sebelumnya:**
+Terdapat *Error 401 Unauthorized* pada akses API (`/api/kredit-berkas/pending`) ketika diakses oleh *Role Admin*. Penyebabnya adalah *controller* mengekstrak `req.user.id` sedangkan JWT *payload* menyimpan ID pengguna dengan key `userId` (dan `employeeId` untuk data pegawai). Akibatnya, `req.user.id` bernilai *undefined*.
+**Aturan Baru (Checklist):**
+- [ ] Saat mengambil ID dari `req.user` (lewat `authMiddleware`), gunakan pencarian yang mencakup semua probabilitas tipe pengguna:
+  ```typescript
+  const id = req.user?.employeeId || req.user?.userId || req.user?.id;
+  ```
+- [ ] Selalu cek apakah endpoint tersebut digunakan lintas *role* (pegawai biasa vs admin). Jika digunakan lintas *role*, pastikan metode *fallback* ke `userId` ada agar proses autentikasi tidak menolak admin karena tidak memiliki `employeeId`.
+
+### 4. Standar Workflow Deployment (Docker)
+Setiap selesai melakukan perubahan file kode (terutama frontend):
+- [ ] Kode frontend (React) memerlukan proses *rebuild* jika ada file baru atau perubahan *state* logika yang persisten. Gunakan perintah standar untuk me-rebuild spesifik komponen guna menghemat waktu (contoh: `docker compose up -d --build sdm` untuk frontend atau `docker compose up -d --build backend` untuk Node.js API).
+- [ ] Perubahan arsitektur struktur tabel *wajib* disertakan dengan *script SQL migration*. Jangan menggunakan teknik paksa salin `docker cp database.sqlite`!
+
+Dengan menaati keempat *checklist* di atas sebelum memprogram fitur baru, sistem portal SDM ini akan terhindar dari regresi atau kemunculan kembali error-error serupa.
+
 ### 16) Tasks — `PUT /api/tasks/:id/status`
 - Request body:
 ```json

@@ -1,1 +1,0 @@
-import{e as s}from"./index-Bxn4Ppb0.js";const n=a=>s.get("/payrolls",{params:a}),g=a=>s.get(`/payrolls/${a}`),r=(a,o)=>s.put(`/payrolls/${a}`,o),e=a=>s.post("/payrolls/run",{period:a});export{g as a,n as g,e as r,r as u};

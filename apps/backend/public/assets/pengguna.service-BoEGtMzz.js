@@ -1,0 +1,1 @@
+import{Z as n}from"./index-DNxQ4Ria.js";const t="/api/users",r=()=>n.get(t),u=e=>n.get(`${t}/${e}`),s=e=>n.post(t,e),a=(e,g)=>n.put(`${t}/${e}`,g),o=e=>n.delete(`${t}/${e}`),p={getAllPengguna:r,getPenggunaById:u,createPengguna:s,updatePengguna:a,deletePengguna:o};export{p};

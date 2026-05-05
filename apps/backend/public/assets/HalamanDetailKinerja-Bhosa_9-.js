@@ -1,1 +1,0 @@
-import{l as r,j as a}from"./index-Bxn4Ppb0.js";import{D as t}from"./DetailKinerja-BxW2VRwe.js";import"./kinerjaApi-DHD5EQli.js";const l=()=>{const{id:e}=r();return a.jsxs("div",{children:[a.jsx("h1",{className:"text-3xl font-bold text-primary-dark-blue",children:"Detail Penilaian Kinerja"}),a.jsx(t,{performanceId:e})]})};export{l as default};
