@@ -695,21 +695,25 @@ export default class KpiService {
             for (const kpi of kpis) {
                 const activityId = await this.ensureActivityLibraryLink(kpi);
 
-                // Only approved WLA logs count as official KPI actuals.
+                // For nominal KPIs (Rp), we sum nominal_rupiah instead of frekuensi.
+                // We also include 'pending' logs so users see immediate progress.
+                const isNominal = (kpi.targetUnit || '').toLowerCase().includes('rp');
+                const sumColumn = isNominal ? 'l.nominal_rupiah' : 'l.frekuensi';
+
                 const row = await db.get(
                     `SELECT 
-                        COALESCE(SUM(l.frekuensi), 0) as total_frekuensi,
+                        COALESCE(SUM(${sumColumn}), 0) as total_value,
                         COALESCE(SUM(l.total_durasi_terhitung), 0) as total_durasi,
                         COUNT(*) as jumlah_hari
                      FROM log_aktivitas_harian l
                      WHERE l.id_pegawai = ?
                        AND l.id_activity_library = ?
                        AND l.tanggal >= ? AND l.tanggal <= ?
-                       AND l.status_approval = 'approved'`,
+                       AND l.status_approval IN ('approved', 'pending')`,
                     employeeId, activityId, startDate, endDate
                 );
 
-                const actualValue = row?.total_frekuensi || 0;
+                const actualValue = row?.total_value || 0;
                 const score = this.calculateScore(kpi.targetValue, actualValue, kpi.targetUnit || '');
 
                 await KpiRepository.updateActualValue(kpi.id, actualValue, score);

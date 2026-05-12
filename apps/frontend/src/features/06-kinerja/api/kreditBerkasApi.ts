@@ -13,8 +13,8 @@ export const getKreditBerkas = (filters?: any) =>
 export const getKreditBerkasById = (id: number) => 
     api.get<{ success: boolean, data: KreditBerkas }>(`${BASE_URL}/${id}`);
 
-export const getPendingKreditBerkas = () => 
-    api.get<{ success: boolean, data: (KreditBerkas & { stage_received_at: string })[] }>(`${BASE_URL}/pending`);
+export const getPendingKreditBerkas = (employeeId?: string) => 
+    api.get<{ success: boolean, data: (KreditBerkas & { stage_received_at: string })[] }>(`${BASE_URL}/pending`, { params: { employee_id: employeeId } });
 
 export const createKreditBerkas = (data: CreateKreditBerkasDto) => 
     api.post<{ success: boolean, data: KreditBerkas }>(BASE_URL, data);

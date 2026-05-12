@@ -1,4 +1,18 @@
-export type KreditStage = 'penerimaan' | 'analisa' | 'verifikasi' | 'admin_pencairan' | 'selesai';
+export type KreditStage = 
+    | 'penerimaan'         // 1. CS/AO/Marketing - Terima berkas awal
+    | 'slik'               // 2. Admin Kredit - Pengecekan SLIK/iDEB
+    | 'delegasi_survey'    // 3. Kabid Kredit - Delegasikan surveyor
+    | 'ots'                // 4. Marketing/Analis - On The Spot survey
+    | 'komite_kredit'      // 5. Komite Kredit - Rapat keputusan awal
+    | 'mak_agunan'         // 6. Marketing/Analis - MAK + penilaian agunan
+    | 'approval_keputusan' // 7. KABID - Persetujuan & Keputusan Final
+    | 'admin_spk'          // 8. Admin Kredit - SPK dll
+    | 'pencairan'          // 9. Teller/Kasir - Proses pencairan
+    | 'selesai'            // Terminal: pencairan selesai
+    | 'ditolak_cs'         // Terminal: dikembalikan ke CS untuk penanganan
+    // Legacy support:
+    | 'analisa' | 'verifikasi' | 'admin_pencairan';
+
 export type KreditStatus = 'dalam_proses' | 'lengkap' | 'ditolak' | 'dicairkan';
 export type BerkasStatus = 'lengkap' | 'belum_lengkap' | 'ditolak';
 

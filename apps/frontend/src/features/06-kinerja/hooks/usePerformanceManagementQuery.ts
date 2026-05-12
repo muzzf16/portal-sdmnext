@@ -420,7 +420,7 @@ export const useKpiTemplates = (enabled = true) =>
     staleTime: 60 * 1000
   });
 
-const invalidateKpiQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+export const invalidateKpiQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.kpi.all });
 };
 

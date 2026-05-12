@@ -18,7 +18,26 @@ interface KreditBerkasModalProps {
     mode: 'create' | 'process';
     berkas?: KreditBerkas;
     isLoading?: boolean;
+    titleOverride?: string;
 }
+
+const STAGE_LABELS: Record<string, string> = {
+    'penerimaan': 'Penerimaan Berkas',
+    'slik': 'Pengecekan SLIK',
+    'delegasi_survey': 'Delegasi Survey',
+    'ots': 'Survey Lapangan (OTS)',
+    'komite_kredit': 'Komite Kredit',
+    'mak_agunan': 'Analisa MAK & Agunan',
+    'approval_keputusan': 'Persetujuan & Keputusan Final',
+    'admin_spk': 'Pembuatan SPK',
+    'pencairan': 'Pencairan',
+    'selesai': 'Selesai',
+    'ditolak_cs': 'Ditolak - Penanganan CS',
+    // Legacy
+    'analisa': 'Analisa & Survey',
+    'verifikasi': 'Verifikasi & Approval',
+    'admin_pencairan': 'Admin & Pencairan'
+};
 
 export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
     isOpen,
@@ -26,7 +45,8 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
     onSubmit,
     mode,
     berkas,
-    isLoading
+    isLoading,
+    titleOverride
 }) => {
     const [formData, setFormData] = useState({
         nama_pengajuan: '',
@@ -76,7 +96,7 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={mode === 'create' ? 'Input Berkas Pengajuan Kredit Baru' : `Proses Berkas: ${berkas?.nama_pengajuan}`}
+            title={titleOverride || (mode === 'create' ? 'Input Berkas Pengajuan Kredit Baru' : `Proses Berkas: ${berkas?.nama_pengajuan}`)}
             size="lg"
         >
             <form onSubmit={handleSubmit} className="space-y-4 py-2">
@@ -100,58 +120,70 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                         />
                     </>
                 ) : (
-                    <div className="bg-blue-50 p-3 rounded border border-blue-100 mb-4 text-sm">
+                    <div className="bg-blue-50 p-3 rounded border border-blue-100 mb-4 text-sm shadow-inner">
                         <div className="flex justify-between mb-1">
-                            <span className="text-blue-700 font-semibold">Nomor:</span>
-                            <span className="text-blue-900">{berkas?.nomor_pengajuan}</span>
+                            <span className="text-blue-700 font-semibold">Nomor Berkas:</span>
+                            <span className="text-blue-900 font-mono">{berkas?.nomor_pengajuan}</span>
                         </div>
                         <div className="flex justify-between mb-1">
-                            <span className="text-blue-700 font-semibold">Tahap Saat Ini:</span>
-                            <span className="text-blue-900 uppercase tracking-tight font-bold">{berkas?.current_stage.replace('_', ' ')}</span>
+                            <span className="text-blue-700 font-semibold">Nama Debitur:</span>
+                            <span className="text-blue-900 font-bold">{berkas?.nama_pengajuan}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-blue-700 font-semibold">Nominal:</span>
-                            <span className="text-blue-900">Rp {berkas?.jumlah_pengajuan.toLocaleString('id-ID')}</span>
+                        <div className="flex justify-between mb-1 text-[11px] border-t border-blue-100 pt-1 mt-1">
+                            <span className="text-blue-600 italic">Tahap Saat Ini:</span>
+                            <span className="text-blue-800 uppercase font-bold tracking-tight">
+                                {berkas?.current_stage ? (STAGE_LABELS[berkas.current_stage] || berkas.current_stage.replace('_', ' ')) : '-'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                            <span className="text-blue-600 italic">Nominal Pengajuan:</span>
+                            <span className="text-blue-800 font-semibold">Rp {berkas?.jumlah_pengajuan?.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
                 )}
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Status Kelengkapan Berkas</label>
-                    <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="block text-sm font-medium text-gray-700">
+                        {mode === 'create' ? 'Status Kelengkapan Berkas' : `Status Update Tahap ${berkas?.current_stage ? (STAGE_LABELS[berkas.current_stage] || berkas.current_stage.replace('_', ' ')) : ''}`}
+                    </label>
+                    <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer group">
                             <input
                                 type="radio"
                                 name="status_berkas"
                                 value="belum_lengkap"
                                 checked={formData.status_berkas === 'belum_lengkap'}
                                 onChange={() => setFormData({ ...formData, status_berkas: 'belum_lengkap' })}
-                                className="text-indigo-600"
+                                className="text-indigo-600 focus:ring-indigo-500"
                             />
-                            <span className="text-sm">Belum Lengkap</span>
+                            <span className="text-sm group-hover:text-indigo-600 transition-colors">
+                                {mode === 'create' ? 'Belum Lengkap' : 'Masih Proses / Pending'}
+                            </span>
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer group">
                             <input
                                 type="radio"
                                 name="status_berkas"
                                 value="lengkap"
                                 checked={formData.status_berkas === 'lengkap'}
                                 onChange={() => setFormData({ ...formData, status_berkas: 'lengkap' })}
-                                className="text-green-600"
+                                className="text-green-600 focus:ring-green-500"
                             />
-                            <span className="text-sm font-semibold text-green-700">Lengkap (Lanjut Tahap Berikutnya)</span>
+                            <span className="text-sm font-semibold text-green-700 group-hover:text-green-800 transition-colors">
+                                {mode === 'create' ? 'Lengkap (Lanjut Tahap Berikutnya)' : 'Selesai (Lanjut Tahap Berikutnya)'}
+                            </span>
                         </label>
                         {mode === 'process' && (
-                            <label className="flex items-center gap-2 cursor-pointer">
+                            <label className="flex items-center gap-2 cursor-pointer group">
                                 <input
                                     type="radio"
                                     name="status_berkas"
                                     value="ditolak"
                                     checked={formData.status_berkas === 'ditolak'}
                                     onChange={() => setFormData({ ...formData, status_berkas: 'ditolak' })}
-                                    className="text-red-600"
+                                    className="text-red-600 focus:ring-red-500"
                                 />
-                                <span className="text-sm text-red-600">Ditolak / Batalkan</span>
+                                <span className="text-sm text-red-600 group-hover:text-red-700 transition-colors">Ditolak / Batalkan</span>
                             </label>
                         )}
                     </div>
@@ -162,7 +194,7 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                     label="Catatan / Keterangan"
                     value={formData.catatan}
                     onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
-                    placeholder="Contoh: Kekurangan KTP, sedang proses SLIK, dsb."
+                    placeholder={mode === 'create' ? "Contoh: Kekurangan KTP, dsb." : "Masukkan catatan perkembangan berkas..."}
                     rows={3}
                 />
 
@@ -172,10 +204,10 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                     </Button>
                     <Button 
                         type="submit" 
-                        className={formData.status_berkas === 'lengkap' ? 'bg-green-600 hover:bg-green-700' : 'bg-indigo-600'}
+                        className={formData.status_berkas === 'lengkap' ? 'bg-green-600 hover:bg-green-700' : formData.status_berkas === 'ditolak' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600'}
                         disabled={isLoading || (mode === 'create' && !formData.nama_pengajuan)}
                     >
-                        {isLoading ? 'Menyimpan...' : (mode === 'create' ? 'Simpan Berkas' : 'Update Status Berkas')}
+                        {isLoading ? 'Menyimpan...' : (mode === 'create' ? 'Simpan Berkas Baru' : 'Simpan Perubahan Tahap')}
                     </Button>
                 </div>
             </form>

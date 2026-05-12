@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { List, Clock, Save, Activity as ActivityIcon, Target } from 'lucide-react';
+import { Badge } from '../../../shared/components/ui/Badge';
+import { Activity as ActivityIcon, Save, Clock, Target, List } from 'lucide-react';
+import { formatKpiValue } from '../utils/formatters';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { useToast } from '@/app/providers/ToastContext';
 import { LogAktivitasHarian, ActivityLibraryItem } from '../types';
@@ -18,17 +21,20 @@ import {
     useUpdateNominalTargetsMutation,
     useSelectablePerformanceEmployees,
     useKpiTargetList,
-    useUpdateKpiActualMutation
+    useUpdateKpiActualMutation,
+    invalidateKpiQueries
 } from '../hooks/usePerformanceManagementQuery';
 import { KreditBerkasModal } from '../components/KreditBerkasModal';
 import { KreditBerkasPending } from '../components/KreditBerkasPending';
 import * as kreditApi from '../api/kreditBerkasApi';
+import * as kpiApi from '../api/kpiApi';
 import { KreditBerkas } from '../types';
 import { PlusCircle } from 'lucide-react';
 
 const LogAktivitasWlaPage: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
+    const queryClient = useQueryClient();
     const [submitting, setSubmitting] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const role = user?.role || 'employee';
@@ -56,8 +62,18 @@ const LogAktivitasWlaPage: React.FC = () => {
     const updateTaskStatusMutation = useUpdateTaskStatusMutation();
     const nominalTargetsQuery = useNominalTargets(employeeId ? String(employeeId) : undefined);
     const updateNominalTargetsMutation = useUpdateNominalTargetsMutation();
-    const kpiTargetsQuery = useKpiTargetList({ employeeId: employeeId ? String(employeeId) : undefined });
+    const currentPeriod = selectedDate.substring(0, 7); // YYYY-MM
+    const kpiTargetsQuery = useKpiTargetList({ 
+        employeeId: employeeId ? String(employeeId) : undefined,
+        period: currentPeriod
+    });
     const updateKpiActualMutation = useUpdateKpiActualMutation();
+    const syncKpiMutation = useMutation({
+        mutationFn: () => kpiApi.syncKpiFromWla(String(employeeId), currentPeriod),
+        onSuccess: () => {
+            invalidateKpiQueries(queryClient);
+        }
+    });
     
     const nominalTargets = nominalTargetsQuery.data || { npl: 50000000, kredit: 100000000, dana: 100000000 };
     const myLogs = (myLogsQuery.data ?? []) as LogAktivitasHarian[];
@@ -111,15 +127,22 @@ const LogAktivitasWlaPage: React.FC = () => {
 
     const [kpiForm, setKpiForm] = useState<Record<string, string | number>>({});
 
+    // Stabilize kpiForm: Only initialize if empty or if employee/period changed
     useEffect(() => {
         if (customKpiTargets.length > 0) {
             const initialForm: Record<string, string | number> = {};
             customKpiTargets.forEach(k => {
                 initialForm[k.id] = k.actualValue || '';
             });
-            setKpiForm(initialForm);
+            
+            // Only set if we haven't started typing or if the source data context changed
+            setKpiForm(prev => {
+                const hasData = Object.keys(prev).length > 0;
+                if (!hasData) return initialForm;
+                return prev;
+            });
         }
-    }, [customKpiTargets]);
+    }, [customKpiTargets, employeeId, currentPeriod]);
 
 
     const loadingLogs = myLogsQuery.isLoading;
@@ -147,11 +170,33 @@ const LogAktivitasWlaPage: React.FC = () => {
     const [showKreditModal, setShowKreditModal] = useState(false);
     const [kreditModalMode, setKreditModalMode] = useState<'create' | 'process'>('create');
     const [selectedKredit, setSelectedKredit] = useState<KreditBerkas | undefined>(undefined);
+    const [myKreditToday, setMyKreditToday] = useState<KreditBerkas[]>([]);
     const [loadingKredit, setLoadingKredit] = useState(false);
+    const [kreditModalTitle, setKreditModalTitle] = useState('');
+
+    const STAGE_MAP: Record<string, string> = {
+        'menerima berkas pengajuan': 'penerimaan',
+        'permintaan slik': 'slik',
+        'slik': 'slik',
+        'delegasi survey': 'delegasi_survey',
+        'ots - on the spot': 'ots',
+        'survey lapangan': 'ots',
+        'komite kredit': 'komite_kredit',
+        'mak dan penilaian agunan': 'mak_agunan',
+        'penilaian agunan': 'mak_agunan',
+        'approval dan keputusan': 'approval_keputusan',
+        'keputusan kredit': 'approval_keputusan',
+        'admin spk': 'admin_spk',
+        'pembuatan spk': 'admin_spk',
+        'pencairan kredit': 'pencairan',
+        // Legacy Support
+        'verifikasi pengajuan dan konfirmasi': 'approval_keputusan',
+        'admin pencairan': 'admin_spk'
+    };
 
     const fetchPendingKredit = async () => {
         try {
-            const res = await kreditApi.getPendingKreditBerkas();
+            const res = await kreditApi.getPendingKreditBerkas(employeeId ? String(employeeId) : undefined);
             if (res.data.success) {
                 setPendingKredit(res.data.data);
             }
@@ -160,9 +205,36 @@ const LogAktivitasWlaPage: React.FC = () => {
         }
     };
 
+    const fetchMyKreditToday = async () => {
+        if (!employeeId) return;
+        try {
+            const res = await kreditApi.getKreditBerkas({ 
+                employee_id: employeeId,
+                date: selectedDate 
+            });
+            if (res.data.success) {
+                setMyKreditToday(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch my kredit today:', err);
+        }
+    };
+
     useEffect(() => {
         fetchPendingKredit();
-    }, [user?.employeeId]);
+        fetchMyKreditToday();
+    }, [employeeId, selectedDate]);
+
+    // Debugging state changes
+    useEffect(() => {
+        if (showKreditModal) {
+            console.log('Modal Opened:', { mode: kreditModalMode, title: kreditModalTitle, selectedKredit });
+        }
+    }, [showKreditModal, kreditModalMode, kreditModalTitle, selectedKredit]);
+
+    useEffect(() => {
+        console.log('Pending Kredit Updated:', pendingKredit.length, 'items');
+    }, [pendingKredit]);
 
     // Pre-fill form inputs whenever myLogs changes (e.g. initial load or after changing date)
     useEffect(() => {
@@ -220,26 +292,21 @@ const LogAktivitasWlaPage: React.FC = () => {
                 };
             });
 
-        // 2. Filter log untuk KPI Custom (Kombinasi dari checklist dan form individu)
-        const payloadKpis = [
-            // Dari checklist (orange)
-            ...Object.entries(formInputs)
-                .filter(([id, data]) => Number(data.frekuensi) > 0 && id.startsWith('kpi-'))
-                .map(([id, data]) => ({
-                    id: id.replace('kpi-', ''),
-                    actualValue: Number(data.nominal_rupiah || data.frekuensi || 0)
-                })),
-            // Dari form khusus (indigo)
-            ...Object.entries(kpiForm)
-                .filter(([_, val]) => val !== '' && val !== undefined)
-                .map(([id, val]) => ({
-                    id,
-                    actualValue: Number(val)
-                }))
-        ];
+        // 2a. KPI dari Checklist (Orange) -> Akan di-handle oleh syncKpiMutation di backend
+        // Kita tetap deteksi untuk memicu sync jika ada input
+        const orangeKpiInputs = Object.entries(formInputs)
+            .filter(([id, data]) => Number(data.frekuensi) > 0 && id.startsWith('kpi-'));
 
-        if (payloadLogs.length === 0 && payloadKpis.length === 0) {
-            addToast("Tidak ada aktivitas yang dicentang.", "error");
+        // 2b. KPI Manual (Indigo) -> Perlu updateActualValue satu per satu
+        const indigoKpiPayload = Object.entries(kpiForm)
+            .filter(([_, val]) => val !== '' && val !== undefined)
+            .map(([id, val]) => ({
+                id,
+                actualValue: Number(val)
+            }));
+
+        if (payloadLogs.length === 0 && orangeKpiInputs.length === 0 && indigoKpiPayload.length === 0) {
+            addToast("Tidak ada aktivitas atau KPI yang diinput.", "error");
             return;
         }
 
@@ -252,6 +319,7 @@ const LogAktivitasWlaPage: React.FC = () => {
 
         setSubmitting(true);
         try {
+            // 1. Simpan WLA Logs
             if (payloadLogs.length > 0) {
                 await createBulkWlaMutation.mutateAsync({
                     id_pegawai: String(employeeId),
@@ -259,16 +327,31 @@ const LogAktivitasWlaPage: React.FC = () => {
                     logs: payloadLogs
                 });
             }
-            if (payloadKpis.length > 0) {
-                for (const kpi of payloadKpis) {
+                
+            // 2. Sync KPI dari WLA (untuk target otomatis/orange)
+            // Dipicu jika ada log baru ATAU ada input di checklist KPI
+            if (payloadLogs.length > 0 || orangeKpiInputs.length > 0) {
+                await syncKpiMutation.mutateAsync();
+            }
+
+            // 3. Simpan Realisasi KPI Individu (Indigo) secara manual
+            if (indigoKpiPayload.length > 0) {
+                for (const kpi of indigoKpiPayload) {
                     await updateKpiActualMutation.mutateAsync({
                         id: kpi.id,
                         actualValue: kpi.actualValue
                     });
                 }
             }
+
             addToast(`Berhasil! Data aktivitas dan KPI berhasil disimpan.`, "success");
+            
+            // Refresh data setelah simpan
+            myLogsQuery.refetch();
+            kpiTargetsQuery.refetch();
+            
         } catch (err: any) {
+            console.error("Save error:", err);
             addToast(err.response?.data?.message || 'Gagal menyimpan data.', "error");
         } finally {
             setSubmitting(false);
@@ -314,6 +397,16 @@ const LogAktivitasWlaPage: React.FC = () => {
             if (kreditModalMode === 'create') {
                 await kreditApi.createKreditBerkas(data);
                 addToast('Berkas pengajuan kredit berhasil disimpan!', 'success');
+                
+                // Auto-increment frequency for "menerima berkas pengajuan"
+                const receivingAct = library.find(a => (a.activityName || '').toLowerCase().includes('menerima berkas pengajuan'));
+                if (receivingAct) {
+                    const actId = String(receivingAct.id);
+                    const currentFreq = Number(formInputs[actId]?.frekuensi || 0);
+                    handleInputChange(actId, 'frekuensi', currentFreq + 1);
+                }
+                
+                fetchMyKreditToday();
             } else if (selectedKredit) {
                 await kreditApi.processKreditStage(selectedKredit.id, data);
                 addToast('Status berkas berhasil diupdate!', 'success');
@@ -386,7 +479,7 @@ const LogAktivitasWlaPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* LEFT COLUMN: TASKS + CHECKLIST */}
-                <div className="flex flex-col gap-6 h-[700px]">
+                <div className="flex flex-col gap-4 min-h-[700px]">
 
                     {/* KREDIT PENDING SECTION (For non-CS roles) */}
                     <KreditBerkasPending 
@@ -397,6 +490,8 @@ const LogAktivitasWlaPage: React.FC = () => {
                             setShowKreditModal(true);
                         }}
                         isLoading={loadingKredit}
+                        userPosition={userPosition}
+                        userRole={user?.role}
                     />
 
                     {/* ASSIGNED TASKS SECTION */}
@@ -452,6 +547,31 @@ const LogAktivitasWlaPage: React.FC = () => {
                                 <div className="space-y-6">
                                     <div className="space-y-4">
                                     {library.slice().sort((a, b) => {
+                                        const nameA = (a.activityName || '').toLowerCase();
+                                        const nameB = (b.activityName || '').toLowerCase();
+                                        
+                                        const triggers = [
+                                            'menerima berkas',
+                                            'monitoring',
+                                            'slik',
+                                            'delegasi',
+                                            'ots',
+                                            'komite',
+                                            'mak',
+                                            'agunan',
+                                            'approval',
+                                            'keputusan',
+                                            'verifikasi',
+                                            'spk',
+                                            'pencairan'
+                                        ];
+                                        
+                                        const isTrigA = triggers.some(t => nameA.includes(t));
+                                        const isTrigB = triggers.some(t => nameB.includes(t));
+                                        
+                                        if (isTrigA && !isTrigB) return -1;
+                                        if (!isTrigA && isTrigB) return 1;
+
                                         if (a.position === 'Semua Jabatan' && b.position !== 'Semua Jabatan') return 1;
                                         if (a.position !== 'Semua Jabatan' && b.position === 'Semua Jabatan') return -1;
                                         return 0;
@@ -464,9 +584,27 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                                        actNameSafe.includes('PEMASARAN KREDIT') || 
                                                                        actNameSafe.includes('PEMASARAN DANA');
                                         
+                                        const n = (act.activityName || '').toLowerCase();
+                                        const isPriority = [
+                                            'menerima berkas',
+                                            'monitoring',
+                                            'slik',
+                                            'delegasi',
+                                            'ots',
+                                            'komite',
+                                            'mak',
+                                            'agunan',
+                                            'approval',
+                                            'keputusan',
+                                            'verifikasi',
+                                            'spk',
+                                            'pencairan'
+                                        ].some(t => n.includes(t));
+                                        
                                         return (
                                             <div key={act.id || `act-${index}`} className={clsx(
                                                 "p-4 rounded-lg hover:shadow-md transition-all", 
+                                                isPriority ? "border-2 border-blue-500 bg-blue-50/30" :
                                                 isSemuaJabatan ? "border-2 border-amber-400 bg-amber-50" : 
                                                 "border border-gray-200 hover:border-indigo-300 bg-white"
                                             )}>
@@ -474,10 +612,16 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                     <div className="flex-1">
                                                         <h3 className="text-sm font-bold text-gray-900 flex items-center flex-wrap gap-2">
                                                             {act.activityName}
-                                                            {isSemuaJabatan && (
+                                                            {isPriority && (
+                                                                <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded border border-blue-700 font-bold uppercase tracking-wider shadow-md">Prioritas Monitoring</span>
+                                                            )}
+                                                            {isSemuaJabatan && !isPriority && (
                                                                 <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded border border-amber-300 font-bold uppercase tracking-wider shadow-sm">Khusus Semua Jabatan</span>
                                                             )}
                                                         </h3>
+                                                        <Badge variant="info" className="text-[8px] uppercase py-0 leading-3">
+                                                            Tahap: {act.activityName}
+                                                        </Badge>
                                                         <div className="text-xs text-gray-500 mt-1 flex gap-2">
                                                             <span className={clsx(
                                                                 "px-2 py-0.5 rounded", 
@@ -566,21 +710,90 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                         </div>
                                                         
                                                         {/* Kredit Berkas Trigger Button */}
-                                                        {Number(val.frekuensi) > 0 && (act.activityName || '').toLowerCase().includes('menerima berkas pengajuan') && (
+                                                        {Number(val.frekuensi) > 0 && isPriority && (
                                                             <Button 
                                                                 size="sm" 
                                                                 className="ml-2 bg-green-600 hover:bg-green-700 h-8 text-[10px] px-2 animate-bounce"
-                                                                onClick={() => {
-                                                                    setKreditModalMode('create');
-                                                                    setShowKreditModal(true);
+                                                                 onClick={() => {
+                                                                    const activityKey = (act.activityName || '').trim().toLowerCase();
+                                                                    const stage = STAGE_MAP[activityKey];
+                                                                    const filtered = pendingKredit.filter(k => k.current_stage === stage);
+                                                                    
+                                                                    console.log('Priority Trigger Clicked:', { activityKey, stage, filteredCount: filtered.length, allPendingCount: pendingKredit.length });
+
+                                                                    if (activityKey.includes('menerima berkas')) {
+                                                                        setKreditModalMode('create');
+                                                                        setSelectedKredit(undefined);
+                                                                        setKreditModalTitle('Input Berkas Pengajuan Kredit Baru');
+                                                                        setShowKreditModal(true);
+                                                                    } else if (filtered.length > 0) {
+                                                                        // Automatically pick the first one if available for this stage
+                                                                        setSelectedKredit(filtered[0]);
+                                                                        setKreditModalMode('process');
+                                                                        setKreditModalTitle(`Update Progress: ${act.activityName}`);
+                                                                        setShowKreditModal(true);
+                                                                        
+                                                                        if (filtered.length > 1) {
+                                                                            addToast(`Ada ${filtered.length} berkas di tahap ini. Menampilkan berkas terlama.`, 'info');
+                                                                        }
+                                                                    } else if (stage) {
+                                                                        // FALLBACK LOGIC: If no berkas in THIS stage, find what's holding up the pipe
+                                                                        const stages = ['penerimaan', 'slik', 'delegasi_survey', 'ots', 'komite_kredit', 'mak_agunan', 'approval_keputusan', 'admin_spk', 'pencairan'];
+                                                                        const currentIdx = stages.indexOf(stage);
+                                                                        const prevStage = currentIdx > 0 ? stages[currentIdx - 1] : null;
+                                                                        const inPrev = prevStage ? pendingKredit.filter(k => k.current_stage === prevStage) : [];
+
+                                                                        if (prevStage && inPrev.length > 0) {
+                                                                            addToast(`Tahap "${act.activityName}" belum memiliki berkas. Ada ${inPrev.length} berkas masih tertahan di tahap sebelumnya (${prevStage.replace('_', ' ')}).`, 'info');
+                                                                        } else if (pendingKredit.length > 0) {
+                                                                            // Show first available anyway
+                                                                            setSelectedKredit(pendingKredit[0]);
+                                                                            setKreditModalMode('process');
+                                                                            setKreditModalTitle(`${act.activityName} (Berkas di Tahap: ${pendingKredit[0].current_stage.replace('_', ' ')})`);
+                                                                            setShowKreditModal(true);
+                                                                            addToast(`Tidak ada berkas di tahap "${act.activityName}", menampilkan berkas terdekat yang tersedia.`, 'info');
+                                                                        } else {
+                                                                            addToast(`Belum ada berkas kredit yang menunggu untuk diproses.`, 'info');
+                                                                        }
+                                                                    } else {
+                                                                        // Fallback for activities that are priority but not mapped to a stage
+                                                                        setKreditModalMode('create');
+                                                                        setKreditModalTitle(act.activityName);
+                                                                        setShowKreditModal(true);
+                                                                    }
                                                                 }}
                                                             >
                                                                 <PlusCircle className="w-3 h-3 mr-1" />
-                                                                Input Berkas
+                                                                {n.includes('menerima') ? 'Input Berkas' : 
+                                                                 n.includes('slik') ? 'Input Slik' :
+                                                                 n.includes('delegasi') ? 'Delegasi' :
+                                                                 n.includes('ots') || n.includes('survey') ? 'Survey' :
+                                                                 n.includes('komite') ? 'Komite' :
+                                                                 n.includes('mak') || n.includes('agunan') ? 'Analisa' :
+                                                                 n.includes('approval') || n.includes('keputusan') || n.includes('verifikasi') ? 'Keputusan' :
+                                                                 n.includes('spk') ? 'Input SPK' :
+                                                                 n.includes('pencairan') ? 'Pencairan' : 'Monitoring Kredit'}
                                                             </Button>
                                                         )}
                                                     </div>
                                                 </div>
+
+                                                {/* Kredit Berkas Mini List */}
+                                                {myKreditToday.length > 0 && isPriority && (
+                                                    <div className="mt-2 w-full bg-green-50 border border-green-100 rounded p-2 animate-in fade-in slide-in-from-top-1">
+                                                        <p className="text-[10px] font-bold text-green-700 mb-1 flex items-center gap-1">
+                                                            <List className="w-3 h-3" /> Berkas Terinput Hari Ini ({myKreditToday.length}):
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {myKreditToday.map((k, idx) => (
+                                                                <span key={k.id} className="text-[9px] bg-white border border-green-200 px-1.5 py-0.5 rounded text-green-800 shadow-sm">
+                                                                    {idx + 1}. {k.nama_pengajuan}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {Number(val.frekuensi) > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-gray-100 border-dashed animate-in fade-in slide-in-from-top-2">
                                                         <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-3">
@@ -667,7 +880,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                             </div>
                                                             <div className="text-right ml-2">
                                                                 <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">
-                                                                    Target: {kpi.targetValue} {kpi.targetUnit}
+                                                                    Target: {formatKpiValue(Number(kpi.targetValue), kpi.targetUnit)}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -894,6 +1107,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                 mode={kreditModalMode}
                 berkas={selectedKredit}
                 isLoading={loadingKredit}
+                titleOverride={kreditModalTitle}
             />
         </div>
     );

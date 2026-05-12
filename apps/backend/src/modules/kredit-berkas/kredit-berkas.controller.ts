@@ -35,7 +35,7 @@ export const KreditBerkasController = {
 
     async getPending(req: Request, res: Response) {
         try {
-            const employeeId = (req as any).user?.employeeId || (req as any).user?.userId || (req as any).user?.id;
+            const employeeId = (req.query.employee_id as string) || (req as any).user?.employeeId || (req as any).user?.userId || (req as any).user?.id;
             if (!employeeId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
             const result = await KreditBerkasService.getPendingForUser(employeeId);

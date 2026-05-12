@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { KpiTarget } from '../types';
 import { useToast } from '@/app/providers/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { Download, RefreshCw, Paperclip, X, FileText } from 'lucide-react';
+import { Download, FileText, RefreshCw, Paperclip, X } from 'lucide-react';
+import { formatKpiValue } from '../utils/formatters';
 import KpiSummaryView from '../components/KpiSummaryView';
 import KpiMonitoringView from '../components/KpiMonitoringView';
 import {
@@ -653,11 +654,16 @@ const KpiTargetPage: React.FC = () => {
                                           form.kpiName.toLowerCase().includes('pemasaran kredit') || 
                                           form.kpiName.toLowerCase().includes('pemasaran dana')}
                             >
-                                <option value="%">%</option>
-                                <option value="Rp">Rp (Rupiah)</option>
+                                <option value="%">% (Persentase)</option>
+                                <option value="Rp">Rp (Rupiah/Nominal)</option>
                                 <option value="hari">Hari</option>
-                                <option value="jumlah">Jumlah</option>
                                 <option value="menit">Menit</option>
+                                <option value="jumlah">Jumlah / Item</option>
+                                <option value="nasabah">Nasabah</option>
+                                <option value="berkas">Berkas / Pengajuan</option>
+                                <option value="sertifikat">Sertifikat</option>
+                                <option value="laporan">Laporan</option>
+                                <option value="poin">Poin</option>
                             </select>
                         </div>
                         <div>
@@ -729,16 +735,16 @@ const KpiTargetPage: React.FC = () => {
                                         </div>
                                         {kpi.notes && <div className="text-xs text-gray-500 mt-1">{kpi.notes}</div>}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-mono">{kpi.targetValue} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}</td>
+                                    <td className="px-4 py-3 text-center text-sm font-mono">{formatKpiValue(Number(kpi.targetValue), kpi.targetUnit)}</td>
                                     <td className="px-4 py-3 text-center">
                                         {role !== 'employee' ? (
                                             <button onClick={() => handleUpdateActual(kpi)}
                                                 className="font-mono text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer">
-                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
+                                                {formatKpiValue(Number(kpi.actualValue || 0), kpi.targetUnit)}
                                             </button>
                                         ) : (
                                             <span className="font-mono text-sm text-gray-700">
-                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
+                                                {formatKpiValue(Number(kpi.actualValue || 0), kpi.targetUnit)}
                                             </span>
                                         )}
                                         {kpi.evidenceUrl && (
@@ -816,16 +822,16 @@ const KpiTargetPage: React.FC = () => {
                                         <div className="text-sm font-medium text-gray-900">{kpi.kpiName}</div>
                                         {kpi.notes && <div className="text-xs text-gray-500 mt-1">{kpi.notes}</div>}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-mono">{kpi.targetValue} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}</td>
+                                    <td className="px-4 py-3 text-center text-sm font-mono">{formatKpiValue(Number(kpi.targetValue), kpi.targetUnit)}</td>
                                     <td className="px-4 py-3 text-center">
                                         {role !== 'employee' ? (
                                             <button onClick={() => handleUpdateActual(kpi)}
                                                 className="font-mono text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer">
-                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
+                                                {formatKpiValue(Number(kpi.actualValue || 0), kpi.targetUnit)}
                                             </button>
                                         ) : (
                                             <span className="font-mono text-sm text-gray-700">
-                                                {kpi.actualValue || 0} {kpi.targetUnit === 'jumlah' ? '' : kpi.targetUnit}
+                                                {formatKpiValue(Number(kpi.actualValue || 0), kpi.targetUnit)}
                                             </span>
                                         )}
                                         {kpi.evidenceUrl && (

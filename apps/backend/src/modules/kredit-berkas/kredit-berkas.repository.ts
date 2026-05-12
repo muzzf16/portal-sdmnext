@@ -15,6 +15,23 @@ export const KreditBerkasRepository = {
             query += ` AND overall_status = ?`;
             params.push(filters.overall_status);
         }
+        if (filters.employee_id) {
+            // Filter by the employee who received/created the filing (the first stage tracking)
+            query += ` AND id IN (SELECT berkas_id FROM kredit_berkas_tracking WHERE stage = 'penerimaan' AND employee_id = ?)`;
+            params.push(filters.employee_id);
+        }
+        if (filters.date) {
+            query += ` AND created_at LIKE ?`;
+            params.push(`${filters.date}%`);
+        }
+        if (filters.start_date) {
+            query += ` AND created_at >= ?`;
+            params.push(`${filters.start_date} 00:00:00`);
+        }
+        if (filters.end_date) {
+            query += ` AND created_at <= ?`;
+            params.push(`${filters.end_date} 23:59:59`);
+        }
 
         query += ` ORDER BY created_at DESC`;
         return db.all(query, params);
@@ -108,17 +125,29 @@ export const KreditBerkasRepository = {
         );
     },
 
-    async getPendingByStage(stage: string) {
+    async getPendingByStage(stage?: string) {
         const db = await openDb();
-        return db.all(`
-            SELECT b.*, t.received_at as stage_received_at 
-            FROM kredit_berkas b
-            JOIN kredit_berkas_tracking t ON b.id = t.berkas_id
-            WHERE b.current_stage = ? 
-            AND b.overall_status = 'dalam_proses'
-            AND t.stage = ? 
-            AND t.completed_at IS NULL
-            ORDER BY t.received_at ASC
-        `, stage, stage);
+        if (stage) {
+            return db.all(`
+                SELECT b.*, t.received_at as stage_received_at 
+                FROM kredit_berkas b
+                JOIN kredit_berkas_tracking t ON b.id = t.berkas_id
+                WHERE b.current_stage = ? 
+                AND b.overall_status = 'dalam_proses'
+                AND t.stage = ? 
+                AND t.completed_at IS NULL
+                ORDER BY t.received_at ASC
+            `, stage, stage);
+        } else {
+            return db.all(`
+                SELECT b.*, t.received_at as stage_received_at 
+                FROM kredit_berkas b
+                JOIN kredit_berkas_tracking t ON b.id = t.berkas_id
+                WHERE b.overall_status = 'dalam_proses'
+                AND t.completed_at IS NULL
+                AND b.current_stage = t.stage
+                ORDER BY t.received_at ASC
+            `);
+        }
     }
 };

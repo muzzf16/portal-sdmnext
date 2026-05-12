@@ -194,7 +194,13 @@ export interface AdminWlaSummary {
   approved_log_count: number;
 }
 
-export type KreditStage = 'penerimaan' | 'analisa' | 'verifikasi' | 'admin_pencairan' | 'selesai';
+export type KreditStage = 
+    | 'penerimaan' | 'slik' | 'delegasi_survey' | 'ots' 
+    | 'komite_kredit' | 'mak_agunan' | 'approval_keputusan' 
+    | 'admin_spk' | 'pencairan' 
+    | 'selesai' | 'ditolak_cs'
+    // Legacy support:
+    | 'analisa' | 'verifikasi' | 'admin_pencairan';
 export type KreditStatus = 'dalam_proses' | 'lengkap' | 'ditolak' | 'dicairkan';
 export type BerkasStatus = 'lengkap' | 'belum_lengkap' | 'ditolak';
 

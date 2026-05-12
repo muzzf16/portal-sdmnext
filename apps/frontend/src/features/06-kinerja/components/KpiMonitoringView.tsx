@@ -3,6 +3,7 @@ import { KpiTarget } from '../types';
 import { useAdminWlaDetailLogs, useDirectorNames, useNominalTargets } from '../hooks/usePerformanceManagementQuery';
 import { Printer } from 'lucide-react';
 import clsx from 'clsx';
+import { formatKpiValue } from '../utils/formatters';
 
 interface KpiMonitoringViewProps {
     isActive: boolean;
@@ -109,26 +110,15 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         return opt ? opt.label : (selectedPeriod || 'Semua Periode');
     }, [periodOptions, selectedPeriod]);
 
-    const formatNominal = (val: number) => {
-        if (val >= 1000000000) {
-            const num = val / 1000000000;
-            const formatted = parseFloat(num.toFixed(1));
-            return `Rp ${formatted} Milyar`;
-        }
-        if (val >= 1000000) {
-            const num = val / 1000000;
-            const formatted = parseFloat(num.toFixed(1));
-            return `Rp ${formatted} Juta`;
-        }
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
-    };
+    const formatNominal = (val: number) => formatKpiValue(val, 'Rp');
 
     if (!isActive) return null;
 
     const summary = useMemo(() => {
-        const isNominal = (name: string = '') => {
+        const isNominal = (name: string = '', unit: string = '') => {
             const n = name.toLowerCase();
-            return n.includes('npl') || n.includes('pemasaran kredit') || n.includes('pemasaran dana');
+            const u = (unit || '').toLowerCase();
+            return n.includes('npl') || n.includes('pemasaran kredit') || n.includes('pemasaran dana') || u.includes('rp') || u.includes('nominal') || u.includes('rupiah');
         };
         
         const isKpiKhusus = (k: KpiTarget) => {
@@ -200,7 +190,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         // ===== KPI Khusus Calculation (Dynamic) =====
         const khususItemsWithPct = khususKpiList.map(k => {
             const name = (k.kpiName || '').toLowerCase();
-            const nominalFlag = isNominal(name);
+            const nominalFlag = isNominal(name, k.targetUnit);
             
             let actual = Number(k.actualValue) || 0;
             let target = Number(k.targetValue) || 0;
@@ -225,7 +215,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                 kpiName: k.kpiName,
                 targetValue: target,
                 actualValue: actual,
-                targetUnit: nominalFlag ? 'Rp' : (k.targetUnit || '%'),
+                targetUnit: k.targetUnit || (nominalFlag ? 'Rp' : '%'),
                 pct: percentage,
                 isNominal: nominalFlag
             };
@@ -440,10 +430,10 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                         <td className="px-4 py-3 text-gray-900 font-medium">{k.kpiName}</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="font-bold text-gray-700">
-                                                {formatNominal(Number(k.actualValue))}
+                                                {formatKpiValue(Number(k.actualValue), k.targetUnit)}
                                             </div>
                                             <div className="text-[10px] text-gray-400">
-                                                Target: {formatNominal(Number(k.targetValue))}
+                                                Target: {formatKpiValue(Number(k.targetValue), k.targetUnit)}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-center font-semibold text-purple-700">{k.pct.toFixed(1)}%</td>

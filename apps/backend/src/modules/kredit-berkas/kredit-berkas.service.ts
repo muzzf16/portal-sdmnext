@@ -5,8 +5,25 @@ import {
     UpdateKreditStageDto, 
     KreditBerkas, 
     KreditBerkasTracking, 
-    KreditStage 
+    KreditStage,
+    KreditStatus 
 } from './kredit-berkas.types';
+
+const STAGE_FLOW: Record<string, KreditStage | null> = {
+    'penerimaan': 'slik',
+    'slik': 'delegasi_survey',
+    'delegasi_survey': 'ots',
+    'ots': 'komite_kredit',
+    'komite_kredit': 'mak_agunan',      
+    'mak_agunan': 'approval_keputusan',
+    'approval_keputusan': 'admin_spk', 
+    'admin_spk': 'pencairan',
+    'pencairan': 'selesai',
+    // Legacy support transitions (Linear)
+    'analisa': 'verifikasi',
+    'verifikasi': 'admin_pencairan',
+    'admin_pencairan': 'selesai'
+};
 
 export const KreditBerkasService = {
     async create(employeeId: string, dto: CreateKreditBerkasDto) {
@@ -41,20 +58,7 @@ export const KreditBerkasService = {
 
         await KreditBerkasRepository.addTracking(tracking);
 
-        // If complete, move to next stage (analisa)
-        if (dto.status_berkas === 'lengkap') {
-            await KreditBerkasRepository.update(berkasId, { current_stage: 'analisa' });
-            
-            // Create pending tracking for next stage
-            await KreditBerkasRepository.addTracking({
-                berkas_id: berkasId,
-                stage: 'analisa',
-                employee_id: 'PENDING', // Will be picked up by Analis
-                status_berkas: 'belum_lengkap',
-                received_at: new Date().toISOString()
-            });
-        }
-
+        if (!berkasId) throw new Error('Gagal menyimpan data pengajuan');
         return this.getById(berkasId);
     },
 
@@ -75,19 +79,16 @@ export const KreditBerkasService = {
         if (!employee) return [];
 
         const position = employee.position.toLowerCase();
-        let stage: KreditStage | null = null;
+        const isCreditFlow = 
+            position.includes('marketing') || position.includes('analis') || 
+            position.includes('kabid kredit') || position.includes('adminitrasi') || 
+            position.includes('adm kredit') || position.includes('customer service') || 
+            position.includes('cs') || position.includes('teller') || 
+            position.includes('kasir'); // Removed 'direktur'
 
-        if (position.includes('marketing') || position.includes('analis')) {
-            stage = 'analisa';
-        } else if (position.includes('kabid kredit')) {
-            stage = 'verifikasi';
-        } else if (position.includes('adminitrasi kredit') || position.includes('adm kredit')) {
-            stage = 'admin_pencairan';
-        }
+        if (!isCreditFlow) return [];
 
-        if (!stage) return [];
-
-        return KreditBerkasRepository.getPendingByStage(stage);
+        return KreditBerkasRepository.getPendingByStage();
     },
 
     async processStage(id: number, employeeId: string, dto: UpdateKreditStageDto) {
@@ -97,53 +98,97 @@ export const KreditBerkasService = {
         const employee = await PegawaiRepository.findById(employeeId);
         const currentStage = berkas.current_stage;
 
-        // 1. Update current tracking
+        // 1. Find the current tracking row for this stage
         const trackingList = await KreditBerkasRepository.getTracking(id);
-        const currentTracking = trackingList.find(t => t.stage === currentStage && !t.completed_at);
+        let currentTracking = trackingList.find(t => t.stage === currentStage && !t.completed_at);
 
-        if (currentTracking && currentTracking.id) {
+        if (!currentTracking) {
+            currentTracking = [...trackingList]
+                .filter(t => t.stage === currentStage)
+                .sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime())[0];
+        }
+
+        // 2. Handle Branching (Tolak)
+        if (dto.status_berkas === 'ditolak') {
+            if (currentTracking?.id) {
+                await KreditBerkasRepository.updateTracking(currentTracking.id, {
+                    employee_id: employeeId,
+                    employee_name: employee?.name,
+                    position: employee?.position,
+                    status_berkas: 'ditolak',
+                    completed_at: new Date().toISOString(),
+                    catatan: dto.catatan
+                });
+            }
+
+            // Rejection at stage 5 (komite) or 7 (approval_keputusan) goes back to CS
+            if (currentStage === 'komite_kredit' || currentStage === 'approval_keputusan') {
+                await KreditBerkasRepository.update(id, { 
+                    current_stage: 'ditolak_cs',
+                    overall_status: 'ditolak' 
+                });
+                
+                await KreditBerkasRepository.addTracking({
+                    berkas_id: id,
+                    stage: 'ditolak_cs',
+                    employee_id: 'PENDING',
+                    status_berkas: 'belum_lengkap',
+                    received_at: new Date().toISOString(),
+                    catatan: `Berkas ditolak pada tahap ${currentStage}. Perlu penanganan CS.`
+                });
+            } else {
+                await KreditBerkasRepository.update(id, { overall_status: 'ditolak' });
+            }
+            
+            return this.getById(id);
+        }
+
+        if (dto.status_berkas === 'belum_lengkap') {
+            if (currentTracking?.id) {
+                await KreditBerkasRepository.updateTracking(currentTracking.id, {
+                    employee_id: employeeId,
+                    employee_name: employee?.name,
+                    position: employee?.position,
+                    status_berkas: 'belum_lengkap',
+                    catatan: dto.catatan
+                });
+            }
+            return this.getById(id);
+        }
+
+        // 3. Lengkap: Advance to next stage
+        if (currentTracking?.id) {
             await KreditBerkasRepository.updateTracking(currentTracking.id, {
                 employee_id: employeeId,
                 employee_name: employee?.name,
                 position: employee?.position,
-                status_berkas: dto.status_berkas,
+                status_berkas: 'lengkap',
                 completed_at: new Date().toISOString(),
                 catatan: dto.catatan
             });
         }
 
-        // 2. Decide next step
-        if (dto.status_berkas === 'ditolak') {
-            await KreditBerkasRepository.update(id, { overall_status: 'ditolak' });
-            return this.getById(id);
+        let nextStage: KreditStage | null = STAGE_FLOW[currentStage] || null;
+        let overallStatus: KreditStatus = 'dalam_proses';
+
+        if (currentStage === 'pencairan' || currentStage === 'admin_pencairan') {
+            nextStage = 'selesai';
+            overallStatus = 'dicairkan';
         }
 
-        if (dto.status_berkas === 'lengkap') {
-            let nextStage: KreditStage | null = null;
-            let overallStatus: any = 'dalam_proses';
+        await KreditBerkasRepository.update(id, { 
+            current_stage: nextStage || currentStage,
+            overall_status: overallStatus
+        });
 
-            if (currentStage === 'penerimaan') nextStage = 'analisa';
-            else if (currentStage === 'analisa') nextStage = 'verifikasi';
-            else if (currentStage === 'verifikasi') nextStage = 'admin_pencairan';
-            else if (currentStage === 'admin_pencairan') {
-                nextStage = 'selesai';
-                overallStatus = 'dicairkan';
-            }
-
-            await KreditBerkasRepository.update(id, { 
-                current_stage: nextStage || currentStage,
-                overall_status: overallStatus
+        if (nextStage && nextStage !== 'selesai' && nextStage !== 'ditolak_cs') {
+            await KreditBerkasRepository.addTracking({
+                berkas_id: id,
+                stage: nextStage,
+                employee_id: 'PENDING',
+                status_berkas: 'belum_lengkap',
+                received_at: new Date().toISOString()
             });
-
-            if (nextStage && nextStage !== 'selesai') {
-                await KreditBerkasRepository.addTracking({
-                    berkas_id: id,
-                    stage: nextStage,
-                    employee_id: 'PENDING',
-                    status_berkas: 'belum_lengkap',
-                    received_at: new Date().toISOString()
-                });
-            }
         }
 
         return this.getById(id);
@@ -151,7 +196,6 @@ export const KreditBerkasService = {
 
     async getMonitoring() {
         const all = await KreditBerkasRepository.findAll();
-        // Agregasi sederhana untuk dashboard
         return all;
     }
 };

@@ -13,6 +13,7 @@ import {
     useUpdateWlaStatusMutation,
     useDirectorNames
 } from '../hooks/usePerformanceManagementQuery';
+import * as kreditApi from '../api/kreditBerkasApi';
 
 const getPositionWeight = (job: string) => {
     const j = (job || '').toLowerCase();
@@ -30,6 +31,7 @@ const AdminWlaSummaryPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
     const [detailLogs, setDetailLogs] = useState<Record<string, any[]>>({});
+    const [creditDetailLogs, setCreditDetailLogs] = useState<Record<string, any[]>>({});
     const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
     const [updatingId, setUpdatingId] = useState<number | null>(null);
     const { data: fetchedDirectorNames } = useDirectorNames();
@@ -135,14 +137,26 @@ const AdminWlaSummaryPage: React.FC = () => {
             return;
         }
         setExpandedEmployee(key);
+        
         if (!detailLogs[key]) {
             setDetailLoading(prev => ({ ...prev, [key]: true }));
             try {
-                const logs = await queryClient.fetchQuery({
-                    queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(key, startDate, endDate),
-                    queryFn: () => fetchAdminWlaDetailLogs(key, startDate, endDate)
-                });
+                const [logs, kredit] = await Promise.all([
+                    queryClient.fetchQuery({
+                        queryKey: PERFORMANCE_QUERY_KEYS.wla.adminDetail(key, startDate, endDate),
+                        queryFn: () => fetchAdminWlaDetailLogs(key, startDate, endDate)
+                    }),
+                    kreditApi.getKreditBerkas({
+                        employee_id: key,
+                        start_date: startDate,
+                        end_date: endDate
+                    })
+                ]);
+                
                 setDetailLogs(prev => ({ ...prev, [key]: logs }));
+                if (kredit.data.success) {
+                    setCreditDetailLogs(prev => ({ ...prev, [key]: kredit.data.data }));
+                }
             } catch {
                 setDetailLogs(prev => ({ ...prev, [key]: [] }));
             } finally {
@@ -369,9 +383,28 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                     <tr>
                                                         <td colSpan={7} className="px-0 py-0 bg-indigo-50/40">
                                                             <div className="px-8 py-4 border-t border-indigo-100">
-                                                                <h4 className="text-sm font-semibold text-indigo-900 mb-3">
-                                                                    Detail Log Aktivitas — {s.nama_lengkap} ({startDate} s/d {endDate})
-                                                                </h4>
+                                                                 <h4 className="text-sm font-semibold text-indigo-900 mb-3">
+                                                                     Detail Log Aktivitas — {s.nama_lengkap} ({startDate} s/d {endDate})
+                                                                 </h4>
+                                                                 {creditDetailLogs[key] && creditDetailLogs[key].length > 0 && (
+                                                                     <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between shadow-sm animate-in fade-in zoom-in-95">
+                                                                         <div>
+                                                                             <div className="flex items-center gap-2">
+                                                                                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                                                                 <p className="text-xs font-bold text-green-800">Sinkronisasi Data Kredit Terdeteksi</p>
+                                                                             </div>
+                                                                             <p className="text-[10px] text-green-600 mt-0.5">Ditemukan {creditDetailLogs[key].length} rincian berkas pengajuan nasabah yang diinput pada periode ini.</p>
+                                                                         </div>
+                                                                         <div className="flex flex-wrap gap-1 justify-end max-w-md">
+                                                                             {creditDetailLogs[key].slice(0, 8).map(c => (
+                                                                                 <span key={c.id} className="text-[9px] bg-white px-2 py-0.5 rounded border border-green-100 text-green-700 shadow-sm">
+                                                                                     {c.nama_pengajuan}
+                                                                                 </span>
+                                                                             ))}
+                                                                             {creditDetailLogs[key].length > 8 && <span className="text-[9px] text-green-500 font-medium self-center">+{creditDetailLogs[key].length - 8} berkas lainnya</span>}
+                                                                         </div>
+                                                                     </div>
+                                                                 )}
                                                                 {hasPendingLogs && (
                                                                     <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
                                                                         Masih ada {s.pending_log_count} log berstatus pending. Log ini belum masuk ke realisasi KPI sampai disetujui supervisor.
@@ -397,15 +430,31 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                                             {logs.map((log: any) => {
                                                                                 const actName = (log.activityName || String(log.id_activity_library || '')).toUpperCase();
                                                                                 const isNominalOnlyActivity = actName.includes('NPL') || actName.includes('PEMASARAN KREDIT') || actName.includes('PEMASARAN DANA');
+                                                                                const isReceivingKredit = actName.includes('MENERIMA BERKAS PENGAJUAN');
 
                                                                                 return (
                                                                                     <tr key={log.id_log}>
                                                                                         <td className="px-4 py-3">
-                                                                                            <div className="font-medium">{log.activityName || log.id_activity_library}</div>
+                                                                                            <div className="font-medium flex items-center gap-2">
+                                                                                                {log.activityName || log.id_activity_library}
+                                                                                                {isReceivingKredit && (
+                                                                                                    <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold border border-green-200">Kredit Sync</span>
+                                                                                                )}
+                                                                                            </div>
                                                                                             <div className="text-xs text-gray-400">{log.category || ''}</div>
                                                                                         </td>
                                                                                         <td className="px-4 py-3 text-center">
-                                                                                            {isNominalOnlyActivity ? '-' : `${log.frekuensi}x`}
+                                                                                            <div className="flex flex-col items-center">
+                                                                                                <span>{isNominalOnlyActivity ? '-' : `${log.frekuensi}x`}</span>
+                                                                                                {isReceivingKredit && creditDetailLogs[key] && (
+                                                                                                    <span className={clsx(
+                                                                                                        "text-[9px] font-bold mt-1",
+                                                                                                        creditDetailLogs[key].length === log.frekuensi ? "text-green-600" : "text-amber-600"
+                                                                                                    )}>
+                                                                                                        (Ref Berkas: {creditDetailLogs[key].length})
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
                                                                                         </td>
                                                                                         <td className="px-4 py-3 text-center font-medium">
                                                                                             {isNominalOnlyActivity

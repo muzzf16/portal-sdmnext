@@ -56,7 +56,7 @@ router.get('/:id', KpiController.getById);
 router.post('/', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.create);
 router.post('/generate-from-abk', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.generateFromAbk);
 router.post('/rebalance', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.rebalanceWeights);
-router.post('/sync-wla', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.syncRealisasiFromWla);
+router.post('/sync-wla', restrictTo('admin', 'pimpinan', 'supervisor', 'employee'), KpiController.syncRealisasiFromWla);
 router.put('/:id', restrictTo('admin', 'pimpinan', 'supervisor'), KpiController.update);
 router.put('/:id/actual', restrictTo('admin', 'pimpinan', 'supervisor', 'employee'), uploadDocument.single('evidence'), KpiController.updateActualValue);
 router.post('/:id/evidence', restrictTo('admin', 'pimpinan', 'supervisor'), uploadDocument.single('evidence'), KpiController.uploadEvidence);
