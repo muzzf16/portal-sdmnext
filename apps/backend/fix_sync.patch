@@ -1,0 +1,18 @@
+--- kpi.service.ts.orig2026-05-19 16:05:00.000000000 +0700
++++ kpi.service.ts2026-05-19 16:05:00.000000000 +0700
+@@ -702,12 +702,12 @@
+ 
+                 // For nominal KPIs (Rp), we sum nominal_rupiah instead of frekuensi.
+                 // We also include 'pending' logs so users see immediate progress.
+-                const isNominal = (kpi.targetUnit || '').toLowerCase().includes('rp');
+-                const sumColumn = isNominal ? 'l.nominal_rupiah' : 'l.frekuensi';
+-
+                 const kpiNameLower = (kpi.kpiName || '').toLowerCase();
+                 const isPemasaranDana = kpiNameLower.includes('pemasaran dana');
+                 const isPemasaranKredit = kpiNameLower.includes('pemasaran kredit');
+                 const isNpl = kpiNameLower.includes('npl');
++
++                const isNominal = isPemasaranDana || isPemasaranKredit || isNpl || (kpi.targetUnit || '').toLowerCase().includes('rp');
++                const sumColumn = isNominal ? 'l.nominal_rupiah' : 'l.frekuensi';
+ 
+                 let activityCondition = 'l.id_activity_library = ?';

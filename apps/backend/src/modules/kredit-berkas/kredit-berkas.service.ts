@@ -182,10 +182,33 @@ export const KreditBerkasService = {
         });
 
         if (nextStage && nextStage !== 'selesai' && nextStage !== 'ditolak_cs') {
+            let assignedId = 'PENDING';
+            let assignedName: string | undefined = undefined;
+            let assignedPos: string | undefined = undefined;
+
+            if (currentStage === 'delegasi_survey' && dto.assigned_employee_id) {
+                const assignedEmp = await PegawaiRepository.findById(dto.assigned_employee_id);
+                if (assignedEmp) {
+                    assignedId = assignedEmp.id;
+                    assignedName = assignedEmp.name;
+                    assignedPos = assignedEmp.position;
+                }
+            } else if (nextStage === 'slik') {
+                const allEmp = await PegawaiRepository.findAll();
+                const adminSlik = allEmp.find(e => e.name.toUpperCase() === 'ARRYA TEGAR PRADIPTA');
+                if (adminSlik) {
+                    assignedId = adminSlik.id;
+                    assignedName = adminSlik.name;
+                    assignedPos = adminSlik.position;
+                }
+            }
+
             await KreditBerkasRepository.addTracking({
                 berkas_id: id,
                 stage: nextStage,
-                employee_id: 'PENDING',
+                employee_id: assignedId,
+                employee_name: assignedName,
+                position: assignedPos,
                 status_berkas: 'belum_lengkap',
                 received_at: new Date().toISOString()
             });

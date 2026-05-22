@@ -5,6 +5,7 @@ import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import { useKpiMonitoringSummary, useDirectorNames } from '../hooks/usePerformanceManagementQuery';
+import { getEffectiveWorkingDays } from '../utils/holidayCalendar';
 
 interface KpiSummaryViewProps {
     isActive: boolean;
@@ -14,20 +15,6 @@ const getTodayString = () => new Date().toISOString().split('T')[0];
 
 const EFFECTIVE_WORKING_MINUTES = 480;
 
-const getWorkingDays = (start: string, end: string) => {
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-    let count = 0;
-    let curDate = new Date(startDateObj.getTime());
-    while (curDate <= endDateObj) {
-        const dayOfWeek = curDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            count++;
-        }
-        curDate.setDate(curDate.getDate() + 1);
-    }
-    return count > 0 ? count : 1;
-};
 
 const getScoreCategory = (score: number) => {
     if (score > 95) return { label: 'ISTIMEWA', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
@@ -61,7 +48,7 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
     const processedSummaries = useMemo(() => {
         const today = new Date().toISOString().slice(0, 10);
         const effectiveEndDate = endDate && endDate > today ? today : endDate;
-        const workingDays = startDate && effectiveEndDate ? getWorkingDays(startDate, effectiveEndDate) : 1;
+        const workingDays = startDate && effectiveEndDate ? getEffectiveWorkingDays(startDate, effectiveEndDate) : 1;
         const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
 
         return rawSummaries.map((summary) => {

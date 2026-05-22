@@ -35,7 +35,7 @@ function info(msg) { console.log(`  ℹ ${msg}`); }
         'penggajian', 'penilaian_kinerja', 'kontrak', 'pelatihan',
         'riwayat_jabatan', 'tugas_orientasi', 'notifications',
         'pinjaman_karyawan', 'activity_library', 'kpi_targets',
-        'daily_activities', 'log_aktivitas_harian', 'company_settings',
+        'log_aktivitas_harian', 'company_settings',
         'kredit_berkas', 'kredit_berkas_tracking'
     ];
 

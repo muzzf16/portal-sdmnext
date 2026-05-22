@@ -268,7 +268,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="monitoring-kredit" element={
-          <PrivateRoute allowedRoles={['admin']}>
+          <PrivateRoute allowedRoles={['admin', 'supervisor', 'employee']}>
             <Suspense fallback={<LoadingSpinner />}>
               <KreditMonitoringPage />
             </Suspense>

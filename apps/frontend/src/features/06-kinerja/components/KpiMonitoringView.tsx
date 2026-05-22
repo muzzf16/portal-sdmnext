@@ -4,6 +4,7 @@ import { useAdminWlaDetailLogs, useDirectorNames, useNominalTargets } from '../h
 import { Printer } from 'lucide-react';
 import clsx from 'clsx';
 import { formatKpiValue } from '../utils/formatters';
+import { getEffectiveWorkingDays, getHolidaysInRange } from '../utils/holidayCalendar';
 
 interface KpiMonitoringViewProps {
     isActive: boolean;
@@ -45,22 +46,6 @@ const getPeriodDates = (p: string) => {
 };
 
 const EFFECTIVE_WORKING_MINUTES = 480;
-
-// Helper to calculate total working days (Mon-Fri) between two dates
-const getWorkingDays = (start: string, end: string) => {
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-    let count = 0;
-    let curDate = new Date(startDateObj.getTime());
-    while (curDate <= endDateObj) {
-        const dayOfWeek = curDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            count++;
-        }
-        curDate.setDate(curDate.getDate() + 1);
-    }
-    return count > 0 ? count : 1;
-};
 
 const getFteStatus = (percentage: number) => {
     if (percentage > 100) return { label: 'Overload', color: 'text-red-600' };
@@ -183,7 +168,8 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         const totalFrekuensi = allApprovedLogs.reduce((sum, log) => sum + (Number(log.frekuensi) || 0), 0);
         const today = new Date().toISOString().slice(0, 10);
         const effectiveEndDate = endDate && endDate > today ? today : endDate;
-        const workingDays = startDate && effectiveEndDate ? getWorkingDays(startDate, effectiveEndDate) : 1;
+        const workingDays = startDate && effectiveEndDate ? getEffectiveWorkingDays(startDate, effectiveEndDate) : 1;
+        const holidaysInPeriod = startDate && effectiveEndDate ? getHolidaysInRange(startDate, effectiveEndDate) : [];
         const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
         const wlaPercentage = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
 
@@ -241,6 +227,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
             totalFrekuensi,
             targetMinutes,
             workingDays,
+            holidaysInPeriod,
             khususPercentage,
             wlaPercentage,
             finalKhusus,
@@ -394,7 +381,14 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                         <td className="px-4 py-3 text-red-600 font-bold text-center">{summary.totalFrekuensi}x</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="text-red-600 font-bold">{summary.totalDurasiMenit} menit</div>
-                                            <div className="text-xs text-gray-500">Target: {summary.targetMinutes} menit ({summary.workingDays} hari × 480)</div>
+                                            <div className="text-xs text-gray-500">
+                                                Target: {summary.targetMinutes} menit ({summary.workingDays} hari kerja efektif × 480)
+                                                {summary.holidaysInPeriod.length > 0 && (
+                                                    <span className="ml-1 text-orange-500" title={`Hari libur nasional: ${summary.holidaysInPeriod.join(', ')}`}>
+                                                        ({summary.holidaysInPeriod.length} libur nasional dikurangi)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr>

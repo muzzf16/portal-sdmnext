@@ -54,4 +54,5 @@ export interface CreateKreditBerkasDto {
 export interface UpdateKreditStageDto {
     status_berkas: BerkasStatus;
     catatan?: string;
+    assigned_employee_id?: string;
 }

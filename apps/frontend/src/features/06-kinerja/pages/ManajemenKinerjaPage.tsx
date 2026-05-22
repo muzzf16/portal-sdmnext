@@ -107,7 +107,7 @@ const ManajemenKinerjaPage: React.FC = () => {
             id: 'monitoring-kredit',
             label: 'Monitoring Kredit',
             icon: <BarChart2 size={18} />,
-            roles: ['admin'],
+            roles: ['admin', 'supervisor', 'employee'],
             component: (
                 <Suspense fallback={<TabSpinner />}>
                     <KreditMonitoringContent />

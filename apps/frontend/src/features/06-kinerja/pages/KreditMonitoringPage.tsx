@@ -251,7 +251,7 @@ const KreditMonitoringPage: React.FC = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Pengajuan</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Pengajuan</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Nasabah</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nominal</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Tahap / Status</th>
@@ -281,8 +281,8 @@ const KreditMonitoringPage: React.FC = () => {
                                                 isSelected && "bg-indigo-50/50"
                                             )}
                                         >
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                                                {berkas.nomor_pengajuan}
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {berkas.created_at ? new Date(berkas.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-bold text-gray-900">{berkas.nama_pengajuan}</div>

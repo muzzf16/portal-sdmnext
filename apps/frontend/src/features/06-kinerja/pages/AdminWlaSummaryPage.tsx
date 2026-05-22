@@ -14,6 +14,7 @@ import {
     useDirectorNames
 } from '../hooks/usePerformanceManagementQuery';
 import * as kreditApi from '../api/kreditBerkasApi';
+import { getEffectiveWorkingDays } from '../utils/holidayCalendar';
 
 const getPositionWeight = (job: string) => {
     const j = (job || '').toLowerCase();
@@ -54,24 +55,7 @@ const AdminWlaSummaryPage: React.FC = () => {
     }, [startDate, endDate]);
 
     const EFFECTIVE_WORKING_MINUTES = 480;
-
-    // Helper to calculate total working days (Mon-Fri) between two dates
-    const getWorkingDays = (start: string, end: string) => {
-        const startDateObj = new Date(start);
-        const endDateObj = new Date(end);
-        let count = 0;
-        let curDate = new Date(startDateObj.getTime());
-        while (curDate <= endDateObj) {
-            const dayOfWeek = curDate.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0=Sun, 6=Sat
-                count++;
-            }
-            curDate.setDate(curDate.getDate() + 1);
-        }
-        return count > 0 ? count : 1; // Fallback to 1 if same day weekend or invalid
-    };
-
-    const targetMinutes = EFFECTIVE_WORKING_MINUTES * getWorkingDays(startDate, endDate);
+    const targetMinutes = EFFECTIVE_WORKING_MINUTES * getEffectiveWorkingDays(startDate, endDate);
 
     const getFteStatus = (minutes: number) => {
         const percentage = (minutes / targetMinutes) * 100;
