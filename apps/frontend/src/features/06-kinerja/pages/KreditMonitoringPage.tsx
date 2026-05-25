@@ -2,9 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Card } from '../../../shared/components/ui/Card';
 import { Badge } from '../../../shared/components/ui/Badge';
 import { Button } from '../../../shared/components/ui/Button';
-import { getKreditMonitoring, processKreditStage } from '../api/kreditBerkasApi';
-import { KreditBerkas } from '../types';
-import { TrendingUp, PlayCircle } from 'lucide-react';
+import { getKreditMonitoring, processKreditStage, getWaNotificationLog, resendWaNotification } from '../api/kreditBerkasApi';
+import { KreditBerkas, WANotificationLog } from '../types';
+import { TrendingUp, PlayCircle, MessageSquare, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import { KreditBerkasModal } from '../components/KreditBerkasModal';
 import { useToast } from '../../../shared/hooks/useToast';
@@ -27,6 +27,42 @@ const KreditMonitoringPage: React.FC = () => {
     const [selectedBerkas, setSelectedBerkas] = useState<KreditBerkas | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // WA Notification Logs States
+    const [waLogs, setWaLogs] = useState<WANotificationLog[]>([]);
+    const [loadingWaLogs, setLoadingWaLogs] = useState(false);
+    const [isResendingWa, setIsResendingWa] = useState<number | null>(null);
+
+    const fetchWaLogs = async (berkasId: number) => {
+        setLoadingWaLogs(true);
+        try {
+            const res = await getWaNotificationLog(berkasId);
+            setWaLogs(res.data.data || []);
+        } catch (err: any) {
+            console.error('Gagal memuat log WA:', err);
+        } finally {
+            setLoadingWaLogs(false);
+        }
+    };
+
+    const handleResendWa = async (logId: number) => {
+        setIsResendingWa(logId);
+        try {
+            const res = await resendWaNotification(logId);
+            if (res.data.success) {
+                addToast('Notifikasi WA berhasil dikirim ulang!', 'success');
+                if (selectedForMap) {
+                    fetchWaLogs(selectedForMap.id);
+                }
+            } else {
+                addToast(res.data.message || 'Gagal mengirim ulang', 'error');
+            }
+        } catch (err: any) {
+            addToast(err.response?.data?.message || 'Gagal mengirim ulang', 'error');
+        } finally {
+            setIsResendingWa(null);
+        }
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -42,6 +78,14 @@ const KreditMonitoringPage: React.FC = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (selectedForMap) {
+            fetchWaLogs(selectedForMap.id);
+        } else {
+            setWaLogs([]);
+        }
+    }, [selectedForMap]);
 
     // Set default selected for map to first active berkas
     useEffect(() => {
@@ -128,12 +172,12 @@ const KreditMonitoringPage: React.FC = () => {
         }
     };
 
-    // Helper to determine if current user can process this berkas
     const canProcess = (berkas: KreditBerkas) => {
-        if (berkas.overall_status !== 'dalam_proses') return false;
+        if (!berkas || berkas.overall_status !== 'dalam_proses') return false;
         
-        const pos = ((user as any)?.position || (user as any)?.employeeDetails?.position || '').toLowerCase();
-        const stage = berkas.current_stage;
+        const rawPos = (user as any)?.position || (user as any)?.employeeDetails?.position || '';
+        const pos = (rawPos || '').toLowerCase();
+        const stage = berkas.current_stage || '';
         const p = pos;
         
         // Admin can process anything
@@ -288,18 +332,27 @@ const KreditMonitoringPage: React.FC = () => {
                                                 <div className="text-sm font-bold text-gray-900">{berkas.nama_pengajuan}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                                                Rp {berkas.jumlah_pengajuan.toLocaleString('id-ID')}
+                                                Rp {(berkas.jumlah_pengajuan || 0).toLocaleString('id-ID')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 <div className="flex flex-col items-center gap-1">
-                                                    <Badge variant={
-                                                        berkas.overall_status === 'dicairkan' ? 'success' :
-                                                        berkas.overall_status === 'ditolak' ? 'danger' : 'info'
-                                                    } className="uppercase text-[9px] w-fit font-bold tracking-tight">
-                                                        {berkas.overall_status.replace('_', ' ')}
-                                                    </Badge>
-                                                    <span className="text-[10px] text-gray-400 italic">
-                                                        Tahap: {berkas.current_stage.replace('_', ' ')}
+                                                    {berkas.current_stage === 'ditolak_cs' ? (
+                                                        <Badge variant="danger" className="bg-red-600 hover:bg-red-700 text-white uppercase text-[9px] w-fit font-bold tracking-tight animate-pulse">
+                                                            DITOLAK CS
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant={
+                                                            berkas.overall_status === 'dicairkan' ? 'success' :
+                                                            berkas.overall_status === 'ditolak' ? 'danger' : 'info'
+                                                        } className="uppercase text-[9px] w-fit font-bold tracking-tight">
+                                                            {(berkas.overall_status || '').replace('_', ' ')}
+                                                        </Badge>
+                                                    )}
+                                                    <span className={clsx(
+                                                        "text-[10px] font-medium",
+                                                        berkas.current_stage === 'ditolak_cs' ? "text-red-600 font-bold" : "text-gray-400 italic"
+                                                    )}>
+                                                        Tahap: {(berkas.current_stage || '').replace('_', ' ')}
                                                     </span>
                                                 </div>
                                             </td>
@@ -331,6 +384,125 @@ const KreditMonitoringPage: React.FC = () => {
                     </table>
                 </div>
             </Card>
+
+            {/* WA Notification Logs Card */}
+            {selectedForMap && (
+                <Card className="shadow-sm overflow-hidden border-emerald-200 bg-emerald-50/10">
+                    <div className="bg-emerald-50/50 px-6 py-4 border-b border-emerald-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-emerald-600" />
+                            <h2 className="text-sm font-bold text-emerald-950">
+                                Riwayat Notifikasi WhatsApp — Nasabah: <span className="font-extrabold text-emerald-700">{selectedForMap.nama_pengajuan}</span> ({selectedForMap.no_wa_nasabah || 'Belum Ada No. WA'})
+                            </h2>
+                        </div>
+                        <button
+                            onClick={() => fetchWaLogs(selectedForMap.id)}
+                            className="p-1 text-emerald-700 hover:text-emerald-900 transition-colors"
+                            title="Refresh Log"
+                            disabled={loadingWaLogs}
+                        >
+                            <RefreshCw className={clsx("h-4 w-4", loadingWaLogs && "animate-spin")} />
+                        </button>
+                    </div>
+                    
+                    <div className="p-6">
+                        {loadingWaLogs ? (
+                            <div className="flex justify-center items-center py-6">
+                                <RefreshCw className="animate-spin h-6 w-6 text-emerald-600" />
+                            </div>
+                        ) : waLogs.length === 0 ? (
+                            <div className="text-center text-xs text-gray-500 py-6 italic">
+                                Belum ada riwayat notifikasi WhatsApp untuk berkas ini.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-emerald-100 text-xs">
+                                    <thead>
+                                        <tr className="text-emerald-800 text-left font-bold uppercase tracking-wider bg-emerald-50/20">
+                                            <th className="px-4 py-2">Tanggal & Waktu</th>
+                                            <th className="px-4 py-2">Tahap / Trigger</th>
+                                            <th className="px-4 py-2">No. WA</th>
+                                            <th className="px-4 py-2">Isi Notifikasi</th>
+                                            <th className="px-4 py-2 text-center">Status</th>
+                                            <th className="px-4 py-2 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-emerald-100 bg-white">
+                                        {waLogs.map((log) => {
+                                            const triggerMap: Record<string, string> = {
+                                                penerimaan: 'Penerimaan Berkas',
+                                                delegasi_survey: 'Delegasi Survey',
+                                                approval_keputusan: 'Keputusan (Disetujui)',
+                                                ditolak: 'Ditolak'
+                                            };
+                                            return (
+                                                <tr key={log.id} className="hover:bg-emerald-50/20 transition-colors">
+                                                    <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-600">
+                                                        {new Date(log.created_at).toLocaleString('id-ID', {
+                                                            day: '2-digit', month: 'short', year: 'numeric',
+                                                            hour: '2-digit', minute: '2-digit'
+                                                        })}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap font-bold text-emerald-800">
+                                                        {triggerMap[log.trigger_stage] || log.trigger_stage}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap font-mono text-gray-700">
+                                                        {log.no_wa}
+                                                    </td>
+                                                    <td className="px-4 py-3 max-w-xs truncate text-gray-600 italic" title={log.message_content}>
+                                                        {log.message_content}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                        <div className="flex justify-center">
+                                                            {log.status === 'sent' ? (
+                                                                <span className="px-2.5 py-0.5 inline-flex items-center gap-1 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                                    <CheckCircle className="h-3 w-3" />
+                                                                    Terkirim
+                                                                </span>
+                                                            ) : log.status === 'failed' ? (
+                                                                <span className="px-2.5 py-0.5 inline-flex items-center gap-1 text-[10px] font-bold rounded-full bg-rose-100 text-rose-800 border border-rose-200" title={log.error_message || undefined}>
+                                                                    <AlertCircle className="h-3 w-3" />
+                                                                    Gagal
+                                                                </span>
+                                                            ) : (
+                                                                <span className="px-2.5 py-0.5 inline-flex items-center gap-1 text-[10px] font-bold rounded-full bg-gray-100 text-gray-800 border border-gray-200 animate-pulse">
+                                                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                                                    Pending
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                        {log.status !== 'sent' && (
+                                                            <Button
+                                                                size="xs"
+                                                                variant="outline"
+                                                                className="text-emerald-700 hover:text-emerald-900 border-emerald-300 hover:bg-emerald-50 px-2 py-0.5 text-[10px]"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleResendWa(log.id);
+                                                                }}
+                                                                disabled={isResendingWa === log.id}
+                                                            >
+                                                                {isResendingWa === log.id ? (
+                                                                    <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                                                                ) : (
+                                                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                                                )}
+                                                                Kirim Ulang
+                                                            </Button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </Card>
+            )}
 
             <KreditBerkasModal
                 isOpen={showModal}

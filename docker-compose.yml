@@ -19,6 +19,7 @@ services:
     volumes:
       - backend_data:/data
       - backend_uploads:/app/public
+      - ./apps/backend/.env:/app/.env
 
   sdm:
     # Renamed from 'frontend' to 'sdm' to match http://sdm:8081
@@ -32,6 +33,30 @@ services:
       - "8081:8081" # Map 8081 (Host) -> 8081 (Container)
     networks:
       - bpr-network # Connect to shared network
+
+  sqlite-web:
+    image: coleifer/sqlite-web:latest
+    container_name: sqlite-web
+    profiles:
+      - monitoring
+    ports:
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - backend_data:/data
+    environment:
+      - SQLITE_DATABASE=database.sqlite
+    restart: unless-stopped
+
+  adminer-sqlite:
+    image: adminer:latest
+    container_name: adminer-sqlite
+    profiles:
+      - monitoring
+    ports:
+      - "127.0.0.1:8089:8080"
+    volumes:
+      - backend_data:/data
+    restart: unless-stopped
 
 networks:
   bpr-network:

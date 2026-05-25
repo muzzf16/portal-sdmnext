@@ -201,7 +201,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                 kpiName: k.kpiName,
                 targetValue: target,
                 actualValue: actual,
-                targetUnit: k.targetUnit || (nominalFlag ? 'Rp' : '%'),
+                targetUnit: nominalFlag ? 'Rp' : (k.targetUnit || '%'),
                 pct: percentage,
                 isNominal: nominalFlag
             };
@@ -441,8 +441,8 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                 <tr>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center">TOTAL</td>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center text-xs">
-                                        {formatNominal(summary.khususItems.reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0))} <br/>
-                                        <span className="text-[10px] opacity-70">vs Target {formatNominal(summary.khususItems.reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0))}</span>
+                                        {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0))} <br/>
+                                        <span className="text-[10px] opacity-70">vs Target {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0))}</span>
                                     </td>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center">
                                         {summary.khususPercentage.toFixed(1)}%

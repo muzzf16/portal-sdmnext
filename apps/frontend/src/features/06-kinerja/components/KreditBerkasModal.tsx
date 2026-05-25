@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { Button } from '../../../shared/components/ui/Button';
 import { Input } from '../../../shared/components/ui/Input';
@@ -11,6 +11,8 @@ import {
     UpdateKreditStageDto 
 } from '../types';
 import { usePegawaiList } from '../../01-pegawai/hooks/usePegawaiList';
+import { useAuth } from '../../../shared/contexts/AuthContext';
+import { useSubordinates } from '../hooks/usePerformanceManagementQuery';
 
 interface KreditBerkasModalProps {
     isOpen: boolean;
@@ -49,16 +51,71 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
     isLoading,
     titleOverride
 }) => {
+    const { user } = useAuth();
     const { pegawai } = usePegawaiList();
-    const stafMarketing = (pegawai || []).filter(p => 
-        p.position?.toLowerCase().includes('staf marketing') || 
-        p.position?.toLowerCase() === 'staf marketing'
-    );
+    
+    const supervisorId = user?.employeeId || (user as any)?.id || '';
+    const { data: subordinates = [] } = useSubordinates(supervisorId);
+    
+    // Find KABID (current user) details in pegawai list to have full Pegawai type mapping
+    const currentUserPegawai = (pegawai || []).find(p => p.id === supervisorId);
+    
+    const selfUser = currentUserPegawai || (user ? {
+        id: supervisorId,
+        name: user.name || 'Diri Sendiri',
+        position: (user as any)?.position || (user as any)?.employeeDetails?.position || 'KABID Kredit'
+    } : null);
+
+    // Construct option list: subordinates + self + fallbacks/marketing staff (deduplicated)
+    const surveyorOptions = useMemo(() => {
+        const list: Array<{ id: string; name: string; position: string }> = [];
+        const seenIds = new Set<string>();
+
+        // 1. Add subordinates
+        (subordinates || []).forEach(sub => {
+            if (sub && sub.id && !seenIds.has(sub.id)) {
+                seenIds.add(sub.id);
+                list.push({
+                    id: sub.id,
+                    name: sub.name,
+                    position: sub.position
+                });
+            }
+        });
+
+        // 2. Add self (KABID Kredit themselves)
+        if (selfUser && selfUser.id && !seenIds.has(selfUser.id)) {
+            seenIds.add(selfUser.id);
+            list.push({
+                id: selfUser.id,
+                name: `${selfUser.name} (Diri Sendiri)`,
+                position: selfUser.position || 'KABID Kredit'
+            });
+        }
+
+        // 3. Fallback: staf marketing
+        (pegawai || []).forEach(p => {
+            const rawPos = p.position || '';
+            const pos = (rawPos || '').toLowerCase();
+            const isMarketing = pos.includes('staf marketing') || pos === 'staf marketing';
+            if (isMarketing && p.id && !seenIds.has(p.id)) {
+                seenIds.add(p.id);
+                list.push({
+                    id: p.id,
+                    name: p.name,
+                    position: p.position
+                });
+            }
+        });
+
+        return list;
+    }, [subordinates, selfUser, pegawai]);
 
     const [formData, setFormData] = useState({
         nama_pengajuan: '',
         jumlah_pengajuan: 0,
         jenis_kredit: 'Kredit Umum',
+        no_wa_nasabah: '',
         status_berkas: 'belum_lengkap' as BerkasStatus,
         catatan: '',
         assigned_employee_id: ''
@@ -70,6 +127,7 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                 nama_pengajuan: '',
                 jumlah_pengajuan: 0,
                 jenis_kredit: 'Kredit Umum',
+                no_wa_nasabah: '',
                 status_berkas: 'belum_lengkap',
                 catatan: '',
                 assigned_employee_id: ''
@@ -91,6 +149,7 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                 nama_pengajuan: formData.nama_pengajuan,
                 jumlah_pengajuan: formData.jumlah_pengajuan,
                 jenis_kredit: formData.jenis_kredit,
+                no_wa_nasabah: formData.no_wa_nasabah,
                 status_berkas: formData.status_berkas,
                 catatan: formData.catatan
             });
@@ -131,6 +190,17 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                             onChange={(e) => setFormData({ ...formData, jumlah_pengajuan: Number(e.target.value) })}
                             placeholder="0"
                         />
+                        <Input
+                            id="no_wa_nasabah"
+                            label="No. WhatsApp Nasabah *"
+                            required
+                            value={formData.no_wa_nasabah}
+                            onChange={(e) => setFormData({ ...formData, no_wa_nasabah: e.target.value.replace(/[^0-9+]/g, '') })}
+                            placeholder="08xxxxxxxxxx"
+                        />
+                        <p className="text-xs text-gray-500 -mt-2">
+                            Nomor WA nasabah untuk notifikasi status pengajuan kredit
+                        </p>
                     </>
                 ) : (
                     <div className="bg-blue-50 p-3 rounded border border-blue-100 mb-4 text-sm shadow-inner">
@@ -205,7 +275,7 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                 {mode === 'process' && berkas?.current_stage === 'delegasi_survey' && formData.status_berkas === 'lengkap' && (
                     <div className="space-y-2 animate-in fade-in duration-300">
                         <label className="block text-sm font-medium text-gray-700">
-                            Delegasikan Survey Ke (Staf Marketing) <span className="text-red-500">*</span>
+                            Delegasikan Survey Ke (Bawahan / Diri Sendiri) <span className="text-red-500">*</span>
                         </label>
                         <select
                             id="assigned_employee_id"
@@ -214,8 +284,8 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                             required
                             className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                         >
-                            <option value="">-- Pilih Staf Marketing --</option>
-                            {stafMarketing.map(p => (
+                            <option value="">-- Pilih Surveyor --</option>
+                            {surveyorOptions.map(p => (
                                 <option key={p.id} value={p.id}>
                                     {p.name} ({p.position})
                                 </option>
@@ -242,7 +312,7 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                         className={formData.status_berkas === 'lengkap' ? 'bg-green-600 hover:bg-green-700' : formData.status_berkas === 'ditolak' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600'}
                         disabled={
                             isLoading || 
-                            (mode === 'create' && !formData.nama_pengajuan) ||
+                            (mode === 'create' && (!formData.nama_pengajuan || !formData.no_wa_nasabah || formData.no_wa_nasabah.length < 10)) ||
                             (mode === 'process' && berkas?.current_stage === 'delegasi_survey' && formData.status_berkas === 'lengkap' && !formData.assigned_employee_id)
                         }
                     >

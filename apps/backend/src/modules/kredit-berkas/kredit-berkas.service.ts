@@ -1,4 +1,5 @@
 import { KreditBerkasRepository } from './kredit-berkas.repository';
+import { KreditWaNotificationService } from './kredit-wa-notification.service';
 import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import { 
     CreateKreditBerkasDto, 
@@ -19,6 +20,7 @@ const STAGE_FLOW: Record<string, KreditStage | null> = {
     'approval_keputusan': 'admin_spk', 
     'admin_spk': 'pencairan',
     'pencairan': 'selesai',
+    'ditolak_cs': 'slik', // Flow back to active pipeline
     // Legacy support transitions (Linear)
     'analisa': 'verifikasi',
     'verifikasi': 'admin_pencairan',
@@ -35,6 +37,7 @@ export const KreditBerkasService = {
             nama_pengajuan: dto.nama_pengajuan,
             jumlah_pengajuan: dto.jumlah_pengajuan || 0,
             jenis_kredit: dto.jenis_kredit || 'Umum',
+            no_wa_nasabah: dto.no_wa_nasabah,
             current_stage: 'penerimaan',
             overall_status: 'dalam_proses',
             created_by: employeeId,
@@ -59,6 +62,10 @@ export const KreditBerkasService = {
         await KreditBerkasRepository.addTracking(tracking);
 
         if (!berkasId) throw new Error('Gagal menyimpan data pengajuan');
+
+        // Kirim notifikasi WA: berkas diterima (fire-and-forget)
+        KreditWaNotificationService.notifyBerkasReceived(berkasId);
+
         return this.getById(berkasId);
     },
 
@@ -125,13 +132,17 @@ export const KreditBerkasService = {
             if (currentStage === 'komite_kredit' || currentStage === 'approval_keputusan') {
                 await KreditBerkasRepository.update(id, { 
                     current_stage: 'ditolak_cs',
-                    overall_status: 'ditolak' 
+                    overall_status: 'dalam_proses'
                 });
+                
+                const creator = await PegawaiRepository.findById(berkas.created_by);
                 
                 await KreditBerkasRepository.addTracking({
                     berkas_id: id,
                     stage: 'ditolak_cs',
-                    employee_id: 'PENDING',
+                    employee_id: berkas.created_by,
+                    employee_name: creator?.name || 'Customer Service',
+                    position: creator?.position || 'Customer Service',
                     status_berkas: 'belum_lengkap',
                     received_at: new Date().toISOString(),
                     catatan: `Berkas ditolak pada tahap ${currentStage}. Perlu penanganan CS.`
@@ -139,6 +150,9 @@ export const KreditBerkasService = {
             } else {
                 await KreditBerkasRepository.update(id, { overall_status: 'ditolak' });
             }
+
+            // Kirim notifikasi WA: kredit ditolak (fire-and-forget)
+            KreditWaNotificationService.notifyRejected(id);
             
             return this.getById(id);
         }
@@ -212,6 +226,17 @@ export const KreditBerkasService = {
                 status_berkas: 'belum_lengkap',
                 received_at: new Date().toISOString()
             });
+
+            // Kirim notifikasi WA pada tahap kritis (fire-and-forget)
+            if (nextStage === 'ots' && currentStage === 'delegasi_survey') {
+                // Berkas baru saja melewati delegasi_survey → survey dimulai
+                KreditWaNotificationService.notifyDelegasiSurvey(id);
+            }
+        }
+
+        // Notifikasi WA: approval keputusan disetujui
+        if (currentStage === 'approval_keputusan' && dto.status_berkas === 'lengkap') {
+            KreditWaNotificationService.notifyApproval(id);
         }
 
         return this.getById(id);

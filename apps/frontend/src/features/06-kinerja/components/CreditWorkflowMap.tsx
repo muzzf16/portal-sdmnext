@@ -110,6 +110,18 @@ export const CreditWorkflowMap: React.FC<CreditWorkflowMapProps> = ({ data, sele
                 </div>
             </div>
             
+            {selectedBerkas?.current_stage === 'ditolak_cs' && (
+                <div className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="bg-rose-500 text-white p-2 rounded-lg font-bold text-xs flex-shrink-0">⚠️ TOLAK CS</div>
+                    <div>
+                        <h4 className="text-sm font-bold text-rose-900">Berkas Dikembalikan Ke Customer Service</h4>
+                        <p className="text-xs text-rose-700 mt-1">
+                            Berkas pengajuan ini telah ditolak pada tahap sebelumnya dan dikembalikan ke antrean Customer Service untuk dilakukan penanganan, perbaikan dokumen, atau pembatalan pengajuan.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Legend / Info */}
             <div className="mt-8 pt-4 border-t border-gray-100 flex flex-wrap gap-6 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 <div className="flex items-center gap-2">

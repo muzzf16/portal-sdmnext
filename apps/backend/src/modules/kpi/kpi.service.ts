@@ -403,7 +403,7 @@ export default class KpiService {
                         kpiName: k.kpiName,
                         targetValue: Number(k.targetValue) || 0,
                         actualValue: actual,
-                        targetUnit: k.targetUnit || 'Rp',
+                        targetUnit: isNominal(k.kpiName || '') ? 'Rp' : (k.targetUnit || 'Rp'),
                         weight: Number(k.weight) || 0,
                         score: Number(k.score) || 0
                     };
@@ -733,7 +733,7 @@ export default class KpiService {
                      WHERE l.id_pegawai = ?
                        AND ${activityCondition}
                        AND l.tanggal >= ? AND l.tanggal <= ?
-                       AND l.status_approval IN ('approved', 'pending')`,
+                       AND l.status_approval = 'approved'`,
                     ...queryParams
                 );
 

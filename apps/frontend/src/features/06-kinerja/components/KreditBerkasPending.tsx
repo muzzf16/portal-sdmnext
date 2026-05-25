@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import clsx from 'clsx';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { Badge } from '../../../shared/components/ui/Badge';
@@ -39,12 +40,13 @@ export const KreditBerkasPending: React.FC<KreditBerkasPendingProps> = ({
     userRole = ''
 }) => {
     const [expanded, setExpanded] = useState(false);
-    const pos = userPosition.toLowerCase();
+    const pos = (userPosition || '').toLowerCase();
 
     const canProcessItem = (item: KreditBerkas) => {
+        if (!item) return false;
         if (userRole === 'admin') return true;
         
-        const stage = item.current_stage;
+        const stage = item.current_stage || '';
         const p = pos;
         
         // 1. Penerimaan
@@ -103,36 +105,46 @@ export const KreditBerkasPending: React.FC<KreditBerkasPendingProps> = ({
         return 'Baru saja';
     };
 
-    const renderItem = (item: KreditBerkas & { stage_received_at: string }, canDo: boolean) => (
-        <div key={item.id} className="px-3 py-2 hover:bg-gray-50 transition-colors flex justify-between items-center gap-2">
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-400">{item.nomor_pengajuan}</span>
-                    <span className="text-xs font-bold text-gray-800 truncate">{item.nama_pengajuan}</span>
-                    <Badge variant="info" className="text-[7px] uppercase py-0 leading-3 flex-shrink-0">
-                        {STAGE_LABELS[item.current_stage] || item.current_stage.replace('_', ' ')}
-                    </Badge>
+    const renderItem = (item: KreditBerkas & { stage_received_at: string }, canDo: boolean) => {
+        const stage = item.current_stage || '';
+        const isDitolakCs = stage === 'ditolak_cs';
+        return (
+            <div key={item.id} className="px-3 py-2 hover:bg-gray-50 transition-colors flex justify-between items-center gap-2">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-400">{item.nomor_pengajuan}</span>
+                        <span className="text-xs font-bold text-gray-800 truncate">{item.nama_pengajuan}</span>
+                        <Badge 
+                            variant={isDitolakCs ? 'danger' : 'info'} 
+                            className={clsx(
+                                "text-[7px] uppercase py-0 leading-3 flex-shrink-0",
+                                isDitolakCs && "bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                            )}
+                        >
+                            {STAGE_LABELS[stage] || stage.replace('_', ' ')}
+                        </Badge>
+                    </div>
+                    <div className="flex gap-2 text-[10px] text-gray-400 mt-0.5">
+                        <span>{getTimeDiff(item.stage_received_at || new Date().toISOString())}</span>
+                        <span className="font-medium text-indigo-500">Rp {(item.jumlah_pengajuan || 0).toLocaleString('id-ID')}</span>
+                    </div>
                 </div>
-                <div className="flex gap-2 text-[10px] text-gray-400 mt-0.5">
-                    <span>{getTimeDiff(item.stage_received_at)}</span>
-                    <span className="font-medium text-indigo-500">Rp {item.jumlah_pengajuan.toLocaleString('id-ID')}</span>
-                </div>
+                {canDo ? (
+                    <Button 
+                        size="xs" 
+                        className="bg-indigo-600 hover:bg-indigo-700 text-[10px] px-2 py-1 h-6 flex-shrink-0"
+                        onClick={() => onProcess(item)}
+                        disabled={isLoading}
+                    >
+                        <ArrowRight className="w-3 h-3 mr-0.5" />
+                        Proses
+                    </Button>
+                ) : (
+                    <span className="text-[9px] text-gray-300 italic flex-shrink-0">Menunggu...</span>
+                )}
             </div>
-            {canDo ? (
-                <Button 
-                    size="xs" 
-                    className="bg-indigo-600 hover:bg-indigo-700 text-[10px] px-2 py-1 h-6 flex-shrink-0"
-                    onClick={() => onProcess(item)}
-                    disabled={isLoading}
-                >
-                    <ArrowRight className="w-3 h-3 mr-0.5" />
-                    Proses
-                </Button>
-            ) : (
-                <span className="text-[9px] text-gray-300 italic flex-shrink-0">Menunggu...</span>
-            )}
-        </div>
-    );
+        );
+    };
 
     return (
         <Card className="shadow-sm border-l-4 border-l-amber-500 overflow-hidden flex-shrink-0">

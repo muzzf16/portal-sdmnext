@@ -22,6 +22,7 @@ export interface KreditBerkas {
     nama_pengajuan: string;
     jumlah_pengajuan: number;
     jenis_kredit: string;
+    no_wa_nasabah?: string;
     current_stage: KreditStage;
     overall_status: KreditStatus;
     created_by: string;
@@ -47,6 +48,7 @@ export interface CreateKreditBerkasDto {
     nama_pengajuan: string;
     jumlah_pengajuan?: number;
     jenis_kredit?: string;
+    no_wa_nasabah: string;
     status_berkas: BerkasStatus;
     catatan?: string;
 }

@@ -2,7 +2,8 @@ import api from '../../../shared/services/api';
 import { 
     KreditBerkas, 
     CreateKreditBerkasDto, 
-    UpdateKreditStageDto 
+    UpdateKreditStageDto,
+    WANotificationLog 
 } from '../types';
 
 const BASE_URL = '/kredit-berkas';
@@ -24,3 +25,9 @@ export const processKreditStage = (id: number, data: UpdateKreditStageDto) =>
 
 export const getKreditMonitoring = () => 
     api.get<{ success: boolean, data: KreditBerkas[] }>(`${BASE_URL}/monitoring`);
+
+export const getWaNotificationLog = (berkasId: number) =>
+    api.get<{ success: boolean, data: WANotificationLog[] }>(`${BASE_URL}/${berkasId}/wa-log`);
+
+export const resendWaNotification = (logId: number) =>
+    api.post<{ success: boolean, message: string }>(`${BASE_URL}/wa-resend/${logId}`);
