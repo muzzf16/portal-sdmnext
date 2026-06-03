@@ -42,6 +42,16 @@ export const PermintaanCutiRepository = {
     const conditions: string[] = [];
     const params: string[] = [];
 
+    // Filter out directors
+    conditions.push(`
+      employeeId NOT IN (
+        SELECT p.id FROM pegawai p
+        LEFT JOIN jabatan j ON p.jabatan_id = j.id
+        WHERE j.department = 'Direksi'
+           OR COALESCE(p.position, '') IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+      )
+    `);
+
     if (filters.employeeId) {
       conditions.push('employeeId = ?');
       params.push(filters.employeeId);
@@ -174,7 +184,13 @@ export const PermintaanCutiRepository = {
   async findAllActiveEmployees(db?: LeaveDatabase): Promise<Array<{ id: string; name: string }>> {
     const connection = await resolveDb(db);
     const rows = await connection.all(
-      "SELECT id, name FROM pegawai WHERE isActive = 1 ORDER BY name ASC"
+      `SELECT p.id, p.name 
+       FROM pegawai p
+       LEFT JOIN jabatan j ON p.jabatan_id = j.id
+       WHERE p.isActive = 1 
+         AND (j.department != 'Direksi' OR j.department IS NULL)
+         AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+       ORDER BY p.name ASC`
     );
     return rows.map((r: any) => ({ id: r.id, name: r.name }));
   }

@@ -20,6 +20,7 @@ function buildMessage(trigger: WANotificationTrigger, data: {
     nomor: string;
     jumlah?: number;
     jenisKredit?: string;
+    petugasNama?: string;
 }): string {
     const jumlahFormatted = data.jumlah
         ? `Rp ${data.jumlah.toLocaleString('id-ID')}`
@@ -37,10 +38,13 @@ function buildMessage(trigger: WANotificationTrigger, data: {
             );
 
         case 'delegasi_survey':
+            const petugasText = data.petugasNama && data.petugasNama !== 'PENDING'
+                ? `Petugas kami (*${data.petugasNama}*) akan menghubungi dan mengunjungi Anda dalam waktu dekat.`
+                : `Petugas kami akan menghubungi dan mengunjungi Anda dalam waktu dekat.`;
             return (
                 `Yth. Bpk/Ibu ${data.nama},\n\n` +
                 `Pengajuan kredit Anda dengan nomor *${data.nomor}* sedang dalam tahap *survey lapangan*.\n` +
-                `Petugas kami akan menghubungi dan mengunjungi Anda dalam waktu dekat.\n\n` +
+                `${petugasText}\n\n` +
                 `Mohon siapkan dokumen pendukung yang diperlukan. Terima kasih.`
             );
 
@@ -141,12 +145,27 @@ async function sendNotification(
             return;
         }
 
+        // Fetch assigned officer (petugas) name for OTS stage if applicable
+        let petugasNama: string | undefined;
+        if (trigger === 'delegasi_survey') {
+            const tracking = await db.get(
+                `SELECT employee_name FROM kredit_berkas_tracking 
+                 WHERE berkas_id = ? AND stage = 'ots' 
+                 ORDER BY id DESC LIMIT 1`,
+                [berkasId]
+            );
+            if (tracking && tracking.employee_name && tracking.employee_name !== 'PENDING') {
+                petugasNama = tracking.employee_name;
+            }
+        }
+
         // 2. Build message
         const message = buildMessage(trigger, {
             nama: berkas.nama_pengajuan,
             nomor: berkas.nomor_pengajuan,
             jumlah: berkas.jumlah_pengajuan,
-            jenisKredit: berkas.jenis_kredit
+            jenisKredit: berkas.jenis_kredit,
+            petugasNama
         });
 
         // 3. Create log entry (pending)

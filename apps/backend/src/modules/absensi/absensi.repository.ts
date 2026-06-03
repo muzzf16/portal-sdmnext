@@ -47,9 +47,26 @@ export const AbsensiRepository = {
   async findAll(filters: AbsensiFilters = {}, db?: AttendanceDatabase) {
     const connection = await resolveDb(db);
     const { whereClause, params } = buildWhereClause(filters);
+    
+    const directorFilter = `
+      employeeId NOT IN (
+        SELECT p.id FROM pegawai p
+        LEFT JOIN jabatan j ON p.jabatan_id = j.id
+        WHERE j.department = 'Direksi'
+           OR COALESCE(p.position, '') IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+      )
+    `;
+
+    let finalWhere = whereClause;
+    if (finalWhere) {
+      finalWhere += ` AND ${directorFilter}`;
+    } else {
+      finalWhere = `WHERE ${directorFilter}`;
+    }
+
     const rows = await connection.all(
       `SELECT * FROM absensi
-       ${whereClause}
+       ${finalWhere}
        ORDER BY date DESC, employeeName ASC, clockIn DESC`,
       ...params
     );

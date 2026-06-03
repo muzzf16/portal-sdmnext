@@ -15,8 +15,12 @@ const parseJsonFields = (rows: any[]) => {
 };
 
 export const PegawaiRepository = {
-  async findAll() {
+  async findAll(options?: { includeDirectors?: boolean }) {
     const db = await openDb();
+    const excludeCondition = !options?.includeDirectors
+      ? `WHERE (j.department != 'Direksi' OR j.department IS NULL)
+         AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')`
+      : '';
     const rows = await db.all(`
       SELECT p.*, 
         j.nama as jabatanNama, j.level as jabatanLevel, j.department as jabatanDepartment,
@@ -24,6 +28,7 @@ export const PegawaiRepository = {
       FROM pegawai p
       LEFT JOIN jabatan j ON p.jabatan_id = j.id
       LEFT JOIN pegawai a ON p.atasan_id = a.id
+      ${excludeCondition}
       ORDER BY p.name ASC
     `);
     return parseJsonFields(rows);

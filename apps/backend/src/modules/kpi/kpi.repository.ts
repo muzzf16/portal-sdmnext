@@ -63,7 +63,11 @@ export const KpiRepository = {
     async findSummaryEmployees(filters?: KpiSummaryEmployeeScope): Promise<KpiSummaryEmployee[]> {
         const db = await openDb();
         const params: string[] = [];
-        const conditions = [`(p.isActive = 1 OR p.statusKaryawan = 'aktif')`];
+        const conditions = [
+            `(p.isActive = 1 OR p.statusKaryawan = 'aktif')`,
+            `(j.department != 'Direksi' OR j.department IS NULL)`,
+            `COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')`
+        ];
 
         if (filters?.employeeId) {
             conditions.push('p.id = ?');
@@ -84,6 +88,7 @@ export const KpiRepository = {
                 p.department AS department,
                 p.position AS position
              FROM pegawai p
+             LEFT JOIN jabatan j ON p.jabatan_id = j.id
              WHERE ${conditions.join(' AND ')}
              ORDER BY p.department ASC, p.name ASC`,
             ...params
@@ -93,7 +98,10 @@ export const KpiRepository = {
     async findSummaryRecords(filters?: KpiSummaryEmployeeScope & { period?: string }): Promise<KpiSummaryRecord[]> {
         const db = await openDb();
         const params: string[] = [];
-        const conditions: string[] = [];
+        const conditions: string[] = [
+            `(j.department != 'Direksi' OR j.department IS NULL)`,
+            `COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')`
+        ];
 
         if (filters?.employeeId) {
             conditions.push('k.employeeId = ?');
@@ -127,6 +135,7 @@ export const KpiRepository = {
                 p.position AS position
              FROM kpi_targets k
              JOIN pegawai p ON p.id = k.employeeId
+             LEFT JOIN jabatan j ON p.jabatan_id = j.id
              ${whereClause}
              ORDER BY p.name ASC, k.period DESC, k.kpiName ASC`,
             ...params
@@ -136,7 +145,11 @@ export const KpiRepository = {
     async findSummary(filters: { period: string; employeeId?: string; employeeIds?: string[] }) {
         const db = await openDb();
         const params: any[] = [filters.period];
-        const conditions = ['k.period = ?'];
+        const conditions = [
+            'k.period = ?',
+            `(j.department != 'Direksi' OR j.department IS NULL)`,
+            `COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')`
+        ];
 
         if (filters.employeeId) {
             conditions.push('k.employeeId = ?');
@@ -168,6 +181,7 @@ export const KpiRepository = {
                 SUM(CASE WHEN k.status = 'completed' THEN 1 ELSE 0 END) AS completedCount
              FROM kpi_targets k
              JOIN pegawai p ON p.id = k.employeeId
+             LEFT JOIN jabatan j ON p.jabatan_id = j.id
              WHERE ${conditions.join(' AND ')}
              GROUP BY p.id, p.name, p.nip, p.department, p.position
              ORDER BY p.name ASC`,

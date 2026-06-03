@@ -5,7 +5,13 @@ import { openDb } from '../../config/db';
 export const LaporanRepository = {
   async generateLaporanPegawai() {
     const db = await openDb();
-    const employees = await db.all('SELECT id, name, email, position, department, joinDate, jenis_kelamin, isActive FROM pegawai');
+    const employees = await db.all(`
+      SELECT p.id, p.name, p.email, p.position, p.department, p.joinDate, p.jenis_kelamin, p.isActive 
+      FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+    `);
     return employees;
   },
 
@@ -148,10 +154,13 @@ export const LaporanRepository = {
         COUNT(DISTINCT pe.id) as totalPerformanceReviews,
         AVG(pe.overallScore) as averagePerformanceScore
       FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
       LEFT JOIN absensi a ON p.id = a.employeeId
       LEFT JOIN permintaan_cuti l ON p.id = l.employeeId
       LEFT JOIN penggajian pa ON p.id = pa.employeeId
       LEFT JOIN penilaian_kinerja pe ON p.id = pe.employeeId
+      WHERE (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
       GROUP BY p.id, p.nip, p.name, p.email, p.position, p.department, p.joinDate, 
                p.jenis_kelamin, p.isActive, p.tanggalKeluar
       ORDER BY p.name ASC
@@ -203,7 +212,10 @@ export const LaporanRepository = {
         END as punctuality
       FROM absensi a
       JOIN pegawai p ON a.employeeId = p.id
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
       WHERE a.date BETWEEN ? AND ?
+        AND (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
       ORDER BY a.date DESC, a.clockIn ASC
     `;
     
@@ -250,7 +262,10 @@ export const LaporanRepository = {
         (pa.totalDeductions / NULLIF(pa.baseSalary, 0)) * 100 as deductionPercentage
       FROM penggajian pa
       JOIN pegawai p ON pa.employeeId = p.id
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
       WHERE pa.period LIKE ?
+        AND (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
       ORDER BY pa.netSalary DESC
     `;
     

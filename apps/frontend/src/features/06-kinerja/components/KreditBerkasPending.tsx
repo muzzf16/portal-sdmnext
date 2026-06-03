@@ -74,7 +74,7 @@ export const KreditBerkasPending: React.FC<KreditBerkasPendingProps> = ({
         if (stage === 'admin_spk' && (p.includes('adminitrasi') || p.includes('adm kredit'))) return true;
         
         // 9. Pencairan
-        if (stage === 'pencairan' && (p.includes('teller') || p.includes('kasir'))) return true;
+        if (stage === 'pencairan' && (p.includes('teller') || p.includes('kasir') || p.includes('adminitrasi') || p.includes('adm kredit'))) return true;
         
         // Penanganan Tolak (CS)
         if (stage === 'ditolak_cs' && (p.includes('cs') || p.includes('customer service'))) return true;

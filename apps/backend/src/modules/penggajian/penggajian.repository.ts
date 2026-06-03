@@ -18,20 +18,29 @@ const parseJsonFields = (rows: any[]) => {
 export const PenggajianRepository = {
   async findAll(query: any = {}) {
     const db = await openDb();
-    let sql = 'SELECT * FROM penggajian';
+    let sql = `
+      SELECT pg.* 
+      FROM penggajian pg
+      LEFT JOIN pegawai p ON pg.employeeId = p.id
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+    `;
     const params: any[] = [];
     const whereClauses: string[] = [];
 
+    // Filter out directors
+    whereClauses.push(`(j.department != 'Direksi' OR j.department IS NULL)`);
+    whereClauses.push(`COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')`);
+
     if (query.employeeId) {
-      whereClauses.push('employeeId = ?');
+      whereClauses.push('pg.employeeId = ?');
       params.push(query.employeeId);
     }
     if (query.search) {
-      whereClauses.push('employeeName LIKE ?');
+      whereClauses.push('pg.employeeName LIKE ?');
       params.push(`%${query.search}%`);
     }
     if (query.period) {
-      whereClauses.push('period = ?');
+      whereClauses.push('pg.period = ?');
       params.push(query.period);
     }
 

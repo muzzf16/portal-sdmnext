@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { KreditBerkas, KreditStage } from '../types';
 import { CheckCircle2, Circle, Clock } from 'lucide-react';
 import clsx from 'clsx';
@@ -20,7 +20,20 @@ const STAGES: { key: KreditStage; label: string; icon: any }[] = [
     { key: 'pencairan', label: 'Pencairan', icon: Clock },
 ];
 
+const getSlaDays = (berkas: KreditBerkas): string => {
+    const start = new Date(berkas.created_at || '').getTime();
+    const end = (berkas.overall_status === 'dicairkan' || berkas.overall_status === 'ditolak')
+        ? new Date(berkas.updated_at || '').getTime()
+        : new Date().getTime();
+        
+    const diffMs = Math.max(0, end - start);
+    const diffDays = diffMs / (1000 * 3600 * 24);
+    return diffDays < 0.1 && diffDays > 0 ? "0.1" : diffDays.toFixed(1);
+};
+
 export const CreditWorkflowMap: React.FC<CreditWorkflowMapProps> = ({ data, selectedBerkas }) => {
+    const [hoveredStage, setHoveredStage] = useState<string | null>(null);
+
     // Count filings per stage
     const stageCounts = data.reduce((acc, b) => {
         if (b.overall_status === 'dalam_proses') {
@@ -33,7 +46,7 @@ export const CreditWorkflowMap: React.FC<CreditWorkflowMapProps> = ({ data, sele
     const selectedIndex = selectedBerkas ? getStageIndex(selectedBerkas.current_stage) : -1;
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative">
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-gray-900">Map Status Alur Kredit</h3>
@@ -97,11 +110,52 @@ export const CreditWorkflowMap: React.FC<CreditWorkflowMapProps> = ({ data, sele
                                     </div>
                                     
                                     {/* Stats Badge */}
-                                    <div className={clsx(
-                                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold",
-                                        count > 0 ? "bg-amber-100 text-amber-700" : "bg-gray-50 text-gray-400"
-                                    )}>
+                                    <div 
+                                        onMouseEnter={() => setHoveredStage(stage.key)}
+                                        onMouseLeave={() => setHoveredStage(null)}
+                                        className={clsx(
+                                            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer relative transition-all duration-300 hover:scale-105 select-none",
+                                            count > 0 ? "bg-amber-100 text-amber-700 shadow-sm border border-amber-200" : "bg-gray-50 text-gray-400"
+                                        )}
+                                    >
                                         {count} Berkas
+
+                                        {/* Popover/Modal Berkas Aktif */}
+                                        {hoveredStage === stage.key && count > 0 && (
+                                            <div 
+                                                className={clsx(
+                                                    "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl p-4 z-[100] text-left normal-case tracking-normal animate-in fade-in slide-in-from-top-2 duration-200 cursor-default",
+                                                    index <= 1 ? "absolute top-full mt-2 left-0 w-64" :
+                                                    index >= 7 ? "absolute top-full mt-2 right-0 w-64" :
+                                                    "absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64"
+                                                )}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <div className="text-xs font-bold text-gray-900 dark:text-white mb-2 pb-1.5 border-b border-gray-100 dark:border-neutral-700 flex items-center justify-between">
+                                                    <span>Daftar Berkas: {stage.label}</span>
+                                                    <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-black">{count}</span>
+                                                </div>
+                                                <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-thin pr-1">
+                                                    {data
+                                                        .filter(b => b.overall_status === 'dalam_proses' && b.current_stage === stage.key)
+                                                        .map(b => (
+                                                            <div key={b.id} className="text-[11px] text-gray-600 dark:text-gray-300 border-b border-gray-50 dark:border-neutral-700/50 pb-2 last:border-0 last:pb-0">
+                                                                <div className="font-bold text-gray-800 dark:text-neutral-200 truncate" title={b.nama_pengajuan}>
+                                                                    {b.nama_pengajuan}
+                                                                </div>
+                                                                <div className="flex justify-between items-center mt-1">
+                                                                    <span className="font-mono text-indigo-600 dark:text-indigo-400 font-extrabold">
+                                                                        Rp {(b.jumlah_pengajuan || 0).toLocaleString('id-ID')}
+                                                                    </span>
+                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 rounded-md">
+                                                                        ⏱️ {getSlaDays(b)} Hari
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

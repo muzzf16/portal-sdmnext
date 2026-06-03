@@ -130,9 +130,26 @@ class DashboardController {
   // ─── Private helpers using proper DB connection ───────────────
 
   private static async getEmployeeStats(db: any) {
-    const totalEmployees = await db.get('SELECT COUNT(*) as count FROM pegawai');
-    const activeEmployees = await db.get('SELECT COUNT(*) as count FROM pegawai WHERE isActive = 1');
-    const inactiveEmployees = await db.get('SELECT COUNT(*) as count FROM pegawai WHERE isActive = 0');
+    const totalEmployees = await db.get(`
+      SELECT COUNT(*) as count FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+    `);
+    const activeEmployees = await db.get(`
+      SELECT COUNT(*) as count FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE p.isActive = 1
+        AND (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+    `);
+    const inactiveEmployees = await db.get(`
+      SELECT COUNT(*) as count FROM pegawai p
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE p.isActive = 0
+        AND (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+    `);
 
     return {
       total: totalEmployees?.count || 0,

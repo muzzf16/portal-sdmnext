@@ -5,9 +5,9 @@ import { JabatanRepository } from '../jabatan/jabatan.repository';
 import { openDb } from '../../config/db';
 
 class PegawaiService {
-  static async getAllPegawai() {
+  static async getAllPegawai(options?: { includeDirectors?: boolean }) {
     try {
-      return await PegawaiRepository.findAll();
+      return await PegawaiRepository.findAll(options);
     } catch (error: any) {
       throw new AppError(`Error retrieving employees: ${error.message}`, 500);
     }

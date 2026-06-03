@@ -34,9 +34,9 @@ function normalizeResponse<T>(responseData: any): ApiResponse<T> {
   return { success: true, data: responseData, message: undefined, meta: undefined } as ApiResponse<T>;
 }
 
-export const getPegawai = async () => {
+export const getPegawai = async (params?: { includeDirectors?: boolean }) => {
   try {
-    const response = await api.get<Pegawai[]>(API_BASE);
+    const response = await api.get<Pegawai[]>(API_BASE, { params });
     return normalizeResponse<Pegawai[]>(response.data);
   } catch (error) {
     console.error('Error fetching employees:', error);

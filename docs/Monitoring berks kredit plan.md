@@ -18,7 +18,7 @@ flowchart TD
     S6["6. Marketing/Analis\n(MAK, Penilaian Agunan)"]
     S7["7. Kabid Kredit\n(Approval & Keputusan)"]
     S9["8. Admin Kredit\n(SPK dll)"]
-    S10["9. Teller/Kasir\n(Pencairan)"]
+    S10["9. Teller/Kasir/Admin Kredit\n(Pencairan)"]
     TOLAK_CS["CS\n(Penanganan Berkas Tolak)"]
 
     S1 --> S2
@@ -73,7 +73,7 @@ export type KreditStage =
   | 'approval_pimpinan'  // 7. Dirut/Kabid - Persetujuan final
   | 'keputusan_kredit'   // 8. Keputusan final (cair/tolak)
   | 'admin_spk'          // 9. Admin Kredit - SPK dll
-  | 'pencairan'          // 10. Teller/Kasir - Proses pencairan
+  | 'pencairan'          // 10. Teller/Kasir/Admin Kredit - Proses pencairan
   | 'selesai'            // Terminal: pencairan selesai
   | 'ditolak_cs';        // Terminal: dikembalikan ke CS untuk penanganan
 ```
@@ -90,7 +90,7 @@ export type KreditStage =
 | `mak_agunan` | Marketing / Analis | `marketing`, `analis` |
 | `approval_keputusan` | KABID Kredit | `kabid kredit` |
 | `admin_spk` | Kasubid Admin Kredit | `adminitrasi`, `adm kredit` |
-| `pencairan` | Teller / Kasir | `teller`, `kasir` |
+| `pencairan` | Teller / Kasir / Admin Kredit | `teller`, `kasir`, `adminitrasi`, `adm kredit` |
 
 ### Transisi Stage (Next Stage Map)
 
@@ -245,7 +245,7 @@ Update `KreditStage` type (sama seperti backend).
 +    if (stage === 'approval_pimpinan' && (pos.includes('dirut') || pos.includes('kabid kredit'))) return true;
 +    if (stage === 'keputusan_kredit' && pos.includes('kabid kredit')) return true;
 +    if (stage === 'admin_spk' && (pos.includes('adminitrasi') || pos.includes('adm kredit'))) return true;
-+    if (stage === 'pencairan' && (pos.includes('teller') || pos.includes('kasir'))) return true;
++    if (stage === 'pencairan' && (pos.includes('teller') || pos.includes('kasir') || pos.includes('adminitrasi') || pos.includes('adm kredit'))) return true;
 +    // Legacy compat
 +    if (stage === 'analisa' && (pos.includes('marketing') || pos.includes('analis'))) return true;
 +    if (stage === 'verifikasi' && pos.includes('kabid kredit')) return true;

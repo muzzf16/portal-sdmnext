@@ -41,7 +41,8 @@ const upload = multer({
 class PegawaiController {
   static async getAllPegawai(req: Request, res: Response, next: NextFunction) {
     try {
-      const pegawai = await PegawaiService.getAllPegawai();
+      const includeDirectors = req.query.includeDirectors === 'true';
+      const pegawai = await PegawaiService.getAllPegawai({ includeDirectors });
       return res.status(200).json({ success: true, data: pegawai });
     } catch (error) {
       return next(error);

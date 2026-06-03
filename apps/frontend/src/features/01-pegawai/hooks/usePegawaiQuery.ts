@@ -25,7 +25,7 @@ export const usePegawaiList = (filters?: any) => {
   return useQuery({
     queryKey: EMPLOYEE_QUERY_KEYS.list(filters),
     queryFn: async () => {
-      const response = await getPegawai();
+      const response = await getPegawai(filters);
       if (response && typeof response === 'object' && 'data' in response) {
         return response.data || [];
       }

@@ -154,7 +154,7 @@ export const useDirectorNames = () =>
     queryKey: ['employees', 'directors'],
     queryFn: async () => {
       const { getPegawai } = await import('../../01-pegawai/api/employeeApi');
-      const response = await getPegawai();
+      const response = await getPegawai({ includeDirectors: true });
       const allEmps = response.data || [];
       const isDirUtama = (e: any) => {
         const p = (e.position || e.jabatan || e.jabatanNama || '').toUpperCase().trim();

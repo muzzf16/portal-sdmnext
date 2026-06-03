@@ -7,7 +7,7 @@ export type KreditStage =
     | 'mak_agunan'         // 6. Marketing/Analis - MAK + penilaian agunan
     | 'approval_keputusan' // 7. KABID - Persetujuan & Keputusan Final
     | 'admin_spk'          // 8. Admin Kredit - SPK dll
-    | 'pencairan'          // 9. Teller/Kasir - Proses pencairan
+    | 'pencairan'          // 9. Teller/Kasir/Admin Kredit - Proses pencairan
     | 'selesai'            // Terminal: pencairan selesai
     | 'ditolak_cs'         // Terminal: dikembalikan ke CS untuk penanganan
     // Legacy support:

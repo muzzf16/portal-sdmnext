@@ -65,11 +65,20 @@ export const PenilaianKinerjaRepository = {
         JOIN pegawai p ON pk.employeeId = p.id
         JOIN jabatan j ON p.jabatan_id = j.id
         WHERE j.parent_id = ?
+          AND (j.department != 'Direksi' OR j.department IS NULL)
+          AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
       `, supervisor.jabatan_id) as ReviewRow[];
       return mapRows(rows);
     }
 
-    const rows = await db.all('SELECT * FROM penilaian_kinerja') as ReviewRow[];
+    const rows = await db.all(`
+      SELECT pk.* 
+      FROM penilaian_kinerja pk
+      LEFT JOIN pegawai p ON pk.employeeId = p.id
+      LEFT JOIN jabatan j ON p.jabatan_id = j.id
+      WHERE (j.department != 'Direksi' OR j.department IS NULL)
+        AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+    `) as ReviewRow[];
     return mapRows(rows);
   },
 

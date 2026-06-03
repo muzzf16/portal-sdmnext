@@ -138,8 +138,12 @@ export default class LogAktivitasHarianRepository {
                 COUNT(CASE WHEN l.id_log IS NOT NULL AND (l.status_approval IS NULL OR l.status_approval = 'pending') THEN l.id_log END) as pending_log_count,
                 COUNT(CASE WHEN l.id_log IS NOT NULL AND l.status_approval = 'approved' THEN l.id_log END) as approved_log_count
              FROM pegawai p
+             LEFT JOIN jabatan j ON p.jabatan_id = j.id
              LEFT JOIN log_aktivitas_harian l ON p.id = l.id_pegawai AND l.tanggal >= ? AND l.tanggal <= ?
-             WHERE (p.isActive = 1 OR p.statusKaryawan = 'aktif') ${subordinateFilter}
+             WHERE (p.isActive = 1 OR p.statusKaryawan = 'aktif')
+               AND (j.department != 'Direksi' OR j.department IS NULL)
+               AND COALESCE(p.position, '') NOT IN ('Direktur UTAMA', 'Direktur Utama', 'Direktur YMFK')
+               ${subordinateFilter}
              GROUP BY p.id
              ORDER BY p.department, p.name ASC`,
             ...params
