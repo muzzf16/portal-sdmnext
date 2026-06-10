@@ -4,7 +4,7 @@ export type KreditStage =
     | 'delegasi_survey'    // 3. Kabid Kredit - Delegasikan surveyor
     | 'ots'                // 4. Marketing/Analis - On The Spot survey
     | 'komite_kredit'      // 5. Komite Kredit - Rapat keputusan awal
-    | 'mak_agunan'         // 6. Marketing/Analis - MAK + penilaian agunan
+    | 'mak_agunan'         // 6. Marketing/Analis - Cetak Analisa
     | 'approval_keputusan' // 7. KABID - Persetujuan & Keputusan Final
     | 'admin_spk'          // 8. Admin Kredit - SPK dll
     | 'pencairan'          // 9. Teller/Kasir/Admin Kredit - Proses pencairan
@@ -29,6 +29,7 @@ export interface KreditBerkas {
     created_at?: string;
     updated_at?: string;
     catatan?: string;
+    nominal_persetujuan?: number;
 }
 
 export interface KreditBerkasTracking {
@@ -57,4 +58,5 @@ export interface UpdateKreditStageDto {
     status_berkas: BerkasStatus;
     catatan?: string;
     assigned_employee_id?: string;
+    nominal_persetujuan?: number;
 }

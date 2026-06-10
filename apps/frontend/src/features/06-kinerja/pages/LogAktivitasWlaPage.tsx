@@ -184,6 +184,8 @@ const LogAktivitasWlaPage: React.FC = () => {
         'komite kredit': 'komite_kredit',
         'mak dan penilaian agunan': 'mak_agunan',
         'penilaian agunan': 'mak_agunan',
+        'cetak analisa': 'mak_agunan',
+        'cetak analisis': 'mak_agunan',
         'approval dan keputusan': 'approval_keputusan',
         'keputusan kredit': 'approval_keputusan',
         'admin spk': 'admin_spk',

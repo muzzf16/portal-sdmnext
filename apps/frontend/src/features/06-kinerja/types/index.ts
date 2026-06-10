@@ -218,6 +218,7 @@ export interface KreditBerkas {
     updated_at: string;
     catatan?: string;
     tracking?: KreditBerkasTracking[];
+    nominal_persetujuan?: number;
 }
 
 export interface KreditBerkasTracking {
@@ -246,6 +247,7 @@ export interface UpdateKreditStageDto {
     status_berkas: BerkasStatus;
     catatan?: string;
     assigned_employee_id?: string;
+    nominal_persetujuan?: number;
 }
 
 export interface WANotificationLog {

@@ -14,7 +14,7 @@ const STAGES: { key: KreditStage; label: string; icon: any }[] = [
     { key: 'delegasi_survey', label: 'Delegasi', icon: Clock },
     { key: 'ots', label: 'Survey OTS', icon: Clock },
     { key: 'komite_kredit', label: 'Komite', icon: Clock },
-    { key: 'mak_agunan', label: 'MAK Agunan', icon: Clock },
+    { key: 'mak_agunan', label: 'Cetak Analisa', icon: Clock },
     { key: 'approval_keputusan', label: 'Approval', icon: Clock },
     { key: 'admin_spk', label: 'Admin SPK', icon: Clock },
     { key: 'pencairan', label: 'Pencairan', icon: Clock },

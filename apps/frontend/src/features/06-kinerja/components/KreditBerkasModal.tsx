@@ -30,7 +30,7 @@ const STAGE_LABELS: Record<string, string> = {
     'delegasi_survey': 'Delegasi Survey',
     'ots': 'Survey Lapangan (OTS)',
     'komite_kredit': 'Komite Kredit',
-    'mak_agunan': 'Analisa MAK & Agunan',
+    'mak_agunan': 'Cetak Analisa',
     'approval_keputusan': 'Persetujuan & Keputusan Final',
     'admin_spk': 'Pembuatan SPK',
     'pencairan': 'Pencairan',
@@ -118,7 +118,8 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
         no_wa_nasabah: '',
         status_berkas: 'belum_lengkap' as BerkasStatus,
         catatan: '',
-        assigned_employee_id: ''
+        assigned_employee_id: '',
+        nominal_persetujuan: 0
     });
 
     useEffect(() => {
@@ -130,14 +131,16 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                 no_wa_nasabah: '',
                 status_berkas: 'belum_lengkap',
                 catatan: '',
-                assigned_employee_id: ''
+                assigned_employee_id: '',
+                nominal_persetujuan: 0
             });
         } else if (berkas) {
             setFormData(prev => ({
                 ...prev,
                 status_berkas: 'belum_lengkap',
                 catatan: '',
-                assigned_employee_id: ''
+                assigned_employee_id: '',
+                nominal_persetujuan: berkas.nominal_persetujuan || berkas.jumlah_pengajuan || 0
             }));
         }
     }, [isOpen, mode, berkas]);
@@ -159,6 +162,9 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                 catatan: formData.catatan,
                 assigned_employee_id: formData.status_berkas === 'lengkap' && berkas?.current_stage === 'delegasi_survey'
                     ? formData.assigned_employee_id
+                    : undefined,
+                nominal_persetujuan: berkas?.current_stage === 'komite_kredit' && formData.status_berkas === 'lengkap'
+                    ? formData.nominal_persetujuan
                     : undefined
             });
         }
@@ -222,6 +228,12 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                             <span className="text-blue-600 italic">Nominal Pengajuan:</span>
                             <span className="text-blue-800 font-semibold">Rp {berkas?.jumlah_pengajuan?.toLocaleString('id-ID')}</span>
                         </div>
+                        {berkas?.nominal_persetujuan !== undefined && berkas?.nominal_persetujuan > 0 && (
+                            <div className="flex justify-between text-[11px] border-t border-blue-100/50 pt-1 mt-1">
+                                <span className="text-blue-600 italic font-semibold">Nominal Disetujui:</span>
+                                <span className="text-green-800 font-bold">Rp {berkas.nominal_persetujuan.toLocaleString('id-ID')}</span>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -291,6 +303,23 @@ export const KreditBerkasModal: React.FC<KreditBerkasModalProps> = ({
                                 </option>
                             ))}
                         </select>
+                    </div>
+                )}
+
+                {mode === 'process' && berkas?.current_stage === 'komite_kredit' && formData.status_berkas === 'lengkap' && (
+                    <div className="space-y-2 animate-in fade-in duration-300">
+                        <Input
+                            id="nominal_persetujuan"
+                            label="Nominal Persetujuan Kredit (Rp) *"
+                            type="number"
+                            required
+                            value={formData.nominal_persetujuan}
+                            onChange={(e) => setFormData({ ...formData, nominal_persetujuan: Number(e.target.value) })}
+                            placeholder="Masukkan nominal yang disetujui"
+                        />
+                        <p className="text-xs text-amber-600 font-semibold -mt-1">
+                            Nominal pengajuan nasabah: Rp {berkas?.jumlah_pengajuan?.toLocaleString('id-ID')}
+                        </p>
                     </div>
                 )}
 

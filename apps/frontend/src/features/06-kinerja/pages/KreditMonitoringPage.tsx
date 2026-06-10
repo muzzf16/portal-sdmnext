@@ -11,6 +11,24 @@ import { useToast } from '../../../shared/hooks/useToast';
 import clsx from 'clsx';
 import { CreditWorkflowMap } from '../components/CreditWorkflowMap';
 
+const STAGE_LABELS: Record<string, string> = {
+    'penerimaan': 'Penerimaan Berkas',
+    'slik': 'Pengecekan SLIK',
+    'delegasi_survey': 'Delegasi Survey',
+    'ots': 'Survey Lapangan (OTS)',
+    'komite_kredit': 'Komite Kredit',
+    'mak_agunan': 'Cetak Analisa',
+    'approval_keputusan': 'Persetujuan & Keputusan Final',
+    'admin_spk': 'Pembuatan SPK',
+    'pencairan': 'Pencairan',
+    'selesai': 'Selesai',
+    'ditolak_cs': 'Ditolak - Penanganan CS',
+    // Legacy
+    'analisa': 'Analisa & Survey',
+    'verifikasi': 'Verifikasi & Approval',
+    'admin_pencairan': 'Admin & Pencairan'
+};
+
 const KreditMonitoringPage: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
@@ -332,8 +350,13 @@ const KreditMonitoringPage: React.FC = () => {
                                                 <div className="text-sm font-bold text-gray-900">{berkas.nama_pengajuan}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                                                Rp {(berkas.jumlah_pengajuan || 0).toLocaleString('id-ID')}
-                                            </td>
+                                                 <div className="flex flex-col">
+                                                     <span>Rp {(berkas.jumlah_pengajuan || 0).toLocaleString('id-ID')}</span>
+                                                     {berkas.nominal_persetujuan !== undefined && berkas.nominal_persetujuan > 0 && (
+                                                         <span className="text-xs text-green-600 font-bold">Setuju: Rp {berkas.nominal_persetujuan.toLocaleString('id-ID')}</span>
+                                                     )}
+                                                 </div>
+                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 <div className="flex flex-col items-center gap-1">
                                                     {berkas.current_stage === 'ditolak_cs' ? (
@@ -352,7 +375,7 @@ const KreditMonitoringPage: React.FC = () => {
                                                         "text-[10px] font-medium",
                                                         berkas.current_stage === 'ditolak_cs' ? "text-red-600 font-bold" : "text-gray-400 italic"
                                                     )}>
-                                                        Tahap: {(berkas.current_stage || '').replace('_', ' ')}
+                                                        Tahap: {STAGE_LABELS[berkas.current_stage] || (berkas.current_stage || '').replace('_', ' ')}
                                                     </span>
                                                 </div>
                                             </td>

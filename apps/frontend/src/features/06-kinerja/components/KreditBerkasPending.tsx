@@ -20,7 +20,7 @@ const STAGE_LABELS: Record<string, string> = {
     'delegasi_survey': 'Delegasi Survey',
     'ots': 'Survey Lapangan (OTS)',
     'komite_kredit': 'Komite Kredit',
-    'mak_agunan': 'Analisa MAK & Agunan',
+    'mak_agunan': 'Cetak Analisa',
     'approval_keputusan': 'Persetujuan & Keputusan Final',
     'admin_spk': 'Pembuatan SPK',
     'pencairan': 'Pencairan',
@@ -124,9 +124,14 @@ export const KreditBerkasPending: React.FC<KreditBerkasPendingProps> = ({
                             {STAGE_LABELS[stage] || stage.replace('_', ' ')}
                         </Badge>
                     </div>
-                    <div className="flex gap-2 text-[10px] text-gray-400 mt-0.5">
+                    <div className="flex gap-2 text-[10px] text-gray-400 mt-0.5 items-center flex-wrap">
                         <span>{getTimeDiff(item.stage_received_at || new Date().toISOString())}</span>
                         <span className="font-medium text-indigo-500">Rp {(item.jumlah_pengajuan || 0).toLocaleString('id-ID')}</span>
+                        {item.nominal_persetujuan !== undefined && item.nominal_persetujuan > 0 && (
+                            <span className="font-bold text-green-600 bg-green-50 px-1 py-0.2 rounded text-[9px]">
+                                Setuju: Rp {item.nominal_persetujuan.toLocaleString('id-ID')}
+                            </span>
+                        )}
                     </div>
                 </div>
                 {canDo ? (

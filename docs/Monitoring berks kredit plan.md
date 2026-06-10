@@ -15,7 +15,7 @@ flowchart TD
     S3["3. Kabid Kredit\n(Delegasi Survey)"]
     S4["4. Marketing/Analis\n(OTS - On The Spot)"]
     S5["5. Komite Kredit\n(Keputusan Awal)"]
-    S6["6. Marketing/Analis\n(MAK, Penilaian Agunan)"]
+    S6["6. Marketing/Analis\n(Cetak Analisa)"]
     S7["7. Kabid Kredit\n(Approval & Keputusan)"]
     S9["8. Admin Kredit\n(SPK dll)"]
     S10["9. Teller/Kasir/Admin Kredit\n(Pencairan)"]
@@ -43,7 +43,7 @@ flowchart TD
 | 3 | Kabid Kredit (Delegasi Survey) | ❌ Tidak ada | 🔴 Perlu ditambah |
 | 4 | Marketing/Analis (OTS) | `analisa` (parsial) | 🟡 Perlu dipecah |
 | 5 | Komite Kredit (Keputusan) | ❌ Tidak ada | 🔴 Perlu ditambah |
-| 6 | Marketing/Analis (MAK, Agunan) | ❌ Tidak ada | 🔴 Perlu ditambah |
+| 6 | Marketing/Analis (Cetak Analisa) | ❌ Tidak ada | 🔴 Perlu ditambah |
 | 7 | Dirut / Kabid Kredit (Approval) | `verifikasi` (parsial) | 🟡 Perlu disesuaikan |
 | 8 | Keputusan Kredit | ❌ Tidak ada | 🔴 Perlu ditambah |
 | 9 | Admin Kredit (SPK) | `admin_pencairan` (parsial) | 🟡 Perlu disesuaikan |
@@ -69,7 +69,7 @@ export type KreditStage =
   | 'delegasi_survey'    // 3. Kabid Kredit - Delegasikan surveyor
   | 'ots'                // 4. Marketing/Analis - On The Spot survey
   | 'komite_kredit'      // 5. Komite Kredit - Rapat keputusan awal
-  | 'mak_agunan'         // 6. Marketing/Analis - MAK + penilaian agunan
+  | 'mak_agunan'         // 6. Marketing/Analis - Cetak Analisa
   | 'approval_pimpinan'  // 7. Dirut/Kabid - Persetujuan final
   | 'keputusan_kredit'   // 8. Keputusan final (cair/tolak)
   | 'admin_spk'          // 9. Admin Kredit - SPK dll
@@ -122,7 +122,7 @@ const STAGE_LABELS: Record<KreditStage, string> = {
   'delegasi_survey': 'Delegasi Survey',
   'ots': 'Survey Lapangan (OTS)',
   'komite_kredit': 'Komite Kredit',
-  'mak_agunan': 'Analisa MAK & Agunan',
+  'mak_agunan': 'Cetak Analisa',
   'approval_pimpinan': 'Persetujuan Pimpinan',
   'keputusan_kredit': 'Keputusan Kredit',
   'admin_spk': 'Pembuatan SPK',

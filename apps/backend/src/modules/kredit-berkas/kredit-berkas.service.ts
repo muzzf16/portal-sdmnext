@@ -190,10 +190,16 @@ export const KreditBerkasService = {
             overallStatus = 'dicairkan';
         }
 
-        await KreditBerkasRepository.update(id, { 
+        const updatePayload: Partial<KreditBerkas> = { 
             current_stage: nextStage || currentStage,
             overall_status: overallStatus
-        });
+        };
+
+        if (currentStage === 'komite_kredit' && dto.nominal_persetujuan !== undefined) {
+            updatePayload.nominal_persetujuan = dto.nominal_persetujuan;
+        }
+
+        await KreditBerkasRepository.update(id, updatePayload);
 
         if (nextStage && nextStage !== 'selesai' && nextStage !== 'ditolak_cs') {
             let assignedId = 'PENDING';
