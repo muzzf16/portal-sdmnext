@@ -78,6 +78,9 @@ const HalamanPerubahanData = lazy(() => import('../features/pengaturan/pages/Hal
 const HalamanBackup = lazy(() => import('../features/pengaturan/pages/HalamanBackup'));
 const HalamanAuditLog = lazy(() => import('../features/audit-log/pages/HalamanAuditLog'));
 
+// Arsip Dokumen
+const HalamanArsipDokumen = lazy(() => import('../features/11-arsip-dokumen/pages/HalamanArsipDokumen'));
+
 // Private Route
 import PrivateRoute from '../shared/components/PrivateRoute';
 
@@ -383,6 +386,13 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanBackup />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="arsip-dokumen" element={
+          <PrivateRoute allowedRoles={['admin', 'pimpinan', 'supervisor', 'employee']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <HalamanArsipDokumen />
             </Suspense>
           </PrivateRoute>
         } />
