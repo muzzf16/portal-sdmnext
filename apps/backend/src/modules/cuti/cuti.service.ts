@@ -11,15 +11,7 @@ import {
   normalizeLeaveStatus
 } from './cuti.types';
 
-const CUTI_BERSAMA = [
-  { id: '1', tanggal: '2026-01-01', deskripsi: 'Tahun Baru 2026' },
-  { id: '2', tanggal: '2026-03-31', deskripsi: 'Hari Raya Idul Fitri' },
-  { id: '3', tanggal: '2026-04-01', deskripsi: 'Cuti Bersama Idul Fitri' },
-  { id: '4', tanggal: '2026-05-01', deskripsi: 'Hari Buruh Internasional' },
-  { id: '5', tanggal: '2026-08-17', deskripsi: 'Hari Kemerdekaan RI' },
-  { id: '6', tanggal: '2026-12-25', deskripsi: 'Hari Natal' },
-  { id: '7', tanggal: '2026-12-26', deskripsi: 'Cuti Bersama Natal' }
-];
+import { HolidaysRepository } from '../holidays/holidays.repository';
 
 const parseFilters = (query: Record<string, unknown>): LeaveRequestFilters => ({
   employeeId: typeof query.employeeId === 'string' ? query.employeeId : undefined,
@@ -184,7 +176,9 @@ class CutiService {
       const companySettings = await getCompanySettings();
       const jumlahJatahCuti = companySettings?.annualLeaveQuota || 12;
       const currentYear = new Date().getFullYear();
-      const cutiBersamaTahunIni = CUTI_BERSAMA.filter((cutiBersama) =>
+      
+      const cutiBersamaData = await HolidaysRepository.findAll();
+      const cutiBersamaTahunIni = cutiBersamaData.filter((cutiBersama) =>
         new Date(cutiBersama.tanggal).getFullYear() === currentYear
       ).length;
 
@@ -203,9 +197,10 @@ class CutiService {
     }
   }
 
-  static getCutiBersama() {
+  static async getCutiBersama() {
     const currentYear = new Date().getFullYear();
-    return CUTI_BERSAMA.filter(
+    const cutiBersamaData = await HolidaysRepository.findAll();
+    return cutiBersamaData.filter(
       (cb) => new Date(cb.tanggal).getFullYear() === currentYear
     );
   }
@@ -215,7 +210,9 @@ class CutiService {
       const companySettings = await getCompanySettings();
       const jumlahJatahCuti = companySettings?.annualLeaveQuota || 12;
       const currentYear = new Date().getFullYear();
-      const cutiBersamaTahunIni = CUTI_BERSAMA.filter(
+      
+      const cutiBersamaData = await HolidaysRepository.findAll();
+      const cutiBersamaTahunIni = cutiBersamaData.filter(
         (cb) => new Date(cb.tanggal).getFullYear() === currentYear
       ).length;
       const sumberJatah = companySettings ? 'company_settings' : 'default_uu13_2003';

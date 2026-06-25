@@ -88,7 +88,7 @@ class CutiController {
 
   static async getCutiBersama(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = CutiService.getCutiBersama();
+      const result = await CutiService.getCutiBersama();
       res.status(200).json(result);
     } catch (error) {
       next(error);

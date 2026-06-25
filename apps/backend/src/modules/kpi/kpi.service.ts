@@ -335,6 +335,12 @@ export default class KpiService {
             const db = await openDb();
             const placeholders = empIds.map(() => '?').join(',');
 
+            // Derive period from startDate/endDate if not explicitly provided
+            let period = filters.period;
+            if (!period && filters.startDate && filters.endDate) {
+                period = this.derivePeriodFromDates(filters.startDate, filters.endDate) || undefined;
+            }
+
             // fetch all KPIs (Individual + Semua Jabatan)
             let kpiQuery = `SELECT * FROM kpi_targets WHERE position = 'Semua Jabatan'`;
             let kpiParams: any[] = [];
@@ -345,14 +351,14 @@ export default class KpiService {
                 kpiParams = [...empIds];
             }
 
-            if (filters.period) {
+            if (period) {
                 kpiQuery += ` AND period = ?`;
-                kpiParams.push(filters.period);
+                kpiParams.push(period);
             }
 
             let kpis = await db.all(kpiQuery, ...kpiParams) as any[];
 
-            if (!filters.period && hasDateRange) {
+            if (!period && hasDateRange) {
                 kpis = kpis.filter(k => this.periodOverlapsDateRange(k.period, filters.startDate!, filters.endDate!));
             }
 
@@ -375,20 +381,36 @@ export default class KpiService {
 
                 const totalDurasiMenit = empLogs.reduce((sum, log) => sum + (Number(log.total_durasi_terhitung) || 0), 0);
 
-                const isNominal = (name: string) => {
+                // Per-employee configured nominal targets (admin-set)
+                const empNominalTargets = nominalTargetsMap[String(emp.employeeId)] || KpiNominalTargetService.getDefaults();
+
+                const isNominal = (name: string = '', unit: string = '') => {
                     const n = name.toLowerCase();
-                    return n.includes('npl') || n.includes('pemasaran kredit') || n.includes('pemasaran dana');
+                    const u = (unit || '').toLowerCase();
+                    return n.includes('npl') || n.includes('pemasaran kredit') || n.includes('pemasaran dana') || u.includes('rp') || u.includes('nominal') || u.includes('rupiah');
                 };
 
                 const khususItems = empKpis.filter(k => 
                     k.category === 'outcome' || 
                     k.category === 'strategic' || 
-                    isNominal(k.kpiName || '')
+                    isNominal(k.kpiName || '', k.targetUnit || '')
                 );
 
                 const khususDetails = khususItems.map(k => {
+                    const name = (k.kpiName || '').toLowerCase();
+                    const nominalFlag = isNominal(k.kpiName || '', k.targetUnit || '');
+                    
                     let actual = Number(k.actualValue) || 0;
-                    if (actual === 0 && isNominal(k.kpiName || '')) {
+                    let target = Number(k.targetValue) || 0;
+
+                    // Handle default/small nominal targets if not set in KPI (align with frontend override)
+                    if (nominalFlag && target < 1000000) {
+                        if (name.includes('npl')) target = empNominalTargets.npl;
+                        else if (name.includes('pemasaran kredit')) target = empNominalTargets.kredit;
+                        else if (name.includes('pemasaran dana')) target = empNominalTargets.dana;
+                    }
+
+                    if (actual === 0 && nominalFlag) {
                         let searchKey = (k.kpiName || '').toLowerCase();
                         if (searchKey.includes('pemasaran dana')) searchKey = 'pemasaran dana';
                         else if (searchKey.includes('pemasaran kredit')) searchKey = 'pemasaran kredit';
@@ -401,16 +423,13 @@ export default class KpiService {
                     return {
                         id: k.id,
                         kpiName: k.kpiName,
-                        targetValue: Number(k.targetValue) || 0,
+                        targetValue: target,
                         actualValue: actual,
-                        targetUnit: isNominal(k.kpiName || '') ? 'Rp' : (k.targetUnit || 'Rp'),
+                        targetUnit: nominalFlag ? 'Rp' : (k.targetUnit || 'Rp'),
                         weight: Number(k.weight) || 0,
                         score: Number(k.score) || 0
                     };
                 });
-
-                // Per-employee configured nominal targets (admin-set)
-                const empNominalTargets = nominalTargetsMap[String(emp.employeeId)] || KpiNominalTargetService.getDefaults();
 
                 // Injek default nominal jika belum ada (NPL, Kredit, Dana) agar tetap muncul di monitoring
                 const nominalTypes = [
@@ -813,6 +832,53 @@ export default class KpiService {
     private static periodOverlapsDateRange(period: string, filterStartDate: string, filterEndDate: string) {
         const { startDate, endDate } = this.parsePeriodToDateRange(period);
         return startDate <= filterEndDate && endDate >= filterStartDate;
+    }
+
+    private static derivePeriodFromDates(startDate: string, endDate: string): string | null {
+        if (!startDate || !endDate) return null;
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return null;
+        }
+
+        const startYear = start.getFullYear();
+        const startMonth = start.getMonth() + 1;
+        const endYear = end.getFullYear();
+        const endMonth = end.getMonth() + 1;
+
+        // Check if single month
+        if (startYear === endYear && startMonth === endMonth) {
+            const mm = String(startMonth).padStart(2, '0');
+            const firstDay = `${startYear}-${mm}-01`;
+            const lastDayNum = new Date(startYear, startMonth, 0).getDate();
+            const lastDay = `${startYear}-${mm}-${String(lastDayNum).padStart(2, '0')}`;
+            if (startDate === firstDay && endDate === lastDay) {
+                return `${startYear}-${mm}`;
+            }
+        }
+
+        // Check if quarter
+        if (startYear === endYear) {
+            if (startMonth === 1 && endMonth === 3 && startDate === `${startYear}-01-01` && endDate === `${startYear}-03-31`) return `${startYear}-Q1`;
+            if (startMonth === 4 && endMonth === 6 && startDate === `${startYear}-04-01` && endDate === `${startYear}-06-30`) return `${startYear}-Q2`;
+            if (startMonth === 7 && endMonth === 9 && startDate === `${startYear}-07-01` && endDate === `${startYear}-09-30`) return `${startYear}-Q3`;
+            if (startMonth === 10 && endMonth === 12 && startDate === `${startYear}-10-01` && endDate === `${startYear}-12-31`) return `${startYear}-Q4`;
+        }
+
+        // Check if semester
+        if (startYear === endYear) {
+            if (startMonth === 1 && endMonth === 6 && startDate === `${startYear}-01-01` && endDate === `${startYear}-06-30`) return `${startYear}-S1`;
+            if (startMonth === 7 && endMonth === 12 && startDate === `${startYear}-07-01` && endDate === `${startYear}-12-31`) return `${startYear}-S2`;
+        }
+
+        // Check if full year
+        if (startDate === `${startYear}-01-01` && endDate === `${startYear}-12-31`) {
+            return `${startYear}`;
+        }
+
+        return null;
     }
 
     private static getTargetComposition(department: string) {

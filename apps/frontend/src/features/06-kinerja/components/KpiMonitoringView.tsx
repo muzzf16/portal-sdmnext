@@ -5,6 +5,7 @@ import { Printer } from 'lucide-react';
 import clsx from 'clsx';
 import { formatKpiValue } from '../utils/formatters';
 import { getEffectiveWorkingDays, getHolidaysInRange } from '../utils/holidayCalendar';
+import { useHolidays } from '../../pengaturan/hooks/useHolidays';
 
 interface KpiMonitoringViewProps {
     isActive: boolean;
@@ -74,6 +75,9 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
 }) => {
     // Fetch Director Names
     const { data: directors } = useDirectorNames();
+
+    const { holidays } = useHolidays();
+    const customHolidays = holidays.map(h => h.tanggal);
 
     // Fetch WLA logs specifically for the selected employee and period
     const { startDate, endDate } = getPeriodDates(selectedPeriod);
@@ -166,10 +170,8 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
 
         const totalDurasiMenit = allApprovedLogs.reduce((sum, log) => sum + (Number(log.total_durasi_terhitung) || 0), 0);
         const totalFrekuensi = allApprovedLogs.reduce((sum, log) => sum + (Number(log.frekuensi) || 0), 0);
-        const today = new Date().toISOString().slice(0, 10);
-        const effectiveEndDate = endDate && endDate > today ? today : endDate;
-        const workingDays = startDate && effectiveEndDate ? getEffectiveWorkingDays(startDate, effectiveEndDate) : 1;
-        const holidaysInPeriod = startDate && effectiveEndDate ? getHolidaysInRange(startDate, effectiveEndDate) : [];
+        const workingDays = startDate && endDate ? getEffectiveWorkingDays(startDate, endDate, customHolidays) : 1;
+        const holidaysInPeriod = startDate && endDate ? getHolidaysInRange(startDate, endDate, customHolidays) : [];
         const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
         const wlaPercentage = targetMinutes > 0 ? Math.min((totalDurasiMenit / targetMinutes) * 100, 100) : 0;
 
@@ -234,7 +236,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
             finalWla,
             finalTotal
         };
-    }, [kpis, wlaLogs, startDate, endDate]);
+    }, [kpis, wlaLogs, startDate, endDate, customHolidays]);
 
     return (
         <div className="bg-white rounded-lg shadow mt-6 p-6">

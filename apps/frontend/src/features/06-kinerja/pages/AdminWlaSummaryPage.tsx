@@ -15,6 +15,7 @@ import {
 } from '../hooks/usePerformanceManagementQuery';
 import * as kreditApi from '../api/kreditBerkasApi';
 import { getEffectiveWorkingDays } from '../utils/holidayCalendar';
+import { useHolidays } from '../../pengaturan/hooks/useHolidays';
 
 const getPositionWeight = (job: string) => {
     const j = (job || '').toLowerCase();
@@ -41,6 +42,9 @@ const AdminWlaSummaryPage: React.FC = () => {
         direkturYmfk: fetchedDirectorNames?.ymfk && fetchedDirectorNames?.ymfk !== '..............................' ? fetchedDirectorNames.ymfk : 'IFAN ARDANA ,SE,.MSi'
     };
 
+    const { holidays } = useHolidays();
+    const customHolidays = holidays.map(h => h.tanggal);
+
     const { settings: companySettings } = useCompanySettings();
     const queryClient = useQueryClient();
     const adminSummaryQuery = useAdminWlaSummary(startDate, endDate);
@@ -55,7 +59,7 @@ const AdminWlaSummaryPage: React.FC = () => {
     }, [startDate, endDate]);
 
     const EFFECTIVE_WORKING_MINUTES = 480;
-    const targetMinutes = EFFECTIVE_WORKING_MINUTES * getEffectiveWorkingDays(startDate, endDate);
+    const targetMinutes = EFFECTIVE_WORKING_MINUTES * getEffectiveWorkingDays(startDate, endDate, customHolidays);
 
     const getFteStatus = (minutes: number) => {
         const percentage = (minutes / targetMinutes) * 100;

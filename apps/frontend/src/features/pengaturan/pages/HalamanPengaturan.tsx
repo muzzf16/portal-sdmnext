@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { UserCog, Building, Database, Users, Download, Upload, Clock, Calendar, Banknote } from 'lucide-react';
+import { UserCog, Building, Database, Users, Download, Upload, Clock, Calendar, Banknote, CalendarDays } from 'lucide-react';
 import clsx from 'clsx';
 import { DaftarPengguna } from '../components/DaftarPengguna';
 import { UbahPasswordPengguna } from '../components/UbahPasswordPengguna';
 import { UbahRole } from '../components/UbahRole';
 import { ResetPassword } from '../components/ResetPassword';
+import { ManajemenLibur } from '../components/ManajemenLibur';
 
 import { backupDatabase, restoreDatabase } from '@/shared/services/backup.service';
 import { updateCompanySettings } from '@/shared/services/company-settings.service';
@@ -15,7 +16,7 @@ const EXPORT_DATA_OPTIONS = [
 ];
 
 const HalamanPengaturan: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'users' | 'company' | 'backup'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'company' | 'backup' | 'holidays'>('users');
   const { settings, loading: settingsLoading, refetch } = useCompanySettings();
 
   const [companySettings, setCompanySettings] = useState<any>({});
@@ -107,6 +108,19 @@ const HalamanPengaturan: React.FC = () => {
           >
             <Building className="h-5 w-5 mr-2" />
             Pengaturan Perusahaan
+          </button>
+
+          <button
+            onClick={() => setActiveTab('holidays')}
+            className={clsx(
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center',
+              activeTab === 'holidays'
+                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            )}
+          >
+            <CalendarDays className="h-5 w-5 mr-2" />
+            Hari Libur
           </button>
 
           <button
@@ -290,6 +304,10 @@ const HalamanPengaturan: React.FC = () => {
               </form>
             )}
           </div>
+        )}
+
+        {activeTab === 'holidays' && (
+          <ManajemenLibur />
         )}
 
         {activeTab === 'backup' && (

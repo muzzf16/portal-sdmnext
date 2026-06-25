@@ -6,6 +6,7 @@ import { Button } from '../../../shared/components/ui/Button';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import { useKpiMonitoringSummary, useDirectorNames } from '../hooks/usePerformanceManagementQuery';
 import { getEffectiveWorkingDays } from '../utils/holidayCalendar';
+import { useHolidays } from '../../pengaturan/hooks/useHolidays';
 
 interface KpiSummaryViewProps {
     isActive: boolean;
@@ -35,6 +36,8 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
         direkturYmfk: fetchedDirectorNames?.ymfk && fetchedDirectorNames?.ymfk !== '..............................' ? fetchedDirectorNames.ymfk : 'IFAN ARDANA ,SE,.MSi'
     };
     
+    const { holidays } = useHolidays();
+    const customHolidays = holidays.map(h => h.tanggal);
     // Pass startDate/endDate as period filters
     const summaryQuery = useKpiMonitoringSummary(startDate, endDate, isActive && !!startDate && !!endDate && startDate <= endDate);
     const rawSummaries = (summaryQuery.data ?? []) as any[];
@@ -46,9 +49,7 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
             : ((summaryQuery.error as Error | null)?.message ?? null);
 
     const processedSummaries = useMemo(() => {
-        const today = new Date().toISOString().slice(0, 10);
-        const effectiveEndDate = endDate && endDate > today ? today : endDate;
-        const workingDays = startDate && effectiveEndDate ? getEffectiveWorkingDays(startDate, effectiveEndDate) : 1;
+        const workingDays = startDate && endDate ? getEffectiveWorkingDays(startDate, endDate, customHolidays) : 1;
         const targetMinutes = EFFECTIVE_WORKING_MINUTES * workingDays;
 
         return rawSummaries.map((summary) => {
@@ -66,7 +67,7 @@ const KpiSummaryView: React.FC<KpiSummaryViewProps> = ({ isActive }) => {
                 finalTotal
             };
         });
-    }, [rawSummaries, startDate, endDate]);
+    }, [rawSummaries, startDate, endDate, customHolidays]);
 
     const filteredSummaries = useMemo(() => {
         const normalizedSearch = searchQuery.toLowerCase();

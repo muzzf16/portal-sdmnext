@@ -102,6 +102,10 @@ export const KreditBerkasService = {
         const berkas = await KreditBerkasRepository.findById(id);
         if (!berkas) throw new Error('Berkas tidak ditemukan');
 
+        if (berkas.current_stage === 'selesai' || berkas.overall_status === 'dicairkan' || berkas.overall_status === 'ditolak') {
+            throw new Error('Berkas sudah selesai diproses atau ditolak');
+        }
+
         const employee = await PegawaiRepository.findById(employeeId);
         const currentStage = berkas.current_stage;
 
