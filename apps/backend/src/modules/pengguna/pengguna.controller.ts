@@ -99,6 +99,24 @@ class PenggunaController {
       return;
     }
   }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res.status(400).json({ success: false, message: 'Password baru wajib diisi.' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password baru minimal 6 karakter.' });
+      }
+      const result = await PenggunaService.resetPassword(id, newPassword);
+      return res.status(200).json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+      return;
+    }
+  }
 }
 
 export default PenggunaController;

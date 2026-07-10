@@ -9,6 +9,10 @@ const runMigrations = async () => {
   const db = await openDb();
   const migrations = [
     { table: 'pengguna', column: 'avatarUrl', type: 'TEXT' },
+    { table: 'pegawai', column: 'tanggalCalonPegawai', type: 'TEXT' },
+    { table: 'pegawai', column: 'tanggalKenaikanPangkatTerakhir', type: 'TEXT' },
+    { table: 'pegawai', column: 'tanggalKenaikanPangkatSelanjutnya', type: 'TEXT' },
+    { table: 'pegawai', column: 'tanggalKenaikanGajiBerkala', type: 'TEXT' },
   ];
 
   for (const m of migrations) {

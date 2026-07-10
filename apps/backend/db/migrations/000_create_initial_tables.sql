@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS pegawai (
     email TEXT,
     statusKaryawan TEXT DEFAULT 'aktif',
     tanggalKeluar TEXT,
+    tanggalCalonPegawai TEXT,
+    tanggalKenaikanPangkatTerakhir TEXT,
+    tanggalKenaikanPangkatSelanjutnya TEXT,
+    tanggalKenaikanGajiBerkala TEXT,
     createdAt DATETIME
 );
 

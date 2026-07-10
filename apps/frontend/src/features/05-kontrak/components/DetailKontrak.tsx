@@ -102,6 +102,16 @@ const DetailKontrak: React.FC<DetailKontrakProps> = ({ contractId }) => {
           </div>
 
           <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pangkat</h3>
+            <p className="text-lg text-gray-900 dark:text-white">{kontrak.pangkat || 'N/A'}</p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Golongan</h3>
+            <p className="text-lg text-gray-900 dark:text-white">{kontrak.golongan || 'N/A'}</p>
+          </div>
+
+          <div>
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Jenis Kontrak</h3>
             <p className="text-lg text-gray-900 dark:text-white">
               {kontrak.contractType === 'permanent' ? 'Permanen' :
@@ -136,6 +146,58 @@ const DetailKontrak: React.FC<DetailKontrakProps> = ({ contractId }) => {
                 month: 'long',
                 year: 'numeric'
               })}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Tanggal Calon Pegawai</h3>
+            <p className="text-lg text-gray-900 dark:text-white">
+              {kontrak.tanggalCalonPegawai
+                ? new Date(kontrak.tanggalCalonPegawai).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })
+                : 'N/A'}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Kenaikan Pangkat Terakhir</h3>
+            <p className="text-lg text-gray-900 dark:text-white">
+              {kontrak.tanggalKenaikanPangkatTerakhir
+                ? new Date(kontrak.tanggalKenaikanPangkatTerakhir).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })
+                : 'N/A'}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Kenaikan Pangkat Selanjutnya</h3>
+            <p className="text-lg text-gray-900 dark:text-white">
+              {kontrak.tanggalKenaikanPangkatSelanjutnya
+                ? new Date(kontrak.tanggalKenaikanPangkatSelanjutnya).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })
+                : 'N/A'}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Kenaikan Gaji Berkala</h3>
+            <p className="text-lg text-gray-900 dark:text-white">
+              {kontrak.tanggalKenaikanGajiBerkala
+                ? new Date(kontrak.tanggalKenaikanGajiBerkala).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })
+                : 'N/A'}
             </p>
           </div>
 

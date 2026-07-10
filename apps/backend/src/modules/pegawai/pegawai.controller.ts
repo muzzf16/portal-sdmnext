@@ -68,11 +68,14 @@ class PegawaiController {
 
       const { name, email, ...pegawaiData } = req.body;
 
-      if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
-        try {
-          pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
-        } catch (e) {
-          return next(new AppError('Invalid educationHistory JSON format.', 400));
+      const jsonFields = ['educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo'];
+      for (const field of jsonFields) {
+        if (pegawaiData[field] && typeof pegawaiData[field] === 'string') {
+          try {
+            pegawaiData[field] = JSON.parse(pegawaiData[field]);
+          } catch (e) {
+            return next(new AppError(`Invalid ${field} JSON format.`, 400));
+          }
         }
       }
 
@@ -98,11 +101,14 @@ class PegawaiController {
       const { id } = req.params;
       const { name, email, ...pegawaiData } = req.body;
 
-      if (pegawaiData.educationHistory && typeof pegawaiData.educationHistory === 'string') {
-        try {
-          pegawaiData.educationHistory = JSON.parse(pegawaiData.educationHistory);
-        } catch (e) {
-          return next(new AppError('Invalid educationHistory JSON format.', 400));
+      const jsonFields = ['educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo'];
+      for (const field of jsonFields) {
+        if (pegawaiData[field] && typeof pegawaiData[field] === 'string') {
+          try {
+            pegawaiData[field] = JSON.parse(pegawaiData[field]);
+          } catch (e) {
+            return next(new AppError(`Invalid ${field} JSON format.`, 400));
+          }
         }
       }
 

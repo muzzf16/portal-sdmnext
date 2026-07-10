@@ -192,6 +192,19 @@ const FormPegawai: React.FC<FormPegawaiProps> = ({ onEmployeeAdded }) => {
             <input id="joinDate" type="date" {...registerForm('joinDate', { required: 'Tanggal bergabung wajib diisi' })} className={inputClass} />
             {errors.joinDate && <span className="text-red-500 text-sm dark:text-red-400">{errors.joinDate.message}</span>}
           </div>
+          <div>
+            <label htmlFor="tanggalCalonPegawai" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Calon Pegawai</label>
+            <input id="tanggalCalonPegawai" type="date" {...registerForm('tanggalCalonPegawai')} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanPangkatTerakhir" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kenaikan Pangkat Terakhir</label>
+            <input id="tanggalKenaikanPangkatTerakhir" type="date" {...registerForm('tanggalKenaikanPangkatTerakhir')} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanPangkatSelanjutnya" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kenaikan Pangkat Selanjutnya</label>
+            <input id="tanggalKenaikanPangkatSelanjutnya" type="date" {...registerForm('tanggalKenaikanPangkatSelanjutnya')} className={inputClass} />
+          </div>
+          
           <div className="md:col-span-2">
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
             <textarea id="address" {...registerForm('address')} rows={3} className={inputClass}></textarea>

@@ -459,12 +459,33 @@ export default class KpiService {
                     }
                 });
 
-                const khususPercentage = khususDetails.length > 0
-                    ? khususDetails.reduce((sum, k) => {
-                        const cap = k.targetValue > 0 ? (k.actualValue / k.targetValue) * 100 : 0;
-                        return sum + Math.min(cap, 100);
-                    }, 0) / khususDetails.length
-                    : 0;
+                let khususPercentage = 0;
+                if (khususDetails.length > 0) {
+                    const nominalItems = khususDetails.filter(k => isNominal(k.kpiName, k.targetUnit));
+                    const nonNominalItems = khususDetails.filter(k => !isNominal(k.kpiName, k.targetUnit));
+
+                    let nominalPct = 0;
+                    if (nominalItems.length > 0) {
+                        const totalActual = nominalItems.reduce((sum, i) => sum + i.actualValue, 0);
+                        const totalTarget = nominalItems.reduce((sum, i) => sum + i.targetValue, 0);
+                        nominalPct = totalTarget === 0 ? (totalActual > 0 ? 100 : 0) : Math.min((totalActual / totalTarget) * 100, 100);
+                    }
+
+                    if (nominalItems.length > 0 && nonNominalItems.length > 0) {
+                        const nonNominalSumPct = nonNominalItems.reduce((sum, k) => {
+                            const cap = k.targetValue > 0 ? (k.actualValue / k.targetValue) * 100 : 0;
+                            return sum + Math.min(cap, 100);
+                        }, 0);
+                        khususPercentage = (nominalPct + nonNominalSumPct) / (1 + nonNominalItems.length);
+                    } else if (nominalItems.length > 0) {
+                        khususPercentage = nominalPct;
+                    } else {
+                        khususPercentage = nonNominalItems.reduce((sum, k) => {
+                            const cap = k.targetValue > 0 ? (k.actualValue / k.targetValue) * 100 : 0;
+                            return sum + Math.min(cap, 100);
+                        }, 0) / nonNominalItems.length;
+                    }
+                }
 
                 return {
                     employeeId: emp.employeeId,

@@ -13,4 +13,10 @@ export interface Kontrak {
   salary: number;
   notes: string;
   createdAt: string;
+  pangkat?: string;
+  golongan?: string;
+  tanggalCalonPegawai?: string;
+  tanggalKenaikanPangkatTerakhir?: string;
+  tanggalKenaikanPangkatSelanjutnya?: string;
+  tanggalKenaikanGajiBerkala?: string;
 }

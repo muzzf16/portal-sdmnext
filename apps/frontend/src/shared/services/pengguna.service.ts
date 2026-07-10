@@ -23,10 +23,15 @@ const deletePengguna = (id: string) => {
   return axios.delete(`${BASE_URL}/${id}`);
 };
 
+const resetPassword = (id: string, data: { newPassword: string }) => {
+  return axios.put(`${BASE_URL}/${id}/reset-password`, data);
+};
+
 export default {
   getAllPengguna,
   getPenggunaById,
   createPengguna,
   updatePengguna,
   deletePengguna,
+  resetPassword,
 };

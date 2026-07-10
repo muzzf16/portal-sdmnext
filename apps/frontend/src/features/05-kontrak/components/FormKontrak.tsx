@@ -5,7 +5,15 @@ import { buatKontrak, buatKontrakWithFile } from '../api/kontrakApi';
 import { getPegawai } from '../../01-pegawai/api/employeeApi';
 import { useToast } from '@/app/providers/ToastContext';
 
-type KontrakFormData = Omit<Kontrak, 'id' | 'createdAt' | 'contractFile' | 'notes'> & { notes?: string };
+type KontrakFormData = Omit<Kontrak, 'id' | 'createdAt' | 'contractFile' | 'notes'> & { 
+  notes?: string;
+  tanggalCalonPegawai?: string;
+  tanggalKenaikanPangkatTerakhir?: string;
+  tanggalKenaikanPangkatSelanjutnya?: string;
+  tanggalKenaikanGajiBerkala?: string;
+  pangkat?: string;
+  golongan?: string;
+};
 
 interface FormKontrakProps {
   onSuccess?: () => void;
@@ -69,6 +77,14 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
         setJabatanBaru(originalPos);
         setValue('position', originalPos); // Set position di form juga
         setValue('department', selectedEmployee.department);
+
+        // Auto-fill new fields
+        setValue('pangkat', selectedEmployee.pangkat || '');
+        setValue('golongan', selectedEmployee.golongan || '');
+        setValue('tanggalCalonPegawai', selectedEmployee.tanggalCalonPegawai || '');
+        setValue('tanggalKenaikanPangkatTerakhir', selectedEmployee.tanggalKenaikanPangkatTerakhir || '');
+        setValue('tanggalKenaikanPangkatSelanjutnya', selectedEmployee.tanggalKenaikanPangkatSelanjutnya || '');
+        setValue('tanggalKenaikanGajiBerkala', selectedEmployee.tanggalKenaikanGajiBerkala || '');
       }
     }
   }, [selectedEmployeeId, employees, setValue]);
@@ -243,6 +259,12 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
                     setValue('employeeId', '');
                     setValue('position', '');
                     setValue('department', '');
+                    setValue('pangkat', '');
+                    setValue('golongan', '');
+                    setValue('tanggalCalonPegawai', '');
+                    setValue('tanggalKenaikanPangkatTerakhir', '');
+                    setValue('tanggalKenaikanPangkatSelanjutnya', '');
+                    setValue('tanggalKenaikanGajiBerkala', '');
                     setOriginalPosition('');
                     setJabatanLama('');
                     setJabatanBaru('');
@@ -276,6 +298,22 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
               readOnly
             />
             {errors.department && <span className="text-red-500 text-sm">{errors.department.message}</span>}
+          </div>
+          <div>
+            <label htmlFor="pangkat" className="block text-sm font-medium text-slate-700 mb-1">Pangkat</label>
+            <input
+              id="pangkat"
+              {...register('pangkat')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            />
+          </div>
+          <div>
+            <label htmlFor="golongan" className="block text-sm font-medium text-slate-700 mb-1">Golongan</label>
+            <input
+              id="golongan"
+              {...register('golongan')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            />
           </div>
           <div>
             <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 mb-1">Tanggal Mulai</label>
@@ -342,12 +380,38 @@ const FormKontrak: React.FC<FormKontrakProps> = ({ onSuccess }) => {
             {errors.status && <span className="text-red-500 text-sm">{errors.status.message}</span>}
           </div>
           <div>
-            <label htmlFor="salary" className="block text-sm font-medium text-slate-700 mb-1">Gaji</label>
+            <label htmlFor="tanggalCalonPegawai" className="block text-sm font-medium text-slate-700 mb-1">Tanggal Calon Pegawai</label>
             <input
-              id="salary"
-              type="number"
-              step="0.01"
-              {...register('salary', { valueAsNumber: true })}
+              id="tanggalCalonPegawai"
+              type="date"
+              {...register('tanggalCalonPegawai')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanPangkatTerakhir" className="block text-sm font-medium text-slate-700 mb-1">Kenaikan Pangkat Terakhir</label>
+            <input
+              id="tanggalKenaikanPangkatTerakhir"
+              type="date"
+              {...register('tanggalKenaikanPangkatTerakhir')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanPangkatSelanjutnya" className="block text-sm font-medium text-slate-700 mb-1">Kenaikan Pangkat Selanjutnya</label>
+            <input
+              id="tanggalKenaikanPangkatSelanjutnya"
+              type="date"
+              {...register('tanggalKenaikanPangkatSelanjutnya')}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
+            />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanGajiBerkala" className="block text-sm font-medium text-slate-700 mb-1">Kenaikan Gaji Berkala</label>
+            <input
+              id="tanggalKenaikanGajiBerkala"
+              type="date"
+              {...register('tanggalKenaikanGajiBerkala')}
               className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-dark-blue focus:border-primary-dark-blue"
             />
           </div>

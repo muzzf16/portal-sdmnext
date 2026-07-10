@@ -52,4 +52,8 @@ export interface Pegawai {
   workHistory: WorkHistory[];
   trainingCertificates: TrainingCertificate[];
   payrollInfo: PayrollInfo;
+  tanggalCalonPegawai?: string;
+  tanggalKenaikanPangkatTerakhir?: string;
+  tanggalKenaikanPangkatSelanjutnya?: string;
+  tanggalKenaikanGajiBerkala?: string;
 }

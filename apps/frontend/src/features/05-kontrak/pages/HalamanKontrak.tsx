@@ -16,7 +16,7 @@ const HalamanKontrak: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-primary-dark-blue dark:text-white">
-          Manajemen Kontrak & Jabatan
+          Manajemen Jabatan & Kontrak
         </h1>
         <button
           onClick={() => setShowForm(!showForm)}

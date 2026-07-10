@@ -29,7 +29,10 @@ export const PegawaiRepository = {
       LEFT JOIN jabatan j ON p.jabatan_id = j.id
       LEFT JOIN pegawai a ON p.atasan_id = a.id
       ${excludeCondition}
-      ORDER BY p.name ASC
+      ORDER BY 
+        CASE WHEN p.nip IS NULL OR p.nip = '' THEN 1 ELSE 0 END ASC,
+        p.nip ASC, 
+        p.name ASC
     `);
     return parseJsonFields(rows);
   },
@@ -77,7 +80,19 @@ export const PegawaiRepository = {
   async create(data: any) {
     const db = await openDb();
     const newId = data.id || `emp-${Date.now()}`;
-    const nip = data.nip || await this.generateNip();
+    const rawNip = data.nip ? String(data.nip).trim() : '';
+    const isEmptyNip = !rawNip || rawNip === '-' || rawNip.toUpperCase() === 'N/A';
+    const nip = isEmptyNip ? null : rawNip;
+
+    // Normalize atasan_id: empty string/whitespace to NULL
+    const atasanRaw = data.atasan_id;
+    const atasanId = (typeof atasanRaw === 'string' ? atasanRaw.trim() : atasanRaw);
+    const normalizedAtasanId = (!atasanId || atasanId === '-' || atasanId.toUpperCase() === 'N/A' || atasanId === 'null') ? null : atasanId;
+
+    // Normalize jabatan_id: empty string, NaN, <= 0 to NULL
+    const jabRaw = data.jabatan_id;
+    const normalizedJabatanId = (jabRaw === '' || jabRaw === null || jabRaw === undefined || isNaN(Number(jabRaw)) || Number(jabRaw) <= 0 || jabRaw === 'null') ? null : Number(jabRaw);
+
     const pegawaiData = {
       id: newId,
       name: data.name,
@@ -104,6 +119,12 @@ export const PegawaiRepository = {
       trainingCertificates: JSON.stringify(data.trainingCertificates || []),
       payrollInfo: JSON.stringify(data.payrollInfo || { baseSalary: 0, incomes: [], deductions: [] }),
       tanggalKeluar: data.tanggal_keluar || null, // For turnover analysis
+      jabatan_id: normalizedJabatanId,
+      atasan_id: normalizedAtasanId,
+      tanggalCalonPegawai: data.tanggalCalonPegawai || null,
+      tanggalKenaikanPangkatTerakhir: data.tanggalKenaikanPangkatTerakhir || null,
+      tanggalKenaikanPangkatSelanjutnya: data.tanggalKenaikanPangkatSelanjutnya || null,
+      tanggalKenaikanGajiBerkala: data.tanggalKenaikanGajiBerkala || null,
     };
 
     const columns = Object.keys(pegawaiData);
@@ -124,13 +145,41 @@ export const PegawaiRepository = {
       'joinDate', 'avatarUrl', 'leaveBalance', 'isActive', 'address', 'phone',
       'pob', 'dob', 'religion', 'maritalStatus', 'numberOfChildren',
       'educationHistory', 'workHistory', 'trainingCertificates', 'payrollInfo',
-      'jenis_kelamin', 'tanggalKeluar', 'jabatan_id', 'atasan_id'
+      'jenis_kelamin', 'tanggalKeluar', 'jabatan_id', 'atasan_id',
+      'tanggalCalonPegawai', 'tanggalKenaikanPangkatTerakhir', 
+      'tanggalKenaikanPangkatSelanjutnya', 'tanggalKenaikanGajiBerkala'
     ];
 
     const fieldsToUpdate: any = {};
     for (const key of Object.keys(data)) {
       if (validColumns.includes(key)) {
         fieldsToUpdate[key] = data[key];
+      }
+    }
+
+    // Normalize NIP: treat '-', '', 'N/A', whitespace-only as NULL to avoid UNIQUE conflicts
+    if (fieldsToUpdate.hasOwnProperty('nip')) {
+      const nipVal = String(fieldsToUpdate.nip || '').trim();
+      if (!nipVal || nipVal === '-' || nipVal.toUpperCase() === 'N/A') {
+        fieldsToUpdate.nip = null;
+      }
+    }
+
+    // Normalize atasan_id: empty string/whitespace to NULL
+    if (fieldsToUpdate.hasOwnProperty('atasan_id')) {
+      const atasanVal = typeof fieldsToUpdate.atasan_id === 'string' ? fieldsToUpdate.atasan_id.trim() : fieldsToUpdate.atasan_id;
+      if (!atasanVal || atasanVal === '-' || atasanVal.toUpperCase() === 'N/A' || atasanVal === 'null') {
+        fieldsToUpdate.atasan_id = null;
+      }
+    }
+
+    // Normalize jabatan_id: empty string, NaN, <= 0 to NULL
+    if (fieldsToUpdate.hasOwnProperty('jabatan_id')) {
+      const jabVal = fieldsToUpdate.jabatan_id;
+      if (jabVal === '' || jabVal === null || jabVal === undefined || isNaN(Number(jabVal)) || Number(jabVal) <= 0 || jabVal === 'null') {
+        fieldsToUpdate.jabatan_id = null;
+      } else {
+        fieldsToUpdate.jabatan_id = Number(jabVal);
       }
     }
 
@@ -175,6 +224,44 @@ export const PegawaiRepository = {
 
   async delete(id: string) {
     const db = await openDb();
+
+    // 1. Delete linked records from child tables to prevent FOREIGN KEY constraint failures
+    // Tables with employeeId
+    const tablesWithEmployeeId = ['absensi', 'permintaan_cuti', 'penggajian', 'penilaian_kinerja', 'kontrak', 'data_change_requests', 'analisis_beban_kerja', 'kpi_targets'];
+    for (const table of tablesWithEmployeeId) {
+      try { await db.run(`DELETE FROM ${table} WHERE employeeId = ?`, id); } catch (e) {}
+    }
+    
+    // Tables with pegawai_id
+    const tablesWithPegawaiId = ['pelatihan', 'riwayat_jabatan'];
+    for (const table of tablesWithPegawaiId) {
+      try { await db.run(`DELETE FROM ${table} WHERE pegawai_id = ?`, id); } catch (e) {}
+    }
+
+    // Tables with employee_id
+    const tablesWithEmployeeUnderscoreId = ['tugas_orientasi', 'notifications', 'assigned_tasks'];
+    for (const table of tablesWithEmployeeUnderscoreId) {
+      try { await db.run(`DELETE FROM ${table} WHERE employee_id = ?`, id); } catch (e) {}
+    }
+
+    // Tables with id_pegawai
+    const tablesWithIdPegawai = ['log_aktivitas_harian', 'pinjaman_karyawan', 'daily_activities'];
+    for (const table of tablesWithIdPegawai) {
+      try { await db.run(`DELETE FROM ${table} WHERE id_pegawai = ?`, id); } catch (e) {}
+    }
+
+    // Table users which references nip
+    try {
+      const pegawai = await db.get('SELECT nip FROM pegawai WHERE id = ?', id);
+      if (pegawai && pegawai.nip) {
+        await db.run(`DELETE FROM users WHERE employeeId = ?`, pegawai.nip);
+      }
+    } catch (e) {}
+
+    // 2. Remove employee as supervisor for others
+    try { await db.run(`UPDATE pegawai SET atasan_id = NULL WHERE atasan_id = ?`, id); } catch (e) {}
+
+    // 3. Delete the employee itself
     const result = await db.run('DELETE FROM pegawai WHERE id = ?', id);
     return !!(result.changes && result.changes > 0);
   },

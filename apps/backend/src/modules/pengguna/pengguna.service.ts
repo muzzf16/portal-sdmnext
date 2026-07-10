@@ -91,6 +91,14 @@ class PenggunaService {
       throw new AppError(`Error changing password: ${error.message}`, 500);
     }
   }
+
+  static async resetPassword(id: string, newPassword: string) {
+    try {
+      return await PenggunaRepository.resetPassword(id, newPassword);
+    } catch (error: any) {
+      throw new AppError(`Error resetting password: ${error.message}`, 500);
+    }
+  }
 }
 
 export default PenggunaService;

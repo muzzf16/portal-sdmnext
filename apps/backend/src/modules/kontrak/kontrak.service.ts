@@ -1,6 +1,7 @@
 // src/modules/kontrak/kontrak.service.ts
 import { KontrakRepository } from './kontrak.repository';
 import { RiwayatJabatanRepository } from './riwayatJabatan.repository';
+import { PegawaiRepository } from '../pegawai/pegawai.repository';
 import { AppError } from '../../utils/errors';
 import { openDb } from '../../config/db';
 
@@ -49,6 +50,25 @@ class KontrakService {
           console.error('Error adding riwayat jabatan:', riwayatError);
         }
       }
+
+      // Update employee's promotion/candidate/salary increase dates if provided
+      if (newContract.employeeId) {
+        const employeeUpdate: any = {};
+        if (contractData.tanggalCalonPegawai) employeeUpdate.tanggalCalonPegawai = contractData.tanggalCalonPegawai;
+        if (contractData.tanggalKenaikanPangkatTerakhir) employeeUpdate.tanggalKenaikanPangkatTerakhir = contractData.tanggalKenaikanPangkatTerakhir;
+        if (contractData.tanggalKenaikanPangkatSelanjutnya) employeeUpdate.tanggalKenaikanPangkatSelanjutnya = contractData.tanggalKenaikanPangkatSelanjutnya;
+        if (contractData.tanggalKenaikanGajiBerkala) employeeUpdate.tanggalKenaikanGajiBerkala = contractData.tanggalKenaikanGajiBerkala;
+        
+        // Also update the position/department if they are changed/provided in the contract
+        if (contractData.position) employeeUpdate.position = contractData.position;
+        if (contractData.department) employeeUpdate.department = contractData.department;
+        if (contractData.pangkat) employeeUpdate.pangkat = contractData.pangkat;
+        if (contractData.golongan) employeeUpdate.golongan = contractData.golongan;
+
+        if (Object.keys(employeeUpdate).length > 0) {
+          await PegawaiRepository.update(newContract.employeeId, employeeUpdate);
+        }
+      }
       
       return newContract;
     } catch (error: any) {
@@ -62,7 +82,29 @@ class KontrakService {
       if (!existingContract) {
         throw new AppError('Contract not found', 404);
       }
-      return await KontrakRepository.update(id, contractData);
+      const updatedContract = await KontrakRepository.update(id, contractData);
+
+      // Update employee's career dates if provided
+      const employeeId = contractData.employeeId || existingContract.employeeId;
+      if (employeeId) {
+        const employeeUpdate: any = {};
+        if (contractData.tanggalCalonPegawai) employeeUpdate.tanggalCalonPegawai = contractData.tanggalCalonPegawai;
+        if (contractData.tanggalKenaikanPangkatTerakhir) employeeUpdate.tanggalKenaikanPangkatTerakhir = contractData.tanggalKenaikanPangkatTerakhir;
+        if (contractData.tanggalKenaikanPangkatSelanjutnya) employeeUpdate.tanggalKenaikanPangkatSelanjutnya = contractData.tanggalKenaikanPangkatSelanjutnya;
+        if (contractData.tanggalKenaikanGajiBerkala) employeeUpdate.tanggalKenaikanGajiBerkala = contractData.tanggalKenaikanGajiBerkala;
+
+        // Also update position/department/pangkat/golongan if changed
+        if (contractData.position) employeeUpdate.position = contractData.position;
+        if (contractData.department) employeeUpdate.department = contractData.department;
+        if (contractData.pangkat) employeeUpdate.pangkat = contractData.pangkat;
+        if (contractData.golongan) employeeUpdate.golongan = contractData.golongan;
+
+        if (Object.keys(employeeUpdate).length > 0) {
+          await PegawaiRepository.update(employeeId, employeeUpdate);
+        }
+      }
+
+      return updatedContract;
     } catch (error: any) {
       if (error.statusCode === 404) throw error;
       throw new AppError(`Error updating contract: ${error.message}`, 500);

@@ -297,6 +297,24 @@ const HalamanDetailPegawai: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex">
+                    <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Tanggal Calon Pegawai</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
+                      {pegawai.tanggalCalonPegawai ? new Date(pegawai.tanggalCalonPegawai).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                    </div>
+                  </div>
+                  <div className="flex">
+                    <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Kenaikan Pangkat Terakhir</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
+                      {pegawai.tanggalKenaikanPangkatTerakhir ? new Date(pegawai.tanggalKenaikanPangkatTerakhir).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                    </div>
+                  </div>
+                  <div className="flex">
+                    <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Kenaikan Pangkat Selanjutnya</div>
+                    <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">
+                      {pegawai.tanggalKenaikanPangkatSelanjutnya ? new Date(pegawai.tanggalKenaikanPangkatSelanjutnya).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                    </div>
+                  </div>
+                  <div className="flex">
                     <div className="w-1/3 text-sm text-gray-500 dark:text-gray-400">Sisa Cuti</div>
                     <div className="w-2/3 text-sm font-medium text-gray-900 dark:text-white">{pegawai.leaveBalance || '0'} hari</div>
                   </div>

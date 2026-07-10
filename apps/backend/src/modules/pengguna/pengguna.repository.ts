@@ -172,6 +172,18 @@ export const PenggunaRepository = {
     return { message: 'Password berhasil diubah' };
   },
 
+  async resetPassword(id: string, newPassword: string) {
+    const db = await openDb();
+    const user = await db.get('SELECT * FROM pengguna WHERE id = ?', id);
+    if (!user) throw new Error('User not found');
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await db.run('UPDATE pengguna SET password = ? WHERE id = ?', [hashedPassword, id]);
+    return { message: 'Password berhasil direset' };
+  },
+
   async delete(id: string) {
     const db = await openDb();
     const result = await db.run('DELETE FROM pengguna WHERE id = ?', id);

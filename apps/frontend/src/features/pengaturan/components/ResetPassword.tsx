@@ -29,8 +29,9 @@ export const ResetPassword = () => {
 
   const handleResetPassword = () => {
     if (selectedUser) {
-      PenggunaService.updatePengguna(selectedUser.id, { password: newPassword }).then(() => {
+      PenggunaService.resetPassword(selectedUser.id, { newPassword }).then(() => {
         closeModal();
+        setNewPassword(''); // reset the form state
       });
     }
   };

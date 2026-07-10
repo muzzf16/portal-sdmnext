@@ -98,7 +98,17 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
   const onSubmit = async (data: Pegawai) => {
     setIsSubmitting(true);
     try {
-      await updatePegawai(employeeId, data, selectedPhoto || undefined);
+      // Remove computed fields before sending to API
+      const {
+        jabatanNama,
+        jabatanLevel,
+        jabatanDepartment,
+        atasanNama,
+        atasanNip,
+        ...validData
+      } = data as any;
+      
+      await updatePegawai(employeeId, validData, selectedPhoto || undefined);
       alert('Pegawai berhasil diperbarui!');
       onSuccess();
     } catch (err) {
@@ -190,6 +200,19 @@ const FormEditPegawai: React.FC<FormEditPegawaiProps> = ({ employeeId, onSuccess
             <input id="joinDate" type="date" {...register('joinDate', { required: 'Tanggal bergabung wajib diisi' })} className={inputClass} />
             {errors.joinDate && <span className="text-red-500 text-sm">{errors.joinDate.message}</span>}
           </div>
+          <div>
+            <label htmlFor="tanggalCalonPegawai" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Calon Pegawai</label>
+            <input id="tanggalCalonPegawai" type="date" {...register('tanggalCalonPegawai')} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanPangkatTerakhir" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kenaikan Pangkat Terakhir</label>
+            <input id="tanggalKenaikanPangkatTerakhir" type="date" {...register('tanggalKenaikanPangkatTerakhir')} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="tanggalKenaikanPangkatSelanjutnya" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kenaikan Pangkat Selanjutnya</label>
+            <input id="tanggalKenaikanPangkatSelanjutnya" type="date" {...register('tanggalKenaikanPangkatSelanjutnya')} className={inputClass} />
+          </div>
+          
           <div className="md:col-span-2">
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
             <textarea id="address" {...register('address')} rows={3} className={inputClass}></textarea>

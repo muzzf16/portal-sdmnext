@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: portal_sdm_backend_v6
+    restart: unless-stopped
+    ports:
+      - "3334:3333"
+    environment:
+      - PORT=3333
+      - NODE_ENV=production
+      - DB_SOURCE=/data/database.sqlite
+      - JWT_SECRET=${JWT_SECRET:-default_secret_please_change}
+      - CORS_ORIGIN=http://192.168.0.210:8081,https://sdm.bprbaperabatang.com
+    networks:
+      - bpr-network
+    volumes:
+      - backend_data:/data
+      - backend_uploads:/app/public
+
+  sdm:
+    build:
+      context: ./apps/frontend
+    container_name: portal_sdm_frontend_v6
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:8081"
+    networks:
+      - bpr-network
+
+networks:
+  bpr-network:
+    name: bpr_shared_network
+    driver: bridge
+
+volumes:
+  backend_data:
+    name: portal-sdmv3_backend_data
+    external: true
+  backend_uploads:
+    name: portal-sdmv3_backend_uploads
+    external: true

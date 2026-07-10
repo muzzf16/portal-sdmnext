@@ -211,9 +211,25 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
 
         let khususPercentage = 0;
         if (khususItemsWithPct.length > 0) {
-            // Calculate weighted average or simple average? 
-            // The request implies they represent the 20% portion.
-            khususPercentage = khususItemsWithPct.reduce((sum, i) => sum + i.pct, 0) / khususItemsWithPct.length;
+            const nominalItems = khususItemsWithPct.filter(i => i.isNominal);
+            const nonNominalItems = khususItemsWithPct.filter(i => !i.isNominal);
+
+            let nominalPct = 0;
+            if (nominalItems.length > 0) {
+                const totalActual = nominalItems.reduce((sum, i) => sum + i.actualValue, 0);
+                const totalTarget = nominalItems.reduce((sum, i) => sum + i.targetValue, 0);
+                nominalPct = totalTarget === 0 ? (totalActual > 0 ? 100 : 0) : Math.min((totalActual / totalTarget) * 100, 100);
+            }
+
+            if (nominalItems.length > 0 && nonNominalItems.length > 0) {
+                const nonNominalSumPct = nonNominalItems.reduce((sum, i) => sum + i.pct, 0);
+                // Rata-ratakan skor gabungan nominal dengan skor masing-masing non-nominal
+                khususPercentage = (nominalPct + nonNominalSumPct) / (1 + nonNominalItems.length);
+            } else if (nominalItems.length > 0) {
+                khususPercentage = nominalPct;
+            } else {
+                khususPercentage = nonNominalItems.reduce((sum, i) => sum + i.pct, 0) / nonNominalItems.length;
+            }
         }
 
         // Apply 80/20 rule

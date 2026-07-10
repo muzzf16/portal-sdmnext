@@ -110,7 +110,7 @@ const DashboardLayout: React.FC = () => {
         { to: '/dashboard/absensi', icon: <Calendar size={18} />, text: 'Manajemen Absensi', roles: ['admin'] },
         { to: '/dashboard/cuti', icon: <Briefcase size={18} />, text: 'Manajemen Cuti', roles: ['admin'] },
         { to: '/dashboard/penggajian', icon: <DollarSign size={18} />, text: 'Manajemen Penggajian', roles: ['admin'] },
-        { to: '/dashboard/kontrak', icon: <FileText size={18} />, text: 'Manajemen Kontrak', roles: ['admin'] },
+        { to: '/dashboard/kontrak', icon: <FileText size={18} />, text: 'Manajemen Jabatan & Kontrak', roles: ['admin'] },
       ],
     },
     {

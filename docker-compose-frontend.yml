@@ -1,0 +1,15 @@
+services:
+  frontend_v7:
+    build:
+      context: ./apps/frontend
+    container_name: portal_sdm_frontend_v7
+    restart: unless-stopped
+    ports:
+      - "8080:8081"
+    networks:
+      - bpr-network
+
+networks:
+  bpr-network:
+    name: bpr_shared_network
+    external: true

@@ -83,6 +83,10 @@ export interface Pegawai {
   trainingCertificates: TrainingCertificate[];
   payrollInfo: PayrollInfo;
   tanggalKeluar?: string;
+  tanggalCalonPegawai?: string;
+  tanggalKenaikanPangkatTerakhir?: string;
+  tanggalKenaikanPangkatSelanjutnya?: string;
+  tanggalKenaikanGajiBerkala?: string;
 }
 
 export interface AssignedTask {

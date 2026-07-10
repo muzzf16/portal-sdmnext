@@ -23,8 +23,8 @@ const DaftarPegawai: React.FC = () => {
   // Filter employees based on search term and filters
   const filteredPegawai = pegawai?.filter(p => {
     const matchesSearch = !searchTerm ||
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.nip.toLowerCase().includes(searchTerm.toLowerCase());
+      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.nip || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesPosition = !filterPosition || p.position === filterPosition;
     const matchesDepartment = !filterDepartment || p.department === filterDepartment;
@@ -33,6 +33,10 @@ const DaftarPegawai: React.FC = () => {
       (filterStatus === 'nonaktif' && p.isActive === false);
 
     return matchesSearch && matchesPosition && matchesDepartment && matchesStatus;
+  })?.sort((a, b) => {
+    const nipA = a.nip || '';
+    const nipB = b.nip || '';
+    return nipA.localeCompare(nipB, undefined, { numeric: true, sensitivity: 'base' });
   }) || [];
 
   const handleDelete = async (id: string) => {

@@ -19,7 +19,6 @@ services:
     volumes:
       - backend_data:/data
       - backend_uploads:/app/public
-      - ./apps/backend/.env:/app/.env
 
   sdm:
     # Renamed from 'frontend' to 'sdm' to match http://sdm:8081

@@ -10,7 +10,9 @@ export const KontrakRepository = {
   async findAll() {
     const db = await openDb();
     const rows = await db.all(`
-      SELECT k.*, p.name as employeeName, p.position, p.department
+      SELECT k.*, p.name as employeeName, p.position, p.department, p.pangkat, p.golongan,
+             p.tanggalCalonPegawai, p.tanggalKenaikanPangkatTerakhir, 
+             p.tanggalKenaikanPangkatSelanjutnya, p.tanggalKenaikanGajiBerkala
       FROM kontrak k 
       LEFT JOIN pegawai p ON k.employeeId = p.id 
       ORDER BY k.startDate DESC
@@ -21,7 +23,9 @@ export const KontrakRepository = {
   async findById(id: string) {
     const db = await openDb();
     const row = await db.get(`
-      SELECT k.*, p.name as employeeName, p.position, p.department
+      SELECT k.*, p.name as employeeName, p.position, p.department, p.pangkat, p.golongan,
+             p.tanggalCalonPegawai, p.tanggalKenaikanPangkatTerakhir, 
+             p.tanggalKenaikanPangkatSelanjutnya, p.tanggalKenaikanGajiBerkala
       FROM kontrak k 
       LEFT JOIN pegawai p ON k.employeeId = p.id 
       WHERE k.id = ?
@@ -33,7 +37,9 @@ export const KontrakRepository = {
   async findByEmployeeId(employeeId: string) {
     const db = await openDb();
     const rows = await db.all(`
-      SELECT k.*, p.name as employeeName, p.position, p.department
+      SELECT k.*, p.name as employeeName, p.position, p.department, p.pangkat, p.golongan,
+             p.tanggalCalonPegawai, p.tanggalKenaikanPangkatTerakhir, 
+             p.tanggalKenaikanPangkatSelanjutnya, p.tanggalKenaikanGajiBerkala
       FROM kontrak k 
       LEFT JOIN pegawai p ON k.employeeId = p.id 
       WHERE k.employeeId = ? 
@@ -78,9 +84,11 @@ export const KontrakRepository = {
       createdAt
     );
     
-    // Fetch the created contract with employee name, position, and department to return complete data
+    // Fetch the created contract with employee name, position, department, and career dates to return complete data
     const newRow = await db.get(`
-      SELECT k.*, p.name as employeeName, p.position, p.department
+      SELECT k.*, p.name as employeeName, p.position, p.department, p.pangkat, p.golongan,
+             p.tanggalCalonPegawai, p.tanggalKenaikanPangkatTerakhir, 
+             p.tanggalKenaikanPangkatSelanjutnya, p.tanggalKenaikanGajiBerkala
       FROM kontrak k 
       LEFT JOIN pegawai p ON k.employeeId = p.id 
       WHERE k.id = ?

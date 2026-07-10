@@ -37,6 +37,10 @@ export interface Pegawai {
   jabatan_id?: number;
   atasan_id?: string; // FK to pegawai.id (direct manager)
   atasanNama?: string; // Manager name (joined from query)
+  tanggalCalonPegawai?: string;
+  tanggalKenaikanPangkatTerakhir?: string;
+  tanggalKenaikanPangkatSelanjutnya?: string;
+  tanggalKenaikanGajiBerkala?: string;
 }
 
 // Riwayat Jabatan (Job History)

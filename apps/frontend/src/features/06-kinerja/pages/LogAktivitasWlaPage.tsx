@@ -262,6 +262,10 @@ const LogAktivitasWlaPage: React.FC = () => {
     }, [myLogs]);
 
     const handleInputChange = (id: string, field: 'frekuensi' | 'catatan' | 'files' | 'target' | 'nominal_rupiah', value: any) => {
+        if (field === 'frekuensi') {
+            // Restriction removed to allow bulk checking and submitting of multiple new activities.
+        }
+
         setFormInputs(prev => ({
             ...prev,
             [id]: {
