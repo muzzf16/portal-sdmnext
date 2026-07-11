@@ -49,15 +49,18 @@ Beberapa aspek teknis dan operasional masih belum dieksplorasi secara mendalam d
 
 Daftar risiko yang dicatat untuk menjadi fokus penanganan pada sprint perbaikan mendatang:
 
-1. **[PRIORITAS TINGGI] Node 18 EOL (End-of-Life)**
-   * *Risiko*: Dockerfile backend ([apps/backend/Dockerfile:2](file:///opt/portal-sdmv3/apps/backend/Dockerfile#L2)) & frontend ([apps/frontend/Dockerfile:2](file:///opt/portal-sdmv3/apps/frontend/Dockerfile#L2)) menggunakan base image `node:18-alpine`. Node 18 telah EOL sejak April 2025, memicu potensi kerentanan keamanan tanpa pembaruan resmi.
-   * *Aksi*: Migrasi base image Docker ke Node 20 LTS atau Node 22 LTS.
-2. **[PRIORITAS TINGGI] Celah Keamanan JWT_SECRET Fallback**
+1. **[PRIORITAS KRITIS - DITUNDA SECARA SADAR] Bypass JWT / Ketiadaan Proteksi Autentikasi Rute (SEC-02)**
+   * *Risiko*: Modul backup, pengguna, pegawai, cuti, absensi, penggajian, kontrak, laporan tidak memiliki proteksi autentikasi pada rute-nya, meski GEMINI.md mengklaim sebaliknya. Server bersifat internet-facing.
+   * *Aksi*: Keputusan pemilik proyek per 11 Juli 2026: **DITUNDA** hingga sesi development berikutnya. Risiko akses/modifikasi/pengambilan data tanpa otorisasi dapat terjadi kapan saja selama masa penundaan ini.
+2. **[PRIORITAS TINGGI] Celah Keamanan JWT_SECRET Fallback (SEC-01)**
    * *Risiko*: Berkas [docker-compose.yml:15](file:///opt/portal-sdmv3/docker-compose.yml#L15) utama menggunakan fallback default `${JWT_SECRET:-default_secret_please_change}`. Hal ini mem-bypass logika penghentian paksa backend di [apps/backend/src/config/config.ts:10-17](file:///opt/portal-sdmv3/apps/backend/src/config/config.ts#L10-L17). Jika host env lupa mengonfigurasi variabel ini, container akan berjalan secara diam-diam menggunakan secret default di mode produksi.
    * *Aksi*: Hapus default fallback dari berkas Docker Compose utama.
-3. **[PRIORITAS MENENGAH] Ukuran Git History Besar (269 MB)**
+3. **[PRIORITAS TINGGI] Node 18 EOL (End-of-Life) (SEC-03)**
+   * *Risiko*: Dockerfile backend ([apps/backend/Dockerfile:2](file:///opt/portal-sdmv3/apps/backend/Dockerfile#L2)) & frontend ([apps/frontend/Dockerfile:2](file:///opt/portal-sdmv3/apps/frontend/Dockerfile#L2)) menggunakan base image `node:18-alpine`. Node 18 telah EOL sejak April 2025, memicu potensi kerentanan keamanan tanpa pembaruan resmi.
+   * *Aksi*: Migrasi base image Docker ke Node 20 LTS atau Node 22 LTS.
+4. **[PRIORITAS MENENGAH] Ukuran Git History Besar (269 MB)**
    * *Risiko*: Git packfile lama masih menyimpan berkas `node_modules` Windows dan SQLite lama yang berukuran sangat besar.
-   * *Aksi*: Lakukan pembersihan riwayat Git (*history rewrite*) menggunakan `git-filter-repo` atau BFG Repo-Cleaner. *Catatan*: Ini membutuhkan koordinasi ketat sebelum dijalankan agar seluruh dev/server melakukan re-clone guna menghindari konflik commit history.
-4. **[PRIORITAS RENDAH] Tumpukan Berkas SQLite Cadangan (12 Berkas Backup)**
+   * *Aksi*: Lakukan pembersihan riwayat Git (*history rewrite*) menggunakan `git-filter-repo` or BFG Repo-Cleaner.
+5. **[PRIORITAS RENDAH] Tumpukan Berkas SQLite Cadangan (12 Berkas Backup)**
    * *Risiko*: Ada 12 berkas SQLite cadangan (seperti `backup_temp.sqlite`, `database_merged.sqlite`, dll.) yang tertumpuk di root dan `apps/backend/`.
    * *Aksi*: Pindahkan berkas cadangan penting ke folder arsip khusus (`/backups/`) yang sudah di-ignore oleh Git, dan hapus berkas cadangan sementara yang tidak lagi diperlukan agar area kerja tetap bersih.
