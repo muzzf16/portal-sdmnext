@@ -5,10 +5,9 @@ Dokumen ini memetakan seluruh modul/domain bisnis backend yang ditemukan pada di
 Setiap klaim yang tumpang tindih dengan [GEMINI.md](file:///opt/portal-sdmv3/GEMINI.md), [AGENTS.md](file:///opt/portal-sdmv3/AGENTS.md), atau [docs/FINAL_IMPLEMENTATION_STATUS.md](file:///opt/portal-sdmv3/docs/FINAL_IMPLEMENTATION_STATUS.md) dicocokkan langsung dengan kode aktual dan dicatat sebagai catatan kaki (*footnote*).
 
 > [!CAUTION]
-> **ACCEPTED RISK - SEC-02 [KRITIS - DITUNDA SECARA SADAR]**
-> Modul `backup`, `pengguna`, `pegawai`, `cuti`, `absensi`, `penggajian`, `kontrak`, dan `laporan` tidak memiliki proteksi autentikasi pada rute-nya, meski `GEMINI.md` mengklaim sebaliknya. Server bersifat internet-facing.
-> Keputusan pemilik proyek per 11 Juli 2026: **DITUNDA** hingga sesi development berikutnya.
-> Risiko: akses/modifikasi/pengambilan data tanpa otorisasi dapat terjadi kapan saja selama masa penundaan ini.
+> **ACCEPTED RISKS per 11 Juli 2026 (DITUNDA SECARA SADAR atas keputusan pemilik proyek):**
+> * **SEC-02 [KRITIS]**: Modul `backup`, `pengguna`, `pegawai`, `cuti`, `absensi`, `penggajian`, `kontrak`, dan `laporan` tidak memiliki proteksi autentikasi pada rute-nya, meski `GEMINI.md` mengklaim sebaliknya. Server bersifat internet-facing. Risiko: akses/modifikasi/pengambilan data tanpa otorisasi dapat terjadi kapan saja.
+> * **SEC-04 [KRITIS]**: Endpoint `POST /api/auth/register` menerima field `role` langsung dari request body client tanpa validasi/whitelist ([auth.pengguna.service.ts:34](file:///opt/portal-sdmv3/apps/backend/src/modules/pengguna/auth.pengguna.service.ts#L34): `role: role?.toLowerCase() || 'employee'`). Siapa pun dapat mendaftar dengan `role="admin"` dan mendapatkan hak akses penuh tanpa otorisasi.
 
 ---
 
