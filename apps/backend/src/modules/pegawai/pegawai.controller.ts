@@ -63,7 +63,7 @@ class PegawaiController {
     try {
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
-        avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        avatarUrl = `/avatars/${req.file.filename}`;
       }
 
       const { name, email, ...pegawaiData } = req.body;
@@ -95,7 +95,7 @@ class PegawaiController {
     try {
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
-        avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        avatarUrl = `/avatars/${req.file.filename}`;
       }
 
       const { id } = req.params;
