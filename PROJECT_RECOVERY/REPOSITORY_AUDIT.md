@@ -83,11 +83,16 @@ Berikut adalah daftar risiko keamanan dan arsitektural penting yang ditemukan se
 
 ---
 
-### 5. Laporan & Status Verifikasi Keamanan Khusus
+### 5. Security Findings (Temuan Keamanan Khusus)
 
-* **Verifikasi JWT_SECRET Produksi**:
-  Telah diverifikasi secara manual bahwa berkas `.env` tingkat produksi di root direktori (`/opt/portal-sdmv3/.env`) **sudah diacak (menggunakan nilai custom)** dan tidak menggunakan placeholder bawaan.
-* **WhatsApp API Key (WA_API_KEY)**:
-  Kunci rahasia `WA_API_KEY` (token JWT) yang sempat bocor di dalam repositori Git telah **dirotasi secara resmi** pada **11 Juli 2026** (kunci aktif saat ini di database/production aman dan berbeda).
-* **Git Clean Up**:
-  Seluruh berkas `node_modules`, `.env`, dan `*.sqlite` cadangan yang sebelumnya ter-track secara tidak sengaja telah dihapus dari pelacakan Git menggunakan `git rm --cached` dan ditambahkan ke dalam `.gitignore` di tingkat aplikasi backend dan root.
+Temuan keamanan berikut didokumentasikan secara terpisah dari hutang teknis biasa sebagai bagian dari pembersihan repositori:
+
+* **WhatsApp API Key (`WA_API_KEY`)**:
+  Kunci rahasia `WA_API_KEY` (JWT token) ter-expose di git history sejak **27 Oktober 2025** (pada commit awal `2f4d4255`), dan telah dikonfirmasi **sudah dirotasi secara resmi pada 11 Juli 2026** (kunci aktif saat ini di server/produksi menggunakan nilai baru yang aman dan berbeda).
+* **JWT Secret (`JWT_SECRET`)**:
+  Ditemukan nilai placeholder (`your-super-secret-jwt-key-here`) pada `.env` development di backend. Namun, status `JWT_SECRET` pada server production lokal di root `.env` telah diverifikasi **aman (sudah acak / menggunakan nilai custom)**.
+* **Ekspos berkas di Git Tracking**:
+  Direktori `node_modules` backend, berkas `.env` (root & backend), dan berkas database `.sqlite` cadangan telah dihapus dari pelacakan Git (*untracked*) pada commit **`578d4ebc`**. Aturan pengabaian berkas juga telah dipastikan terkonfigurasi di berkas `.gitignore` backend.
+* **CATATAN PENTING (Git History & Size)**:
+  Meskipun berkas-berkas tersebut sudah di-untrack dari *working directory* aktif saat ini, riwayat komit Git lama (berukuran **269 MB**) masih menyimpan versi lama dari file-file sensitif ini beserta isi kodenya. Proses *History Rewrite* menggunakan tool seperti BFG Repo-Cleaner atau `git-filter-repo` dicatat sebagai item perbaikan terpisah dengan prioritas **Menengah (Medium)** dan **BELUM dieksekusi**, karena membutuhkan koordinasi re-clone di semua environment (lokal & server development/produksi) agar tidak merusak sinkronisasi repositori.
+
