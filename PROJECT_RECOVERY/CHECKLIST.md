@@ -1,10 +1,10 @@
-# Checklist Discovery Sprint 0
+# Checklist Recovery Project: Portal SDM Next
 
 Dokumen ini melacak verifikasi arsitektur proyek, API, database, Docker, dan deployment. Setiap temuan awalnya diperlakukan sebagai **HYPOTHESIS** berdasarkan dokumen pemandu (`GEMINI.md` dan `AGENTS.md`), kemudian dicocokkan dengan kode aktual untuk ditingkatkan statusnya menjadi **VERIFIED** beserta bukti file/baris.
 
 ---
 
-## Status Target Sprint 0
+## Status Target Sprint 0 (Pembersihan & Smoke Test)
 - [x] Project Manifest
 - [x] Repository Audit
 - [x] Module Inventory Discovery
@@ -13,6 +13,14 @@ Dokumen ini melacak verifikasi arsitektur proyek, API, database, Docker, dan dep
 - [x] Database Discovery
 - [x] Docker Discovery
 - [x] Deployment Discovery
+
+---
+
+## Status Target Sprint 1 (Module Map & Reverse Documentation)
+- [x] Tugas 1: Peta Modul Komprehensif (`docs/architecture/MODULE_MAP.md`)
+- [x] Tugas 2: Dokumentasi Balik API (`docs/api/API.md`)
+- [x] Tugas 3: Dokumentasi Balik Database (`docs/database/DATABASE.md`)
+- [x] Tugas 4: Perbarui Checklist & Ringkasan Temuan Keamanan (`PROJECT_RECOVERY/SECURITY_FINDINGS_SUMMARY.md`)
 
 ---
 
@@ -170,4 +178,24 @@ Pemulihan dan verifikasi smoke test lokal berhasil dilaksanakan dengan hasil **P
        VITE v5.4.21  ready in 204 ms
        ➜  Local:   http://localhost:5173/
      ```
+
+---
+
+### Hasil Uji & Verifikasi Sprint 1 (Module Map & Reverse Documentation):
+
+1. **Pemetaan Modul Lengkap (Tugas 1)**:
+   * **Hasil**: **SELESAI** (Commit: `d6edd329`). Berkas [MODULE_MAP.md](file:///opt/portal-sdmv3/docs/architecture/MODULE_MAP.md) berhasil mencatat 29 modul backend aktif beserta tujuan bisnis, route, controller, service, repositori, dependensi database, status pengujian, dan tingkat risikonya.
+   * **Hasil Verifikasi Kunci**: Modul-modul dengan risiko tinggi diletakkan di bagian teratas untuk peninjauan khusus (seperti `pengguna`, `pegawai`, `absensi`, `cuti`, `penggajian`, `kontrak`, `backup`, `laporan`, `integration`, dan `audit-log`).
+
+2. **Dokumentasi Balik API (Tugas 2)**:
+   * **Hasil**: **SELESAI** (Commit: `bb9f94bc`). Berkas [API.md](file:///opt/portal-sdmv3/docs/api/API.md) mencatat seluruh endpoint, metode HTTP, status otorisasi, parameter request, dan skema respons.
+   * **Hasil Temuan Kunci**: Mengidentifikasi celah bypass otorisasi JWT pada modul penting (`SEC-02`) dan privilege escalation register user (`SEC-04`).
+
+3. **Dokumentasi Balik Database (Tugas 3)**:
+   * **Hasil**: **SELESAI** (Commit: `f983d1db`). Berkas [DATABASE.md](file:///opt/portal-sdmv3/docs/database/DATABASE.md) memetakan skema SQLite fisik menggunakan dump `.schema` aktual, diagram ERD Mermaid, dan anomali skema (tabel mati/tidak terpakai seperti `pinjaman_karyawan`, `users`, `organizational_kpi`, `department_kpi`, dan `daily_activities`).
+   * **Hasil Temuan Kunci**: Mengidentifikasi ketidak-idempotennan skrip migrasi ([migrate.ts](file:///opt/portal-sdmv3/apps/backend/db/migrate.ts)) yang memicu bahaya operasional berupa data loss (`DATA-01`) dan hilangnya CHECK constraint di tingkat database untuk kolom `role` pada tabel `pengguna`.
+
+4. **Ringkasan Temuan Keamanan (Tugas 4)**:
+   * **Hasil**: **SELESAI**. Berkas [SECURITY_FINDINGS_SUMMARY.md](file:///opt/portal-sdmv3/PROJECT_RECOVERY/SECURITY_FINDINGS_SUMMARY.md) dibuat untuk menyatukan semua temuan kritis agar mudah ditangani pada sprint perbaikan.
+
 
