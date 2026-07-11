@@ -76,8 +76,8 @@ Berikut adalah daftar risiko keamanan dan arsitektural penting yang ditemukan se
 
 | ID Risiko | Item Risiko | Dampak / Severity | Keterangan & Rencana Aksi | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **SEC-01** | Celah Keamanan JWT_SECRET Fallback | **Tinggi (High)** | Jika `JWT_SECRET` tidak didefinisikan pada host env, system container menggunakan default secret fallback. Rencana: Hapus default fallback di `docker-compose.yml`. | Terencana |
-| **SEC-02** | Node 18 EOL (End-of-Life) | **Sedang (Medium)** | Dockerfile backend & frontend menggunakan `node:18-alpine`. Node 18 telah EOL sejak April 2025. Rencana: Upgrade ke Node 20 LTS / Node 22 LTS. | Terencana |
+| **SEC-01** | Celah Keamanan JWT_SECRET Fallback | **Tinggi (High)** | Jika `JWT_SECRET` tidak didefinisikan pada host env, Docker Compose ([docker-compose.yml:15](file:///opt/portal-sdmv3/docker-compose.yml#L15)) akan menggunakan default secret fallback (`default_secret_please_change`), mem-bypass proteksi crash produksi di [apps/backend/src/config/config.ts:10-17](file:///opt/portal-sdmv3/apps/backend/src/config/config.ts#L10-L17). Rencana: Hapus default fallback di `docker-compose.yml`. | Terencana |
+| **SEC-02** | Node 18 EOL (End-of-Life) | **Sedang (Medium)** | Dockerfile backend ([apps/backend/Dockerfile:2](file:///opt/portal-sdmv3/apps/backend/Dockerfile#L2)) & frontend ([apps/frontend/Dockerfile:2](file:///opt/portal-sdmv3/apps/frontend/Dockerfile#L2)) menggunakan `node:18-alpine`. Node 18 telah EOL sejak April 2025. Rencana: Upgrade ke Node 20 LTS / Node 22 LTS. | Terencana |
 | **SEC-03** | Kebocoran Kunci Rahasia / Secrets Leak | **Tinggi (High)** | Berkas `.env` (berisi key sensitif seperti `WA_API_KEY` dan `JWT_SECRET` dev) serta `.sqlite` ter-track Git sejak *initial commit* (27 Okt 2025). | Diatasi (Smoke Test) |
 | **OPS-01** | Cross-Platform `node_modules` Commit | **Sedang (Medium)** | Direktori `node_modules` backend di-commit dari Windows, menyebabkan wrapper scripts `.bin` lokal Linux tidak bisa dieksekusi (permission denied) dan binary `sqlite3` error (*invalid ELF header*). | Diatasi (Smoke Test) |
 

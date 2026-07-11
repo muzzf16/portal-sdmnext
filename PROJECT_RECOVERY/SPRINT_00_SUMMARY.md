@@ -50,10 +50,10 @@ Beberapa aspek teknis dan operasional masih belum dieksplorasi secara mendalam d
 Daftar risiko yang dicatat untuk menjadi fokus penanganan pada sprint perbaikan mendatang:
 
 1. **[PRIORITAS TINGGI] Node 18 EOL (End-of-Life)**
-   * *Risiko*: Dockerfile backend & frontend saat ini menggunakan base image `node:18-alpine`. Node 18 telah EOL sejak April 2025, memicu potensi kerentanan keamanan tanpa pembaruan resmi.
+   * *Risiko*: Dockerfile backend ([apps/backend/Dockerfile:2](file:///opt/portal-sdmv3/apps/backend/Dockerfile#L2)) & frontend ([apps/frontend/Dockerfile:2](file:///opt/portal-sdmv3/apps/frontend/Dockerfile#L2)) menggunakan base image `node:18-alpine`. Node 18 telah EOL sejak April 2025, memicu potensi kerentanan keamanan tanpa pembaruan resmi.
    * *Aksi*: Migrasi base image Docker ke Node 20 LTS atau Node 22 LTS.
 2. **[PRIORITAS TINGGI] Celah Keamanan JWT_SECRET Fallback**
-   * *Risiko*: `docker-compose.yml` utama menggunakan fallback default `${JWT_SECRET:-default_secret_please_change}`. Jika host env lupa mengonfigurasi variabel ini, container akan berjalan dengan secret default yang rentan dibajak.
+   * *Risiko*: Berkas [docker-compose.yml:15](file:///opt/portal-sdmv3/docker-compose.yml#L15) utama menggunakan fallback default `${JWT_SECRET:-default_secret_please_change}`. Hal ini mem-bypass logika penghentian paksa backend di [apps/backend/src/config/config.ts:10-17](file:///opt/portal-sdmv3/apps/backend/src/config/config.ts#L10-L17). Jika host env lupa mengonfigurasi variabel ini, container akan berjalan secara diam-diam menggunakan secret default di mode produksi.
    * *Aksi*: Hapus default fallback dari berkas Docker Compose utama.
 3. **[PRIORITAS MENENGAH] Ukuran Git History Besar (269 MB)**
    * *Risiko*: Git packfile lama masih menyimpan berkas `node_modules` Windows dan SQLite lama yang berukuran sangat besar.
