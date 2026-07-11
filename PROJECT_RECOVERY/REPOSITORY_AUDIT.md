@@ -88,6 +88,8 @@ Berikut adalah daftar risiko keamanan dan arsitektural penting yang ditemukan se
 
 Temuan keamanan berikut didokumentasikan secara terpisah dari hutang teknis biasa sebagai bagian dari pembersihan repositori:
 
+* **Bypass JWT / Ketiadaan Proteksi Autentikasi Rute (SEC-02 - KRITIS - DITUNDA SECARA SADAR)**:
+  Modul `backup`, `pengguna`, `pegawai`, `cuti`, `absensi`, `penggajian`, `kontrak`, dan `laporan` tidak memiliki proteksi autentikasi pada rute-nya, meski `GEMINI.md` mengklaim sebaliknya. Server bersifat internet-facing. Keputusan pemilik proyek per 11 Juli 2026: **DITUNDA** hingga sesi development berikutnya. Risiko: akses/modifikasi/pengambilan data tanpa otorisasi dapat terjadi kapan saja selama masa penundaan ini.
 * **WhatsApp API Key (`WA_API_KEY`)**:
   Kunci rahasia `WA_API_KEY` (JWT token) ter-expose di git history sejak **27 Oktober 2025** (pada commit awal `2f4d4255`), dan telah dikonfirmasi **sudah dirotasi secara resmi pada 11 Juli 2026** (kunci aktif saat ini di server/produksi menggunakan nilai baru yang aman dan berbeda).
 * **JWT Secret (`JWT_SECRET`)**:
