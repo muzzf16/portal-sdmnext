@@ -6,7 +6,7 @@ import multer from 'multer';
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../public/avatars');
+    const uploadDir = path.join(__dirname, '../../public/uploads/avatars');
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });

@@ -63,7 +63,7 @@ class PegawaiController {
     try {
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
-        avatarUrl = `/avatars/${req.file.filename}`;
+        avatarUrl = `/uploads/avatars/${req.file.filename}`;
       }
 
       const { name, email, ...pegawaiData } = req.body;
@@ -81,7 +81,7 @@ class PegawaiController {
 
       const newPegawaiData = {
         ...pegawaiData,
-        avatarUrl: avatarUrl || '/avatars/default-avatar.jpg'
+        avatarUrl: avatarUrl || '/uploads/avatars/default-avatar.jpg'
       };
 
       const newPegawai = await PegawaiService.createPegawai(name, email, newPegawaiData);
@@ -95,7 +95,7 @@ class PegawaiController {
     try {
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
-        avatarUrl = `/avatars/${req.file.filename}`;
+        avatarUrl = `/uploads/avatars/${req.file.filename}`;
       }
 
       const { id } = req.params;

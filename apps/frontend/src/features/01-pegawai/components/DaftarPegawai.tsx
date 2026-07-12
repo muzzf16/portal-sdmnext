@@ -34,9 +34,23 @@ const DaftarPegawai: React.FC = () => {
 
     return matchesSearch && matchesPosition && matchesDepartment && matchesStatus;
   })?.sort((a, b) => {
+    // Replicate backend sorting logic: NIP-filled first, then empty NIPs at the end.
+    const hasNipA = a.nip && a.nip.trim() !== '' && a.nip !== '-';
+    const hasNipB = b.nip && b.nip.trim() !== '' && b.nip !== '-';
+
+    if (hasNipA && !hasNipB) return -1;
+    if (!hasNipA && hasNipB) return 1;
+
+    if (!hasNipA && !hasNipB) {
+      return (a.name || '').localeCompare(b.name || '');
+    }
+
     const nipA = a.nip || '';
     const nipB = b.nip || '';
-    return nipA.localeCompare(nipB, undefined, { numeric: true, sensitivity: 'base' });
+    const nipCompare = nipA.localeCompare(nipB, undefined, { numeric: true, sensitivity: 'base' });
+    if (nipCompare !== 0) return nipCompare;
+
+    return (a.name || '').localeCompare(b.name || '');
   }) || [];
 
   const handleDelete = async (id: string) => {

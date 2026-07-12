@@ -155,8 +155,8 @@ export const PenggajianRepository = {
     const db = await openDb();
     const rows = await db.all(`
       SELECT * FROM penggajian 
-      WHERE datetime('now') - datetime(created_at) <= 86400  -- Last 24 hours
-      ORDER BY created_at DESC
+      WHERE (strftime('%s', 'now') - strftime('%s', createdAt)) <= 86400  -- Last 24 hours
+      ORDER BY createdAt DESC
     `);
     return parseJsonFields(rows);
   }

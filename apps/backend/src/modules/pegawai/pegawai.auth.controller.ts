@@ -6,7 +6,7 @@ class PegawaiAuthController {
     try {
       let avatarUrl = req.body.avatarUrl;
       if (req.file) {
-        avatarUrl = `/avatars/${req.file.filename}`;
+        avatarUrl = `/uploads/avatars/${req.file.filename}`;
       }
 
       const { name, email, ...pegawaiData } = req.body;
@@ -21,7 +21,7 @@ class PegawaiAuthController {
 
       const newPegawaiData = {
         ...pegawaiData,
-        avatarUrl: avatarUrl || '/avatars/default-avatar.jpg',
+        avatarUrl: avatarUrl || '/uploads/avatars/default-avatar.jpg',
         name,
         email
       };

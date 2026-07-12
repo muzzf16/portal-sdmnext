@@ -4,7 +4,7 @@ ID
 BUG-2026-001
 
 Status
-Draft
+Resolved
 
 Reporter
 Ade

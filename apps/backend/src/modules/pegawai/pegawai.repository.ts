@@ -103,7 +103,7 @@ export const PegawaiRepository = {
       golongan: data.golongan || 'N/A',
       department: data.department || 'N/A',
       joinDate: data.joinDate || new Date().toISOString().split('T')[0],
-      avatarUrl: data.avatarUrl || '/avatars/default-avatar.jpg',
+      avatarUrl: data.avatarUrl || '/uploads/avatars/default-avatar.jpg',
       jenis_kelamin: data.jenis_kelamin || null,
       leaveBalance: data.leaveBalance ?? 18,
       isActive: data.hasOwnProperty('isActive') ? (data.isActive ? 1 : 0) : 1,
