@@ -2,7 +2,7 @@ import { PegawaiRepository } from './pegawai.repository';
 import { AppError } from '../../utils/errors';
 import { PenggunaRepository } from '../pengguna/pengguna.repository';
 import { JabatanRepository } from '../jabatan/jabatan.repository';
-import { openDb } from '../../config/db';
+import { openDb, withTransaction } from '../../config/db';
 
 class PegawaiService {
   static async getAllPegawai(options?: { includeDirectors?: boolean }) {
@@ -165,30 +165,49 @@ class PegawaiService {
 
   static async deletePegawai(id: string) {
     try {
-      // Check if exists
       const existing = await PegawaiRepository.findById(id);
       if (!existing) {
         throw new AppError('Pegawai tidak ditemukan', 404);
       }
 
-      // Delete linked user account first
-      try {
-        const db = await openDb();
-        const linkedUser = await db.get('SELECT * FROM pengguna WHERE employeeId = ?', id);
-        if (linkedUser) {
-          await PenggunaRepository.delete(linkedUser.id);
+      return await withTransaction(async (db) => {
+        await db.run('UPDATE pegawai SET atasan_id = NULL WHERE atasan_id = ?', id);
+
+        const linkedUsers = await db.all('SELECT id FROM pengguna WHERE employeeId = ?', id);
+        for (const user of linkedUsers) {
+          await db.run('DELETE FROM pengguna WHERE id = ?', user.id);
         }
-      } catch (syncError: any) {
-        console.error('Warning: Failed to delete linked user:', syncError.message);
-      }
 
-      // Delete employee
-      const deleted = await PegawaiRepository.delete(id);
-      if (!deleted) {
-        throw new AppError('Gagal menghapus pegawai', 500);
-      }
+        if (existing.nip) {
+          await db.run('DELETE FROM users WHERE employeeId = ?', existing.nip);
+        }
+        await db.run('DELETE FROM users WHERE employeeId = ?', id);
 
-      return { message: 'Pegawai dan akun terkait berhasil dihapus' };
+        await db.run('DELETE FROM absensi WHERE employeeId = ?', id);
+        await db.run('DELETE FROM penggajian WHERE employeeId = ?', id);
+        await db.run('DELETE FROM kontrak WHERE employeeId = ?', id);
+        await db.run('DELETE FROM penilaian_kinerja WHERE employeeId = ?', id);
+        await db.run('DELETE FROM permintaan_cuti WHERE employeeId = ?', id);
+        await db.run('DELETE FROM pelatihan WHERE pegawai_id = ?', id);
+        await db.run('DELETE FROM riwayat_jabatan WHERE pegawai_id = ?', id);
+        await db.run('DELETE FROM tugas_orientasi WHERE employee_id = ?', id);
+        await db.run('DELETE FROM notifications WHERE employee_id = ?', id);
+        await db.run('DELETE FROM pinjaman_karyawan WHERE id_pegawai = ?', id);
+        await db.run('DELETE FROM data_change_requests WHERE employeeId = ?', id);
+        await db.run('DELETE FROM analisis_beban_kerja WHERE employeeId = ?', id);
+        await db.run('DELETE FROM kpi_targets WHERE id_pegawai = ?', id);
+        await db.run('DELETE FROM daily_activities WHERE id_pegawai = ?', id);
+        await db.run('DELETE FROM department_kpi WHERE employeeId = ?', id);
+        await db.run('DELETE FROM organizational_kpi WHERE employeeId = ?', id);
+        await db.run('DELETE FROM assigned_tasks WHERE employeeId = ?', id);
+
+        const result = await db.run('DELETE FROM pegawai WHERE id = ?', id);
+        if (!result.changes) {
+          throw new AppError('Gagal menghapus pegawai', 500);
+        }
+
+        return { message: 'Pegawai dan akun terkait berhasil dihapus' };
+      });
     } catch (error: any) {
       if (error instanceof AppError) throw error;
       throw new AppError(`Error deleting employee: ${error.message}`, 500);

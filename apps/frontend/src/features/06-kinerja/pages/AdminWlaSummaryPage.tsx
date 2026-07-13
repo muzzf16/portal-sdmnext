@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
-import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
+import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit } from 'lucide-react';
 import { AdminWlaSummary } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
@@ -10,6 +10,7 @@ import {
     fetchAdminWlaDetailLogs,
     PERFORMANCE_QUERY_KEYS,
     useAdminWlaSummary,
+    useUpdateWlaFrekuensiMutation,
     useUpdateWlaStatusMutation,
     useDirectorNames
 } from '../hooks/usePerformanceManagementQuery';
@@ -49,6 +50,9 @@ const AdminWlaSummaryPage: React.FC = () => {
     const queryClient = useQueryClient();
     const adminSummaryQuery = useAdminWlaSummary(startDate, endDate);
     const updateWlaStatusMutation = useUpdateWlaStatusMutation();
+    const updateWlaFrekuensiMutation = useUpdateWlaFrekuensiMutation();
+    const [editingFrekuensiId, setEditingFrekuensiId] = useState<number | null>(null);
+    const [editingFrekuensiValue, setEditingFrekuensiValue] = useState<number | null>(null);
     const summaries = (adminSummaryQuery.data ?? []) as AdminWlaSummary[];
     const loading = adminSummaryQuery.isLoading || adminSummaryQuery.isFetching;
     const error = (adminSummaryQuery.error as Error | null)?.message ?? null;
@@ -179,6 +183,31 @@ const AdminWlaSummaryPage: React.FC = () => {
             alert('Gagal mengubah status log.');
         } finally {
             setUpdatingId(null);
+        }
+    };
+
+    const handleSaveFrekuensi = async (logId: number, frekuensi: number, employeeKey: string) => {
+        if (frekuensi === null || frekuensi <= 0) {
+            setEditingFrekuensiId(null);
+            setEditingFrekuensiValue(null);
+            return;
+        }
+
+        const previousLogs = detailLogs[employeeKey] || [];
+        setDetailLogs(prev => ({
+            ...prev,
+            [employeeKey]: prev[employeeKey]?.map(log =>
+                log.id_log === logId ? { ...log, frekuensi } : log
+            ) || []
+        }));
+        setEditingFrekuensiId(null);
+        setEditingFrekuensiValue(null);
+
+        try {
+            await updateWlaFrekuensiMutation.mutateAsync({ id: logId, frekuensi });
+        } catch (err) {
+            setDetailLogs(prev => ({ ...prev, [employeeKey]: previousLogs }));
+            alert('Gagal mengubah frekuensi log.');
         }
     };
 
@@ -432,17 +461,37 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                                                             <div className="text-xs text-gray-400">{log.category || ''}</div>
                                                                                         </td>
                                                                                         <td className="px-4 py-3 text-center">
-                                                                                            <div className="flex flex-col items-center">
-                                                                                                <span>{isNominalOnlyActivity ? '-' : `${log.frekuensi}x`}</span>
-                                                                                                {isReceivingKredit && creditDetailLogs[key] && (
-                                                                                                    <span className={clsx(
-                                                                                                        "text-[9px] font-bold mt-1",
-                                                                                                        creditDetailLogs[key].length === log.frekuensi ? "text-green-600" : "text-amber-600"
-                                                                                                    )}>
-                                                                                                        (Ref Berkas: {creditDetailLogs[key].length})
-                                                                                                    </span>
-                                                                                                )}
-                                                                                            </div>
+                                                                                            {editingFrekuensiId === log.id_log ? (
+                                                                                                <input
+                                                                                                    type="number"
+                                                                                                    value={editingFrekuensiValue ?? log.frekuensi}
+                                                                                                    onChange={(e) => setEditingFrekuensiValue(Number(e.target.value))}
+                                                                                                    onBlur={() => handleSaveFrekuensi(log.id_log, editingFrekuensiValue ?? log.frekuensi, key)}
+                                                                                                    onKeyDown={(e) => {
+                                                                                                        if (e.key === 'Enter') {
+                                                                                                            handleSaveFrekuensi(log.id_log, editingFrekuensiValue ?? log.frekuensi, key);
+                                                                                                        } else if (e.key === 'Escape') {
+                                                                                                            setEditingFrekuensiId(null);
+                                                                                                            setEditingFrekuensiValue(null);
+                                                                                                        }
+                                                                                                    }}
+                                                                                                    className="w-20 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                                                    min="1"
+                                                                                                    autoFocus
+                                                                                                />
+                                                                                            ) : (
+                                                                                                <div className="flex flex-col items-center">
+                                                                                                    <span>{isNominalOnlyActivity ? '-' : `${log.frekuensi}x`}</span>
+                                                                                                    {isReceivingKredit && creditDetailLogs[key] && (
+                                                                                                        <span className={clsx(
+                                                                                                            "text-[9px] font-bold mt-1",
+                                                                                                            creditDetailLogs[key].length === log.frekuensi ? "text-green-600" : "text-amber-600"
+                                                                                                        )}>
+                                                                                                            (Ref Berkas: {creditDetailLogs[key].length})
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            )}
                                                                                         </td>
                                                                                         <td className="px-4 py-3 text-center font-medium">
                                                                                             {isNominalOnlyActivity
@@ -457,6 +506,18 @@ const AdminWlaSummaryPage: React.FC = () => {
                                                                                         </td>
                                                                                         <td className="px-4 py-3 text-center">
                                                                                             <div className="flex gap-2 justify-center">
+                                                                                                {log.status_approval !== 'approved' && updatingId !== log.id_log && editingFrekuensiId !== log.id_log && (
+                                                                                                    <button
+                                                                                                        onClick={() => {
+                                                                                                            setEditingFrekuensiId(log.id_log);
+                                                                                                            setEditingFrekuensiValue(log.frekuensi);
+                                                                                                        }}
+                                                                                                        title="Edit Frekuensi"
+                                                                                                        className="p-1.5 rounded-full transition-colors hover:bg-blue-50 text-blue-600"
+                                                                                                    >
+                                                                                                        <Edit className="h-4 w-4" />
+                                                                                                    </button>
+                                                                                                )}
                                                                                                 <button
                                                                                                     onClick={() => handleUpdateStatus(log.id_log, 'approved', key)}
                                                                                                     disabled={updatingId === log.id_log || log.status_approval === 'approved'}

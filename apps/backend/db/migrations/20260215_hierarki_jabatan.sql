@@ -32,7 +32,7 @@ DROP TABLE IF EXISTS _migration_temp_check;
 ALTER TABLE pegawai ADD COLUMN jabatan_id INTEGER REFERENCES jabatan(id);
 
 -- Add atasan_id column (direct supervisor)
-ALTER TABLE pegawai ADD COLUMN atasan_id TEXT REFERENCES pegawai(id);
+ALTER TABLE pegawai ADD COLUMN atasan_id TEXT REFERENCES pegawai(id) ON DELETE SET NULL;
 
 -- =============================================
 -- Seed Data: Hierarki Jabatan untuk BPR/Perbankan

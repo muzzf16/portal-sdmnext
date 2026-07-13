@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS pengguna (
     employeeId TEXT,
     avatarUrl TEXT,
     createdAt DATETIME,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 3. Absensi
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS absensi (
     workDuration TEXT,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 4. permintaan cuti
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS permintaan_cuti (
     supportingDocument TEXT,
     rejectionReason TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 5. penggajian
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS penggajian (
     netSalary REAL,
     tanggalPembayaran TEXT,
     createdAt DATETIME,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 6. penilaian_kinerja
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS penilaian_kinerja (
     kpis TEXT, -- JSON
     penilaiId TEXT,
     createdAt DATETIME,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 7. kontrak
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS kontrak (
     salary REAL,
     notes TEXT,
     createdAt DATETIME,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 8. pelatihan
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS pelatihan (
     tanggal_mulai TEXT,
     tanggal_selesai TEXT,
     nomor_sertifikat TEXT,
-    FOREIGN KEY (pegawai_id) REFERENCES pegawai(id)
+    FOREIGN KEY (pegawai_id) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 9. riwayat_jabatan
@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS riwayat_jabatan (
     jabatan_lama TEXT,
     jabatan_baru TEXT,
     tanggal_perubahan TEXT,
-    FOREIGN KEY (pegawai_id) REFERENCES pegawai(id)
+    FOREIGN KEY (pegawai_id) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 10. tugas_orientasi
@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS tugas_orientasi (
     description TEXT,
     due_date TEXT,
     completed INTEGER,
-    FOREIGN KEY (employee_id) REFERENCES pegawai(id)
+    FOREIGN KEY (employee_id) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 11. notifications
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     delivery_channel TEXT,
     related_entity TEXT,
     related_entity_id TEXT,
-    FOREIGN KEY (employee_id) REFERENCES pegawai(id)
+    FOREIGN KEY (employee_id) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 12. pinjaman_karyawan
@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS pinjaman_karyawan (
     sisa_pinjaman REAL,
     status_pinjaman TEXT,
     created_at DATETIME,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id)
+    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id) ON DELETE CASCADE
 );
 
 -- 13. users

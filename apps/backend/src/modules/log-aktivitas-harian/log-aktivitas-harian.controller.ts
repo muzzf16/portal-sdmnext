@@ -182,4 +182,26 @@ export default class LogAktivitasHarianController {
             return next(error);
         }
     }
+
+    static async updateFrekuensi(req: AuthRequest, res: Response, next: NextFunction) {
+        try {
+            const id_log = req.params.id;
+            const { frekuensi } = req.body as { frekuensi: number };
+
+            if (frekuensi === undefined || frekuensi === null || frekuensi <= 0) {
+                return res.status(400).json({ success: false, message: 'Frekuensi harus lebih besar dari 0' });
+            }
+
+            const data = await LogAktivitasHarianService.updateFrekuensi(Number(id_log), Number(frekuensi));
+            return res.status(200).json({ success: true, data });
+        } catch (error: any) {
+            if (error instanceof Error && error.message.includes('sudah disetujui')) {
+                return res.status(403).json({ success: false, message: error.message });
+            }
+            if (error instanceof Error && error.message.includes('tidak ditemukan')) {
+                return res.status(404).json({ success: false, message: error.message });
+            }
+            return next(error);
+        }
+    }
 }

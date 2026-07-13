@@ -142,4 +142,29 @@ export default class LogAktivitasHarianService {
 
         return LogAktivitasHarianRepository.updateStatus(normalizedId, status);
     }
+
+    static async updateFrekuensi(id_log: number, frekuensi: number) {
+        const normalizedId = this.normalizeNumber(id_log, 'id_log');
+        const normalizedFrekuensi = this.normalizeNumber(frekuensi, 'frekuensi');
+
+        if (normalizedFrekuensi <= 0) {
+            throw new AppError('Frekuensi harus lebih besar dari 0', 400);
+        }
+
+        const log = await LogAktivitasHarianRepository.findById(normalizedId);
+        if (!log) {
+            throw new AppError('Log aktivitas tidak ditemukan', 404);
+        }
+
+        if (log.status_approval === 'approved') {
+            throw new AppError('Tidak dapat mengubah frekuensi log yang sudah disetujui', 403);
+        }
+
+        const activity = await ActivityLibraryRepository.findById(String(log.id_activity_library));
+        if (!activity) {
+            throw new AppError('Activity Library tidak ditemukan', 404);
+        }
+
+        return LogAktivitasHarianRepository.updateFrekuensi(normalizedId, normalizedFrekuensi);
+    }
 }

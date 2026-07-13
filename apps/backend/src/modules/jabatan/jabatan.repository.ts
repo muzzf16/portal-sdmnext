@@ -73,7 +73,22 @@ export const JabatanRepository = {
                 }));
         };
 
-        return buildTree(null);
+        const tree = buildTree(null);
+
+        const unassigned = allPegawai.filter(p => p.jabatan_id === null);
+        if (unassigned.length > 0) {
+            tree.push({
+                id: -1,
+                nama: 'Tanpa Jabatan',
+                level: 0,
+                parent_id: null,
+                department: null,
+                employees: unassigned,
+                children: []
+            });
+        }
+
+        return tree;
     },
 
     // Get subordinates of a pegawai (all levels below)

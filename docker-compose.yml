@@ -13,7 +13,7 @@ services:
       - NODE_ENV=production
       - DB_SOURCE=/data/database.sqlite
       - JWT_SECRET=${JWT_SECRET:-default_secret_please_change}
-      - CORS_ORIGIN=http://192.168.0.210:8081,https://sdm.bprbaperabatang.com
+      - CORS_ORIGIN=http://192.168.0.210:8081,https://sdm.bprbaperabatang.com,http://10.138.0.90:8081,http://10.138.0.10:8081
     networks:
       - bpr-network # Connect to shared network
     volumes:
