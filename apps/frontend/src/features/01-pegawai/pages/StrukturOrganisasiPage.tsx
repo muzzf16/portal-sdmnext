@@ -1,7 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { getJabatanTreeWithEmployees, getJabatanList, createJabatan, updateJabatan, deleteJabatan, JabatanTree, Jabatan } from '../api/jabatanApi';
-import { ChevronDown, ChevronRight, Users, Plus, Edit3, Trash2, X, Building2, User } from 'lucide-react';
+import { ChevronDown, ChevronRight, Users, Plus, Edit3, Trash2, X, Building2, User, Download } from 'lucide-react';
 import clsx from 'clsx';
+import { Tree, TreeNode } from 'react-organizational-chart';
+import { toPng } from 'html-to-image';
+import { useRef } from 'react';
+
+// ====== CHART NODE COMPONENT ======
+const ChartNode: React.FC<{ node: JabatanTree; isRoot?: boolean }> = ({ node, isRoot }) => {
+    // Render self box
+    const renderNodeBox = () => (
+        <div className={clsx(
+            "inline-block border-2 border-[#1b365d] rounded-[24px] px-6 py-3 bg-[#e9eff2] dark:bg-neutral-800 text-center min-w-[180px] shadow-sm relative z-10",
+            node.level === 4 && "rounded-none px-4 py-2 min-w-[120px] bg-[#919ea9] border-none text-white", // Staf style
+            node.level === 4 && node.nama.toLowerCase().includes("staf") && "bg-[#1b365d] min-w-[200px]" // Para Staf/Karyawan root style
+        )}>
+            {/* Outer decorative border for non-staff */}
+            {node.level !== 4 && (
+                <div className="absolute inset-[-4px] border border-[#1b365d]/40 rounded-[26px] pointer-events-none"></div>
+            )}
+
+            <div className={clsx(
+                "font-bold uppercase mb-1 text-sm leading-tight",
+                node.level === 4 ? "text-white" : "text-[#1b365d] dark:text-blue-300"
+            )}>
+                {node.nama}
+            </div>
+
+            {/* Show employee name if available */}
+            {node.employees && node.employees.length > 0 && (
+                <div className={clsx(
+                    "text-xs mt-1",
+                    node.level === 4 ? "text-white/90" : "text-gray-700 dark:text-gray-300"
+                )}>
+                    {node.employees[0].name}
+                    {node.employees.length > 1 && ` (+${node.employees.length - 1})`}
+                </div>
+            )}
+        </div>
+    );
+
+    if (isRoot) {
+        return (
+            <Tree
+                lineWidth={'3px'}
+                lineColor={'#1b365d'}
+                lineBorderRadius={'0px'}
+                label={renderNodeBox()}
+                nodePadding="20px"
+            >
+                {node.children?.map(child => (
+                    <ChartNode key={child.id} node={child} />
+                ))}
+            </Tree>
+        );
+    }
+
+    return (
+        <TreeNode label={renderNodeBox()}>
+            {node.children?.map(child => (
+                <ChartNode key={child.id} node={child} />
+            ))}
+        </TreeNode>
+    );
+};
 
 // ====== TREE NODE COMPONENT ======
 const OrgNode: React.FC<{ node: JabatanTree; depth: number }> = ({ node, depth }) => {
@@ -124,8 +186,9 @@ const JabatanFormModal: React.FC<{
                 await createJabatan(data);
             }
             onSaved();
-        } catch (err: any) {
-            setError(err.response?.data?.message || err.message || 'Gagal menyimpan');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            setError(error.response?.data?.message || error.message || 'Gagal menyimpan');
         } finally {
             setLoading(false);
         }
@@ -243,9 +306,10 @@ const StrukturOrganisasiPage: React.FC = () => {
     const [tree, setTree] = useState<JabatanTree[]>([]);
     const [flatList, setFlatList] = useState<Jabatan[]>([]);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'tree' | 'table'>('tree');
+    const [viewMode, setViewMode] = useState<'tree' | 'table' | 'chart'>('tree');
     const [showForm, setShowForm] = useState(false);
     const [editJabatan, setEditJabatan] = useState<Jabatan | null>(null);
+    const chartRef = useRef<HTMLDivElement>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -270,8 +334,9 @@ const StrukturOrganisasiPage: React.FC = () => {
         try {
             await deleteJabatan(id);
             fetchData();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Gagal menghapus');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            alert(error.response?.data?.message || 'Gagal menghapus');
         }
     };
 
@@ -312,7 +377,39 @@ const StrukturOrganisasiPage: React.FC = () => {
                         >
                             📋 Tabel
                         </button>
+                        <button
+                            onClick={() => setViewMode('chart')}
+                            className={clsx(
+                                'px-3 py-1.5 text-sm rounded-md transition-colors',
+                                viewMode === 'chart' ? 'bg-white dark:bg-neutral-600 shadow-sm font-medium' : 'text-gray-600 dark:text-gray-400'
+                            )}
+                        >
+                            📊 Bagan
+                        </button>
                     </div>
+
+                    {viewMode === 'chart' && (
+                        <button
+                            onClick={async () => {
+                                if (chartRef.current) {
+                                    try {
+                                        const dataUrl = await toPng(chartRef.current, { backgroundColor: '#ffffff' });
+                                        const link = document.createElement('a');
+                                        link.download = 'struktur-organisasi.png';
+                                        link.href = dataUrl;
+                                        link.click();
+                                    } catch (err) {
+                                        console.error('Failed to export chart:', err);
+                                        alert('Gagal mengunduh bagan.');
+                                    }
+                                }
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-sm font-medium transition-colors"
+                        >
+                            <Download size={16} /> Unduh PNG
+                        </button>
+                    )}
+
                     <button
                         onClick={() => { setEditJabatan(null); setShowForm(true); }}
                         className="px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 flex items-center gap-1 text-sm font-medium"
@@ -338,6 +435,24 @@ const StrukturOrganisasiPage: React.FC = () => {
 
             {loading ? (
                 <div className="text-center py-12 text-gray-500">Memuat data...</div>
+            ) : viewMode === 'chart' ? (
+                /* ===== CHART VIEW ===== */
+                <div className="bg-[#e9eff2] dark:bg-neutral-800 rounded-lg p-6 shadow-sm border dark:border-neutral-700 overflow-auto min-h-[600px] flex justify-center">
+                    {tree.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">Belum ada data jabatan</div>
+                    ) : (
+                        <div ref={chartRef} className="bg-[#e9eff2] dark:bg-neutral-800 p-8 inline-block min-w-max">
+                            <div className="text-center mb-8">
+                                <h2 className="text-2xl font-bold text-[#1b365d] dark:text-white uppercase tracking-wider">STRUKTUR ORGANISASI PERUSAHAAN</h2>
+                                <h3 className="text-xl font-bold text-[#1b365d] dark:text-white uppercase mt-1">PT BORCELLE</h3>
+                            </div>
+
+                            {tree.map(node => (
+                                <ChartNode key={node.id} node={node} isRoot={true} />
+                            ))}
+                        </div>
+                    )}
+                </div>
             ) : viewMode === 'tree' ? (
                 /* ===== TREE VIEW ===== */
                 <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 shadow-sm border dark:border-neutral-700">
