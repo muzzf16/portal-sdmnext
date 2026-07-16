@@ -20,6 +20,7 @@ Modul Manajemen Pegawai sudah memiliki fondasi yang baik: CRUD lengkap, upload f
 ## 🔴 Temuan Kritis (Harus Diperbaiki)
 
 ### 1. Route Ordering Bug — `/charts/*` Tidak Akan Terpanggil
+**Status:** [OPEN]
 
 **File:** `pegawai.routes.ts` (baris 8-10)
 
@@ -43,6 +44,7 @@ router.get('/:id', PegawaiController.getPegawaiById);  // ← catch-all terakhir
 ---
 
 ### 2. Type Mismatch `id`: Frontend `number` vs Backend `string`
+**Status:** [OPEN]
 
 **Frontend `types/index.ts`:**
 ```typescript
@@ -70,6 +72,7 @@ export interface Pegawai {
 ---
 
 ### 3. Sinkronisasi User-Pegawai Tidak Terimplemen
+**Status:** [OPEN]
 
 **File:** `pegawai.service.ts` — baris 69-78
 
@@ -100,6 +103,8 @@ await PenggunaRepository.deleteByEmployeeId(id);
 ## 🟡 Temuan Penting (Perlu Segera Ditangani)
 
 ### 4. Tidak Ada Pagination — Data Load Semua Sekaligus
+**Status:** [OPEN]
+
 
 **File:** `pegawai.repository.ts` — `findAll()`
 
@@ -129,6 +134,8 @@ async findAll(params: { page?: number; limit?: number; search?: string; departme
 ---
 
 ### 5. Response Format Tidak Konsisten
+**Status:** [OPEN]
+
 
 **Controller saat ini:**
 ```typescript
@@ -160,6 +167,8 @@ res.status(200).json({ success: true, data: pegawai });
 ---
 
 ### 6. `window.location.reload()` Setelah Tambah Pegawai
+**Status:** [OPEN]
+
 
 **File:** `HalamanPegawai.tsx` — baris 39
 
@@ -184,6 +193,8 @@ const { refetch } = usePegawaiList();
 ---
 
 ### 7. Input Validation Minim di Backend
+**Status:** [OPEN]
+
 
 **File:** `pegawai.service.ts` — `createPegawai()`
 
@@ -211,6 +222,8 @@ const CreatePegawaiSchema = z.object({
 ---
 
 ### 8. NIP Auto-Generate Lemah
+**Status:** [OPEN]
+
 
 **File:** `pegawai.repository.ts` — baris 42
 
@@ -239,6 +252,8 @@ async generateNip() {
 ## 🟢 Saran Perbaikan (Nice to Have)
 
 ### 9. Code Duplication di `employeeApi.ts`
+**Status:** [OPEN]
+
 
 Fungsi `createPegawai`, `updatePegawai`, dan `createPegawaiWithUser` punya **blok FormData yang hampir identik** (±30 baris masing-masing).
 
@@ -261,6 +276,8 @@ function buildFormData(pegawai: Partial<Pegawai>, photo?: File): FormData {
 ---
 
 ### 10. Tidak Ada Export Data Pegawai
+**Status:** [OPEN]
+
 
 Modul saat ini tidak menyediakan fitur export. Untuk HRMS, export data pegawai ke Excel/CSV sangat penting.
 
@@ -272,6 +289,8 @@ Modul saat ini tidak menyediakan fitur export. Untuk HRMS, export data pegawai k
 ---
 
 ### 11. Duplikat Tipe `Pelatihan` (Bilingual Fields)
+**Status:** [OPEN]
+
 
 **File:** `types/index.ts` — `Pelatihan` interface
 
@@ -293,6 +312,8 @@ export interface Pelatihan {
 ---
 
 ### 12. Tidak Ada Audit Trail / Log Perubahan
+**Status:** [OPEN]
+
 
 Tidak ada logging siapa yang mengedit data pegawai, kapan, dan field apa yang berubah.
 
