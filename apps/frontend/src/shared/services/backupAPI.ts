@@ -20,6 +20,14 @@ export const backupAPI = {
     const response = await api.post('/backup/restore', { filename });
     return response.data;
   },
+  restoreFromUpload: async (file: File) => {
+    const formData = new FormData();
+    formData.append('backup', file);
+    const response = await api.post('/backup/restore-upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
   download: async (filename: string) => {
     const response = await api.get(`/backup/download/${filename}`, {
       responseType: 'blob'

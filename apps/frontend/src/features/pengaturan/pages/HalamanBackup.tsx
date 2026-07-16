@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { backupAPI, BackupFile } from '../../../shared/services';
-import { Database, Download, RefreshCw, Clock, HardDrive, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Database, Download, RefreshCw, Clock, HardDrive, ShieldCheck, AlertCircle, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 
@@ -10,6 +10,7 @@ const HalamanBackup: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fetchBackups = async () => {
     setLoading(true);
@@ -72,6 +73,37 @@ const HalamanBackup: React.FC = () => {
     } catch (error: any) {
       console.error('Download error:', error);
       setMessage({ type: 'error', text: 'Gagal mengunduh file backup.' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleRestoreFromUpload = async () => {
+    if (!selectedFile) {
+      setMessage({ type: 'error', text: 'Pilih file backup terlebih dahulu.' });
+      return;
+    }
+
+    if (!window.confirm(`PERINGATAN: Anda akan memulihkan database dari file ${selectedFile.name}. Data saat ini akan ditimpa. Lanjutkan?`)) {
+      return;
+    }
+
+    setActionLoading(true);
+    setMessage(null);
+    try {
+      const response = await backupAPI.restoreFromUpload(selectedFile);
+      if (response.success) {
+        setMessage({ type: 'success', text: response.message || 'Restorasi dari file berhasil.' });
+        setSelectedFile(null);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Gagal memulihkan database dari file.' });
     } finally {
       setActionLoading(false);
     }
@@ -154,6 +186,43 @@ const HalamanBackup: React.FC = () => {
                 <strong>Saran Keamanan:</strong> Selalu unduh file backup penting ke penyimpanan offline Anda secara berkala.
               </p>
             </div>
+          </div>
+
+          <div className="bg-white dark:bg-neutral-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-neutral-700">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+              <Upload size={20} className="mr-2 text-amber-500" /> Restore dari File
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-neutral-400 mb-4">
+              Unggah file backup (.sqlite) dari perangkat Anda untuk memulihkan database.
+            </p>
+            <input
+              type="file"
+              accept=".sqlite"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 dark:file:bg-amber-900/30 dark:file:text-amber-400 mb-4"
+            />
+            {selectedFile && (
+              <p className="text-xs text-slate-500 dark:text-neutral-400 mb-4">
+                File terpilih: {selectedFile.name} ({formatSize(selectedFile.size)})
+              </p>
+            )}
+            <button
+              onClick={handleRestoreFromUpload}
+              disabled={actionLoading || !selectedFile}
+              className={clsx(
+                "w-full flex items-center justify-center px-4 py-3 rounded-xl font-bold transition-all",
+                actionLoading || !selectedFile
+                  ? "bg-slate-300 cursor-not-allowed text-slate-500"
+                  : "bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/20 active:scale-95"
+              )}
+            >
+              {actionLoading ? (
+                <RefreshCw size={20} className="animate-spin" />
+              ) : (
+                <Upload size={20} className="mr-2" />
+              )}
+              RESTORE DARI FILE
+            </button>
           </div>
         </div>
 

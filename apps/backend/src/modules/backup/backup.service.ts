@@ -108,6 +108,49 @@ export const restoreDatabase = async (filename: string) => {
 };
 
 /**
+ * Restores the database from an uploaded backup file.
+ * WARNING: This will overwrite the current database.
+ */
+export const restoreFromUploadedFile = async (uploadedFilePath: string) => {
+  if (!uploadedFilePath) {
+    throw new Error('Uploaded file path is required');
+  }
+
+  if (!fs.existsSync(uploadedFilePath)) {
+    throw new Error('Uploaded backup file not found');
+  }
+
+  const destPath = path.resolve(process.env.DB_SOURCE || './database.sqlite');
+
+  ensureDirectory(DB_BACKUP_DIR);
+
+  const now = new Date();
+  const safetyTimestamp = now.getTime();
+  const safetyFilename = `safety_pre_restore_${safetyTimestamp}.sqlite`;
+
+  if (fs.existsSync(destPath)) {
+    fs.copyFileSync(destPath, path.join(DB_BACKUP_DIR, safetyFilename));
+  }
+
+  fs.copyFileSync(uploadedFilePath, destPath);
+
+  // Cleanup uploaded temp file
+  try {
+    fs.unlinkSync(uploadedFilePath);
+  } catch (cleanupError) {
+    console.error('Failed to cleanup temp backup file:', cleanupError);
+  }
+
+  return {
+    success: true,
+    message: `Database restored successfully from uploaded file. A safety backup was created as ${safetyFilename}.`,
+    data: {
+      safetyBackup: safetyFilename
+    }
+  };
+};
+
+/**
  * Gets the absolute path of a backup file.
  */
 export const getBackupFilePath = (filename: string) => {
