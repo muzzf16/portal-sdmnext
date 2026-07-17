@@ -254,6 +254,11 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
         };
     }, [kpis, wlaLogs, startDate, endDate, customHolidays]);
 
+    const isWlaLong = summary.wlaActivityItems.length > 10;
+    const midIndex = Math.ceil(summary.wlaActivityItems.length / 2);
+    const leftWlaItems = summary.wlaActivityItems.slice(0, midIndex);
+    const rightWlaItems = summary.wlaActivityItems.slice(midIndex);
+
     return (
         <div className="bg-white rounded-lg shadow mt-6 p-6">
             <div className="flex justify-between items-start mb-6">
@@ -362,19 +367,19 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
             </div>
 
             {/* Tables for transparency */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className={clsx("grid grid-cols-1 lg:grid-cols-2 gap-8", isWlaLong && "print:hidden")}>
                 <div>
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center print:text-lg">
                         <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-xs mr-2">80%</span>
                         Rincian Beban Kerja WLA
                     </h4>
                     <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm print:text-base">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Frekuensi</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi Total</th>
+                                    <th className="px-4 py-3 text-left text-xs print:text-base font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+                                    <th className="px-4 py-3 text-center text-xs print:text-base font-medium text-gray-500 uppercase tracking-wider">Frekuensi</th>
+                                    <th className="px-4 py-3 text-center text-xs print:text-base font-medium text-gray-500 uppercase tracking-wider">Durasi Total</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -382,7 +387,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                     <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
                                         <td className="px-4 py-3">
                                             <div className="text-gray-900 font-medium">{item.activityName}</div>
-                                            {item.category && <div className="text-xs text-gray-400">{item.category}</div>}
+                                            {item.category && <div className="text-xs print:text-sm text-gray-400">{item.category}</div>}
                                         </td>
                                         <td className="px-4 py-3 text-center text-gray-700">{item.totalFrekuensi}x</td>
                                         <td className="px-4 py-3 text-center font-medium text-blue-700">{item.totalDurasi} menit</td>
@@ -399,7 +404,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                         <td className="px-4 py-3 text-red-600 font-bold text-center">{summary.totalFrekuensi}x</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="text-red-600 font-bold">{summary.totalDurasiMenit} menit</div>
-                                            <div className="text-xs text-gray-500">
+                                            <div className="text-xs print:text-sm text-gray-500">
                                                 Target: {summary.targetMinutes} menit ({summary.workingDays} hari kerja efektif × 480)
                                                 {summary.holidaysInPeriod.length > 0 && (
                                                     <span className="ml-1 text-orange-500" title={`Hari libur nasional: ${summary.holidaysInPeriod.join(', ')}`}>
@@ -411,9 +416,9 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                     </tr>
                                     <tr>
                                         <td className="px-4 py-3 font-bold text-center" colSpan={2}>Beban (FTE)</td>
-                                        <td className={`px-4 py-3 text-center font-bold text-lg ${getFteStatus(summary.wlaPercentage).color}`}>
+                                        <td className={`px-4 py-3 text-center font-bold text-lg print:text-xl ${getFteStatus(summary.wlaPercentage).color}`}>
                                             {summary.wlaPercentage.toFixed(1)}%
-                                            <span className="text-xs font-normal ml-1">({getFteStatus(summary.wlaPercentage).label})</span>
+                                            <span className="text-xs print:text-sm font-normal ml-1">({getFteStatus(summary.wlaPercentage).label})</span>
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -423,17 +428,17 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                 </div>
 
                 <div>
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center print:text-lg">
                         <span className="bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full text-xs mr-2">20%</span>
                         Rincian KPI Khusus
                     </h4>
                     <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm print:text-base">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama KPI</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Realisasi / Target</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Capaian</th>
+                                    <th className="px-4 py-3 text-left text-xs print:text-base font-medium text-gray-500 uppercase tracking-wider">Nama KPI</th>
+                                    <th className="px-4 py-3 text-center text-xs print:text-base font-medium text-gray-500 uppercase tracking-wider">Realisasi / Target</th>
+                                    <th className="px-4 py-3 text-center text-xs print:text-base font-medium text-gray-500 uppercase tracking-wider">Capaian</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -444,7 +449,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                                             <div className="font-bold text-gray-700">
                                                 {formatKpiValue(Number(k.actualValue), k.targetUnit)}
                                             </div>
-                                            <div className="text-[10px] text-gray-400">
+                                            <div className="text-[10px] print:text-sm text-gray-400">
                                                 Target: {formatKpiValue(Number(k.targetValue), k.targetUnit)}
                                             </div>
                                         </td>
@@ -458,9 +463,9 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                             <tfoot className="bg-gray-50 divide-y divide-gray-200 border-t border-gray-200">
                                 <tr>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center">TOTAL</td>
-                                    <td className="px-4 py-3 text-red-600 font-bold text-center text-xs">
+                                    <td className="px-4 py-3 text-red-600 font-bold text-center text-xs print:text-base">
                                         {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0))} <br/>
-                                        <span className="text-[10px] opacity-70">vs Target {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0))}</span>
+                                        <span className="text-[10px] print:text-sm opacity-70">vs Target {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0))}</span>
                                     </td>
                                     <td className="px-4 py-3 text-red-600 font-bold text-center">
                                         {summary.khususPercentage.toFixed(1)}%
@@ -473,7 +478,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
             </div>
 
             {/* Signature Area */}
-            <div className="mt-16 text-center text-black font-medium pb-8 pt-8 text-sm w-full">
+            <div className={clsx("mt-16 text-center text-black font-medium pb-8 pt-8 text-sm print:text-base w-full", isWlaLong && "print:hidden")}>
                 <p className="mb-8">Mengetahui</p>
                 <div className="grid grid-cols-2 gap-8">
                     <div className="flex flex-col items-center">
@@ -490,6 +495,165 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Print-Only Layout for Long WLA */}
+            {isWlaLong && (
+                <div className="hidden print:block space-y-8">
+                    {/* Section 1: WLA (2 Kolom Sejajar) */}
+                    <div>
+                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center print:text-lg">
+                            <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-xs mr-2">80%</span>
+                            Rincian Beban Kerja WLA
+                        </h4>
+                        <div className="grid grid-cols-2 gap-8">
+                            {/* Kolom Kiri: Tabel WLA Bagian Kiri */}
+                            <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-200 text-base">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-base font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+                                            <th className="px-4 py-3 text-center text-base font-medium text-gray-500 uppercase tracking-wider">Frekuensi</th>
+                                            <th className="px-4 py-3 text-center text-base font-medium text-gray-500 uppercase tracking-wider">Durasi Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {leftWlaItems.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <div className="text-gray-900 font-medium">{item.activityName}</div>
+                                                    {item.category && <div className="text-sm text-gray-400">{item.category}</div>}
+                                                </td>
+                                                <td className="px-4 py-3 text-center text-gray-700">{item.totalFrekuensi}x</td>
+                                                <td className="px-4 py-3 text-center font-medium text-blue-700">{item.totalDurasi} menit</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            {/* Kolom Kanan: Tabel WLA Bagian Kanan + Footer Total */}
+                            <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-200 text-base">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-base font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+                                            <th className="px-4 py-3 text-center text-base font-medium text-gray-500 uppercase tracking-wider">Frekuensi</th>
+                                            <th className="px-4 py-3 text-center text-base font-medium text-gray-500 uppercase tracking-wider">Durasi Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {rightWlaItems.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <div className="text-gray-900 font-medium">{item.activityName}</div>
+                                                    {item.category && <div className="text-sm text-gray-400">{item.category}</div>}
+                                                </td>
+                                                <td className="px-4 py-3 text-center text-gray-700">{item.totalFrekuensi}x</td>
+                                                <td className="px-4 py-3 text-center font-medium text-blue-700">{item.totalDurasi} menit</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    {summary.wlaActivityItems.length > 0 && (
+                                        <tfoot className="bg-gray-50 divide-y divide-gray-200 border-t border-gray-200">
+                                            <tr>
+                                                <td className="px-4 py-3 text-red-600 font-bold text-center">TOTAL</td>
+                                                <td className="px-4 py-3 text-red-600 font-bold text-center">{summary.totalFrekuensi}x</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <div className="text-red-600 font-bold">{summary.totalDurasiMenit} menit</div>
+                                                    <div className="text-sm text-gray-500">
+                                                        Target: {summary.targetMinutes} menit ({summary.workingDays} hari kerja efektif × 480)
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-3 font-bold text-center" colSpan={2}>Beban (FTE)</td>
+                                                <td className={`px-4 py-3 text-center font-bold text-xl ${getFteStatus(summary.wlaPercentage).color}`}>
+                                                    {summary.wlaPercentage.toFixed(1)}%
+                                                    <span className="text-sm font-normal ml-1">({getFteStatus(summary.wlaPercentage).label})</span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    )}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Page Break */}
+                    <div className="print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
+
+                    {/* Section 2 (Halaman Kedua): KPI Khusus & Tanda Tangan */}
+                    <div className="space-y-8 pt-4">
+                        <div>
+                            <h4 className="font-semibold text-gray-800 mb-3 flex items-center print:text-lg">
+                                <span className="bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full text-xs mr-2">20%</span>
+                                Rincian KPI Khusus
+                            </h4>
+                            <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-200 text-base">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-base font-medium text-gray-500 uppercase tracking-wider">Nama KPI</th>
+                                            <th className="px-4 py-3 text-center text-base font-medium text-gray-500 uppercase tracking-wider">Realisasi / Target</th>
+                                            <th className="px-4 py-3 text-center text-base font-medium text-gray-500 uppercase tracking-wider">Capaian</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {summary.khususItems.map(k => (
+                                            <tr key={k.id} className="hover:bg-purple-50/50 transition-colors">
+                                                <td className="px-4 py-3 text-gray-900 font-medium">{k.kpiName}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <div className="font-bold text-gray-700">
+                                                        {formatKpiValue(Number(k.actualValue), k.targetUnit)}
+                                                    </div>
+                                                    <div className="text-sm text-gray-400">
+                                                        Target: {formatKpiValue(Number(k.targetValue), k.targetUnit)}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-center font-semibold text-purple-700">{k.pct.toFixed(1)}%</td>
+                                            </tr>
+                                        ))}
+                                        {summary.khususItems.length === 0 && (
+                                            <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500 bg-gray-50/50">Tidak ada data KPI Khusus pada periode ini.</td></tr>
+                                        )}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 divide-y divide-gray-200 border-t border-gray-200">
+                                        <tr>
+                                            <td className="px-4 py-3 text-red-600 font-bold text-center">TOTAL</td>
+                                            <td className="px-4 py-3 text-red-600 font-bold text-center text-base">
+                                                {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.actualValue) || 0), 0))} <br/>
+                                                <span className="text-xs opacity-70">vs Target {formatNominal(summary.khususItems.filter(i => i.isNominal).reduce((acc, curr) => acc + (Number(curr.targetValue) || 0), 0))}</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-red-600 font-bold text-center">
+                                                {summary.khususPercentage.toFixed(1)}%
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Signature Area */}
+                        <div className="mt-16 text-center text-black font-medium pb-8 pt-8 text-base w-full">
+                            <p className="mb-8">Mengetahui</p>
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="flex flex-col items-center">
+                                    <p className="font-semibold mb-24">Direktur Utama</p>
+                                    <div className="border-t border-black w-64 pt-2">
+                                        <p className="font-bold uppercase">{directors?.utama || 'SAPTO NUGROHO SE.,MSI'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center">
+                                    <p className="font-semibold mb-24">Direktur YMFK</p>
+                                    <div className="border-t border-black w-64 pt-2">
+                                        <p className="font-bold uppercase">{directors?.ymfk || 'IFAN ARDANA ,SE.,MSI'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
