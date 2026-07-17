@@ -30,6 +30,20 @@ export const restore = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
+export const restoreFromUpload = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ success: false, message: 'No backup file uploaded' });
+      return;
+    }
+    const result = await service.restoreFromUploadedFile(file.path);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const download = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { filename } = req.params;
