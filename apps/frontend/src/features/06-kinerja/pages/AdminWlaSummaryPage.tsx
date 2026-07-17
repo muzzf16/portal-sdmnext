@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../../shared/components/ui/Card';
 import { Button } from '../../../shared/components/ui/Button';
 import { Download, Users, Search, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit } from 'lucide-react';
-import { getEmployees } from '../../../shared/services/employeeAPI';
 import { AdminWlaSummary } from '../types';
 import { useCompanySettings } from '../../../shared/contexts/CompanySettingsContext';
 import clsx from 'clsx';
