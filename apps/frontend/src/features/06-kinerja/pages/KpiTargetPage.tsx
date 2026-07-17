@@ -429,7 +429,7 @@ const KpiTargetPage: React.FC = () => {
     return (
         <div className="p-6">
             {canViewSummary && (
-                <div className="mb-6 border-b border-gray-200">
+                <div className="mb-6 border-b border-gray-200 print:hidden">
                     <div className="flex gap-2">
                         <button
                             type="button"
