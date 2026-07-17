@@ -8,11 +8,12 @@ import {
   updateActivity
 } from '../api/activityLibraryApi';
 import {
+  createBulkLogAktivitasWla,
   getAdminDetailLogsWla,
   getAdminLogAktivitasSummaryWla,
   getMyLogAktivitasWla,
-  updateLogAktivitasStatusWla,
-  createBulkLogAktivitasWla
+  updateLogAktivitasFrekuensiWla,
+  updateLogAktivitasStatusWla
 } from '../api/logAktivitasHarianApi';
 import {
   applyKpiTemplates,
@@ -555,6 +556,17 @@ export const useUpdateWlaStatusMutation = () => {
 
   return useMutation({
     mutationFn: ({ id, status }: { id: number | string; status: 'approved' | 'rejected' }) => updateLogAktivitasStatusWla(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.wla.all });
+    }
+  });
+};
+
+export const useUpdateWlaFrekuensiMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, frekuensi }: { id: number | string; frekuensi: number }) => updateLogAktivitasFrekuensiWla(id, frekuensi),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PERFORMANCE_QUERY_KEYS.wla.all });
     }

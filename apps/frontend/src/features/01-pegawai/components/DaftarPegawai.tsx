@@ -16,12 +16,16 @@ const DaftarPegawai: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  const SIGNATURE_ONLY_IDS = new Set(['emp-1780374718768', 'emp-1778663158018']);
+
+  const visiblePegawai = pegawai?.filter(p => !SIGNATURE_ONLY_IDS.has(p.id)) || [];
+
   // Get unique positions and departments for filter dropdowns
-  const positions = [...new Set(pegawai?.map(p => p.position).filter(Boolean) || [])];
-  const departments = [...new Set(pegawai?.map(p => p.department).filter(Boolean) || [])];
+  const positions = [...new Set(visiblePegawai.map(p => p.position).filter(Boolean))];
+  const departments = [...new Set(visiblePegawai.map(p => p.department).filter(Boolean))];
 
   // Filter employees based on search term and filters
-  const filteredPegawai = pegawai?.filter(p => {
+  const filteredPegawai = visiblePegawai.filter(p => {
     const matchesSearch = !searchTerm ||
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.nip || '').toLowerCase().includes(searchTerm.toLowerCase());

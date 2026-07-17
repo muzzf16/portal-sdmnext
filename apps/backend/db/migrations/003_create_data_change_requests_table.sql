@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS data_change_requests (
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     reviewedBy TEXT, -- Admin user ID
     reviewNotes TEXT,
-    FOREIGN KEY (employeeId) REFERENCES pegawai(id)
+    FOREIGN KEY (employeeId) REFERENCES pegawai(id) ON DELETE CASCADE
 );

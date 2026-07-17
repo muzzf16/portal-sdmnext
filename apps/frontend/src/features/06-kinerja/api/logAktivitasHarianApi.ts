@@ -50,3 +50,6 @@ export const getAdminDetailLogsWla = (id_pegawai: string, tanggal?: string, star
 
 export const updateLogAktivitasStatusWla = (id: number | string, status: 'approved' | 'rejected') =>
     api.put(`/log-aktivitas-harian/${id}/status`, { status });
+
+export const updateLogAktivitasFrekuensiWla = (id: number | string, frekuensi: number) =>
+    api.put(`/log-aktivitas-harian/${id}/frekuensi`, { frekuensi });
