@@ -1,0 +1,78 @@
+--- /opt/portal-sdmv3/apps/frontend/src/features/01-pegawai/pages/StrukturOrganisasiPage.tsx
++++ /opt/portal-sdmv3/apps/frontend/src/features/01-pegawai/pages/StrukturOrganisasiPage.tsx
+@@ -118,33 +118,29 @@
+ const ChartNode: React.FC<{ node: JabatanTree; isRoot?: boolean }> = ({ node, isRoot }) => {
+-    // Render self box
+-    const renderNodeBox = () => (
+-        <div className={clsx(
+-            "inline-block border-2 border-[#1b365d] rounded-[24px] px-6 py-3 bg-[#e9eff2] dark:bg-neutral-800 text-center min-w-[180px] shadow-sm relative z-10",
+-            node.level === 4 && "rounded-none px-4 py-2 min-w-[120px] bg-[#919ea9] border-none text-white", // Staf style
+-            node.level === 4 && node.nama.toLowerCase().includes("staf") && "bg-[#1b365d] min-w-[200px]" // Para Staf/Karyawan root style
+-        )}>
+-            {/* Outer decorative border for non-staff */}
+-            {node.level !== 4 && (
+-                <div className="absolute inset-[-4px] border border-[#1b365d]/40 rounded-[26px] pointer-events-none"></div>
+-            )}
+-
+-            <div className={clsx(
+-                "font-bold uppercase mb-1 text-sm leading-tight",
+-                node.level === 4 ? "text-white" : "text-[#1b365d] dark:text-blue-300"
+-            )}>
+-                {node.nama}
+-            </div>
+-
+-            {/* Show employee name if available */}
+-            {node.employees && node.employees.length > 0 && (
+-                <div className={clsx(
+-                    "text-xs mt-1",
+-                    node.level === 4 ? "text-white/90" : "text-gray-700 dark:text-gray-300"
+-                )}>
+-                    {node.employees[0].name}
+-                    {node.employees.length > 1 && ` (+${node.employees.length - 1})`}
+-                </div>
+-            )}
+-        </div>
+-    );
++    const renderNodeBox = () => {
++        const isStaf = node.level === 4;
++        const bgColor = isStaf ? "bg-[#56c5ff]" : "bg-[#0eb1f2]";
++        return (
++            <div className={clsx(
++                "inline-flex border-[2px] border-black rounded-lg shadow-md overflow-hidden text-left relative z-10 mx-1",
++                isStaf ? "min-w-[160px]" : "min-w-[220px]",
++                bgColor
++            )}>
++                {/* Left Icon Area */}
++                <div className="w-10 flex-shrink-0 border-r-[2px] border-black flex items-center justify-center">
++                    <User size={24} className="text-black" />
++                </div>
++                {/* Right Text Area */}
++                <div className="flex flex-col flex-1">
++                    <div className="font-bold text-[10px] md:text-xs text-black px-2 py-1.5 border-b-[2px] border-black flex items-center justify-center text-center min-h-[30px] uppercase">
++                        {node.nama}
++                    </div>
++                    <div className="text-[10px] md:text-xs font-semibold text-black px-2 py-1.5 flex items-center justify-center text-center min-h-[30px] uppercase">
++                        {node.employees && node.employees.length > 0 ? node.employees[0].name : '-'}
++                    </div>
++                </div>
++            </div>
++        );
++    };
+ 
+     if (isRoot) {
+         return (
+-            <Tree
+-                lineWidth={'3px'}
+-                lineColor={'#1b365d'}
+-                lineBorderRadius={'0px'}
+-                label={renderNodeBox()}
+-                nodePadding="20px"
+-            >
++            <div className="flex flex-col items-center">
++                <Tree
++                    lineWidth={'2px'}
++                    lineColor={'#2f5597'} // Dark blue lines matching the image
++                    lineBorderRadius={'0px'}
++                    label={renderNodeBox()}
++                    nodePadding="15px"
++                >

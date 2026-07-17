@@ -1,0 +1,152 @@
+--- /opt/portal-sdmv3/apps/frontend/src/features/01-pegawai/pages/StrukturOrganisasiPage.tsx
++++ /opt/portal-sdmv3/apps/frontend/src/features/01-pegawai/pages/StrukturOrganisasiPage.tsx
+@@ -7,2 +7,109 @@
+ import { useRef } from 'react';
+ 
++const hardcodedData: JabatanTree = {
++    id: 9991,
++    nama: 'RUPS',
++    level: 1,
++    employees: [{ id: 1, name: 'KEPALA DAERAH', nip: '' }],
++    children: [
++        {
++            id: 9992,
++            nama: 'KOMISARIS UTAMA',
++            level: 1,
++            employees: [{ id: 2, name: '-', nip: '' }],
++            children: [
++                {
++                    id: 9993,
++                    nama: 'KOMISARIS',
++                    level: 1,
++                    employees: [{ id: 3, name: '-', nip: '' }],
++                    children: [
++                        {
++                            id: 9994,
++                            nama: 'DIREKTUR UTAMA',
++                            level: 1,
++                            employees: [{ id: 4, name: 'SAPTO NUGROHO,SE.,MM', nip: '' }],
++                            children: [
++                                {
++                                    id: 9995,
++                                    nama: 'SPI',
++                                    level: 2,
++                                    employees: [{ id: 5, name: 'ASEANINGRUM,SH', nip: '' }],
++                                    children: []
++                                },
++                                {
++                                    id: 9996,
++                                    nama: 'PE KREDIT',
++                                    level: 2,
++                                    employees: [{ id: 6, name: 'EVI NOVIANTI,SE', nip: '' }],
++                                    children: [
++                                        {
++                                            id: 9997,
++                                            nama: 'Kasubid Analis&Marketing',
++                                            level: 3,
++                                            employees: [{ id: 7, name: 'Dian Wicaksana Adi ,ST', nip: '' }],
++                                            children: [
++                                                { id: 9998, nama: 'Staf Marketing', level: 4, employees: [{ id: 8, name: 'RIZKI MAULANA,SE', nip: '' }], children: [] },
++                                                { id: 9999, nama: 'Staf Analisa Kredit', level: 4, employees: [{ id: 9, name: 'ATHIF TRI MARZUKI', nip: '' }], children: [] },
++                                                { id: 10000, nama: 'Staf Analisa Kredit', level: 4, employees: [{ id: 10, name: 'AMAR SEPTIAWAN', nip: '' }], children: [] }
++                                            ]
++                                        },
++                                        {
++                                            id: 10001,
++                                            nama: 'Kasubid Pembinaan Nasabah',
++                                            level: 3,
++                                            employees: [{ id: 11, name: 'Mafrul Khodhib SE', nip: '' }],
++                                            children: [
++                                                { id: 10002, nama: 'Staf Pembinaan', level: 4, employees: [{ id: 12, name: 'APRIYANTO', nip: '' }], children: [] },
++                                                { id: 10003, nama: 'Staf Pembinaan', level: 4, employees: [{ id: 13, name: 'MULOJOKO', nip: '' }], children: [] },
++                                                { id: 10004, nama: 'Staf Pembinaan', level: 4, employees: [{ id: 14, name: 'ARI WIDYANTORO', nip: '' }], children: [] }
++                                            ]
++                                        }
++                                    ]
++                                },
++                                {
++                                    id: 10005,
++                                    nama: 'DIREKTUR YMFK',
++                                    level: 1,
++                                    employees: [{ id: 15, name: 'IFAN ARDANA,SE.,MSi', nip: '' }],
++                                    children: [
++                                        {
++                                            id: 10006,
++                                            nama: 'PE DANA & PELAYANAN',
++                                            level: 2,
++                                            employees: [{ id: 16, name: 'KHAERUL MUKMIN,SE', nip: '' }],
++                                            children: [
++                                                {
++                                                    id: 10007,
++                                                    nama: 'Kasubid Dana',
++                                                    level: 3,
++                                                    employees: [{ id: 17, name: 'Fajar Arif Budiman', nip: '' }],
++                                                    children: [
++                                                        { id: 10008, nama: 'Staf Dana', level: 4, employees: [{ id: 18, name: 'HUSNA AMALIA,S', nip: '' }], children: [] },
++                                                        { id: 10009, nama: 'Staf Dana', level: 4, employees: [{ id: 19, name: 'DINA SOFIYANTI', nip: '' }], children: [] },
++                                                        { id: 10010, nama: 'Staf Dana', level: 4, employees: [{ id: 20, name: 'M.RABBANI', nip: '' }], children: [] }
++                                                    ]
++                                                },
++                                                { id: 10011, nama: 'Customer Service', level: 4, employees: [{ id: 21, name: 'IRA DWI ARYANTI', nip: '' }], children: [] },
++                                                { id: 10012, nama: 'Teller', level: 4, employees: [{ id: 22, name: 'NABILA PUTRI ,AMD', nip: '' }], children: [] }
++                                            ]
++                                        },
++                                        {
++                                            id: 10013,
++                                            nama: 'PE UMUM & SDM',
++                                            level: 2,
++                                            employees: [{ id: 23, name: 'NUNUNG VERA, SE', nip: '' }],
++                                            children: [
++                                                {
++                                                    id: 10014,
++                                                    nama: 'Kepala Kantor Kas',
++                                                    level: 3,
++                                                    employees: [{ id: 24, name: 'Wachyu Adi.S,SE', nip: '' }],
++                                                    children: [
++                                                        { id: 10015, nama: 'Teller', level: 4, employees: [{ id: 25, name: 'MELATI SEKAR', nip: '' }], children: [] },
++                                                        { id: 10016, nama: 'CS Kantor kas', level: 4, employees: [{ id: 26, name: 'SISKA FENI', nip: '' }], children: [] },
++                                                        { id: 10017, nama: 'Staf Umum', level: 4, employees: [{ id: 27, name: 'Pujianto', nip: '' }], children: [] }
++                                                    ]
++                                                },
++                                                { id: 10018, nama: 'Staf Umum', level: 4, employees: [{ id: 28, name: 'BETY ANGGRAENI', nip: '' }], children: [] },
++                                                { id: 10019, nama: 'Satpam dan OB', level: 4, employees: [{ id: 29, name: 'Dody s & Widyanto', nip: '' }], children: [] }
++                                            ]
++                                        },
++                                        {
++                                            id: 10020,
++                                            nama: 'PE KEPATUHAN&MANRISK',
++                                            level: 2,
++                                            employees: [{ id: 30, name: 'DINA SAPTARIANI,SE', nip: '' }],
++                                            children: [
++                                                {
++                                                    id: 10021,
++                                                    nama: 'Kasubid Adm Kredit',
++                                                    level: 3,
++                                                    employees: [{ id: 31, name: 'Sri Nuranis', nip: '' }],
++                                                    children: [
++                                                        { id: 10022, nama: 'Staf Adm Kredit', level: 4, employees: [{ id: 32, name: 'PENY AYU . WW', nip: '' }], children: [] },
++                                                        { id: 10023, nama: 'Staf Kredit', level: 4, employees: [{ id: 33, name: 'ARRYA TEGAR', nip: '' }], children: [] }
++                                                    ]
++                                                },
++                                                {
++                                                    id: 10024,
++                                                    nama: 'Kasubid Acounting',
++                                                    level: 3,
++                                                    employees: [{ id: 34, name: 'Ika Sujiati,SE', nip: '' }],
++                                                    children: [
++                                                        { id: 10025, nama: 'Staf Pelaporan & IT', level: 4, employees: [{ id: 35, name: 'MUFRODI', nip: '' }], children: [] }
++                                                    ]
++                                                }
++                                            ]
++                                        }
++                                    ]
++                                }
++                            ]
++                        }
++                    ]
++                }
++            ]
++        }
++    ]
++};
++

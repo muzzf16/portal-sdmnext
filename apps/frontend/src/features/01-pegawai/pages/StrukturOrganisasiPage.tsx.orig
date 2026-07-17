@@ -1,195 +1,55 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getJabatanTreeWithEmployees, getJabatanList, createJabatan, updateJabatan, deleteJabatan, JabatanTree, Jabatan } from '../api/jabatanApi';
-import { ChevronDown, ChevronRight, Users, Plus, Edit3, Trash2, X, Building2, User, Download, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Users, Plus, Edit3, Trash2, X, Building2, User, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { Tree, TreeNode } from 'react-organizational-chart';
 import { toPng } from 'html-to-image';
-
-// ====== CHART TREE BUILDER ======
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const buildChartTree = (apiTree: JabatanTree[]): JabatanTree | null => {
-    if (!apiTree || apiTree.length === 0) return null;
-
-    // 1. Find the main root (Direktur UTAMA)
-    const direkturUtama = apiTree.find(n => n.nama.toLowerCase().includes('direktur utama') && n.employees && n.employees.length > 0) || apiTree[0];
-    if (!direkturUtama) return null;
-
-    // Deep clone to avoid mutating state directly
-    const utmaClone = JSON.parse(JSON.stringify(direkturUtama));
-    
-    // Reorder Kabids and extract YMFK for custom layout
-    if (utmaClone.children) {
-        const ymfkNode = utmaClone.children.find((c: any) => c.nama.toLowerCase().includes('ymfk'));
-        const danaNode = utmaClone.children.find((c: any) => c.nama.toLowerCase().includes('dana'));
-        const kreditNode = utmaClone.children.find((c: any) => c.nama.toLowerCase().includes('kredit'));
-        const umumNode = utmaClone.children.find((c: any) => c.nama.toLowerCase().includes('umum'));
-        const kepatuhanNode = utmaClone.children.find((c: any) => c.nama.toLowerCase().includes('kepatuhan'));
-        const spiNode = utmaClone.children.find((c: any) => c.nama.toLowerCase().includes('spi'));
-        
-        const knownIds = [ymfkNode?.id, danaNode?.id, kreditNode?.id, umumNode?.id, kepatuhanNode?.id, spiNode?.id].filter(Boolean);
-        const otherChildren = utmaClone.children.filter((c: any) => !knownIds.includes(c.id));
-
-        // Keep all Kabids in one level so they are perfectly aligned
-        utmaClone.children = [danaNode, kreditNode, umumNode, kepatuhanNode, spiNode, ...otherChildren].filter(Boolean);
-        
-        // Attach YMFK separately so we can render it via absolute positioning below Utama
-        if (ymfkNode) {
-            utmaClone.ymfkNode = ymfkNode;
-        }
-    }
-
-    const direksiChildren = [utmaClone];
-
-    // Traverse and wrap any Staf directly under a Kabid with a dummy Kasubid node
-    const traverseAndWrapStaf = (node: any) => {
-        if (node.level === 2 && node.children) {
-            const stafChildren = node.children.filter((c: any) => c.level === 4 || c.nama.toLowerCase().includes('staf') || c.nama.toLowerCase().includes('teller'));
-            const otherChildren = node.children.filter((c: any) => !(c.level === 4 || c.nama.toLowerCase().includes('staf') || c.nama.toLowerCase().includes('teller')));
-            
-            if (stafChildren.length > 0) {
-                const dummyKasubid = {
-                    id: `dummy-${node.id}`,
-                    nama: '',
-                    level: 3,
-                    isDummy: true,
-                    employees: [],
-                    children: stafChildren
-                };
-                node.children = [...otherChildren, dummyKasubid];
-            }
-        }
-        
-        if (node.children) {
-            node.children.forEach(traverseAndWrapStaf);
-        }
-    };
-    
-    direksiChildren.forEach(traverseAndWrapStaf);
-
-    // 3. Build the wrapper with hardcoded missing top levels
-    return {
-        id: 9991, nama: 'RUPS', level: 0, parent_id: null,
-        employees: [{ id: 'hc-1', name: 'KEPALA DAERAH', nip: '', position: '', department: '' }],
-        children: [
-            {
-                id: 9992, nama: 'KOMISARIS UTAMA', level: 0, parent_id: 9991,
-                employees: [{ id: 'hc-2', name: '-', nip: '', position: '', department: '' }],
-                children: [
-                    {
-                        id: 9993, nama: 'KOMISARIS', level: 0, parent_id: 9992,
-                        employees: [{ id: 'hc-3', name: '-', nip: '', position: '', department: '' }],
-                        children: direksiChildren
-                    }
-                ]
-            }
-        ]
-    } as any;
-};
+import { useRef } from 'react';
 
 // ====== CHART NODE COMPONENT ======
 const ChartNode: React.FC<{ node: JabatanTree; isRoot?: boolean }> = ({ node, isRoot }) => {
-    const renderNodeBox = () => {
-        if ((node as any).isDummy) {
-            return <div style={{ height: '0px', width: '0px' }} />;
-        }
+    // Render self box
+    const renderNodeBox = () => (
+        <div className={clsx(
+            "inline-block border-2 border-[#1b365d] rounded-[24px] px-6 py-3 bg-[#e9eff2] dark:bg-neutral-800 text-center min-w-[180px] shadow-sm relative z-10",
+            node.level === 4 && "rounded-none px-4 py-2 min-w-[120px] bg-[#919ea9] border-none text-white", // Staf style
+            node.level === 4 && node.nama.toLowerCase().includes("staf") && "bg-[#1b365d] min-w-[200px]" // Para Staf/Karyawan root style
+        )}>
+            {/* Outer decorative border for non-staff */}
+            {node.level !== 4 && (
+                <div className="absolute inset-[-4px] border border-[#1b365d]/40 rounded-[26px] pointer-events-none"></div>
+            )}
 
-        const isStaf = node.level === 4;
-        const isTopLevel = node.level === 0;
-        const isDireksi = node.level === 1;
-
-        let bgClass = 'bg-[#1a6fb5]';
-        if (isTopLevel) bgClass = 'bg-[#1a3a6b]';
-        else if (isDireksi) bgClass = 'bg-[#1a5a9b]';
-        else if (node.level === 3) bgClass = 'bg-[#2888c7]';
-        else if (isStaf) bgClass = 'bg-[#3ba3db]';
-
-        const hasYmfk = !!(node as any).ymfkNode;
-
-        return (
-            <div className={clsx("relative flex flex-col items-center justify-center", hasYmfk ? "pb-[80px]" : "")}>
-                <div className={clsx(
-                    'inline-flex rounded shadow-md overflow-hidden text-left relative z-20 border border-white/20',
-                    isStaf ? 'min-w-[100px] max-w-[120px]' : 'min-w-[120px] max-w-[160px]',
-                    bgClass
-                )}>
-                    <div className="w-6 flex-shrink-0 border-r border-white/30 flex items-center justify-center bg-black/10">
-                        <User size={13} className="text-white/90" />
-                    </div>
-                    <div className="flex flex-col flex-1">
-                        <div className="font-bold text-[7px] text-white px-1 py-0.5 border-b border-white/30 flex items-center justify-center text-center leading-tight uppercase">
-                            {node.nama}
-                        </div>
-                        {node.employees && node.employees.length > 0 ? (
-                            <div className="flex flex-col">
-                                {node.employees.map((emp, idx) => (
-                                    <div key={emp.id || idx} className={clsx(
-                                        "text-[6.5px] font-medium text-white/90 px-1 py-0.5 flex items-center justify-center text-center leading-tight",
-                                        idx !== node.employees!.length - 1 ? "border-b border-white/10" : ""
-                                    )}>
-                                        {emp.name}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-[6.5px] font-medium text-white/90 px-1 py-0.5 flex items-center justify-center text-center leading-tight">
-                                -
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {hasYmfk && (
-                    <>
-                        {/* Continuous vertical line connecting Utama down to the Kabids, passing behind YMFK */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1.5px] h-full bg-[#2f5597] z-0"></div>
-                        
-                        {/* Absolute YMFK box positioned in the middle of the padding space */}
-                        <div className="absolute top-[40px] left-1/2 -translate-x-1/2 z-10 flex items-center">
-                            <div className="inline-flex rounded shadow-md overflow-hidden text-left relative z-10 border border-white/20 min-w-[120px] max-w-[160px] bg-[#1a5a9b]">
-                                <div className="w-6 flex-shrink-0 border-r border-white/30 flex items-center justify-center bg-black/10">
-                                    <User size={13} className="text-white/90" />
-                                </div>
-                                <div className="flex flex-col flex-1">
-                                    <div className="font-bold text-[7px] text-white px-1 py-0.5 border-b border-white/30 flex items-center justify-center text-center leading-tight uppercase">
-                                        {(node as any).ymfkNode.nama}
-                                    </div>
-                                    {(node as any).ymfkNode.employees && (node as any).ymfkNode.employees.length > 0 ? (
-                                        <div className="flex flex-col">
-                                            {(node as any).ymfkNode.employees.map((emp: any, idx: number) => (
-                                                <div key={emp.id || idx} className={clsx(
-                                                    "text-[6.5px] font-medium text-white/90 px-1 py-0.5 flex items-center justify-center text-center leading-tight",
-                                                    idx !== (node as any).ymfkNode.employees.length - 1 ? "border-b border-white/10" : ""
-                                                )}>
-                                                    {emp.name}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="text-[6.5px] font-medium text-white/90 px-1 py-0.5 flex items-center justify-center text-center leading-tight">
-                                            -
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            {/* Dashed line to Kepatuhan Manrisk: goes right and then drops down */}
-                            <div className="absolute left-[100%] top-1/2 w-[260px] h-[35px] border-t-[1.5px] border-r-[1.5px] border-dashed border-[#2f5597] rounded-tr-md z-0"></div>
-                        </div>
-                    </>
-                )}
+            <div className={clsx(
+                "font-bold uppercase mb-1 text-sm leading-tight",
+                node.level === 4 ? "text-white" : "text-[#1b365d] dark:text-blue-300"
+            )}>
+                {node.nama}
             </div>
-        );
-    };
+
+            {/* Show employee name if available */}
+            {node.employees && node.employees.length > 0 && (
+                <div className={clsx(
+                    "text-xs mt-1",
+                    node.level === 4 ? "text-white/90" : "text-gray-700 dark:text-gray-300"
+                )}>
+                    {node.employees[0].name}
+                    {node.employees.length > 1 && ` (+${node.employees.length - 1})`}
+                </div>
+            )}
+        </div>
+    );
 
     if (isRoot) {
         return (
             <Tree
-                lineWidth={'1.5px'}
-                lineColor={'#2f5597'}
+                lineWidth={'3px'}
+                lineColor={'#1b365d'}
                 lineBorderRadius={'0px'}
                 label={renderNodeBox()}
-                nodePadding="6px"
+                nodePadding="20px"
             >
-                {node.children?.map((child: JabatanTree) => (
+                {node.children?.map(child => (
                     <ChartNode key={child.id} node={child} />
                 ))}
             </Tree>
@@ -198,7 +58,7 @@ const ChartNode: React.FC<{ node: JabatanTree; isRoot?: boolean }> = ({ node, is
 
     return (
         <TreeNode label={renderNodeBox()}>
-            {node.children?.map((child: JabatanTree) => (
+            {node.children?.map(child => (
                 <ChartNode key={child.id} node={child} />
             ))}
         </TreeNode>
@@ -207,7 +67,7 @@ const ChartNode: React.FC<{ node: JabatanTree; isRoot?: boolean }> = ({ node, is
 
 // ====== TREE NODE COMPONENT ======
 const OrgNode: React.FC<{ node: JabatanTree; depth: number }> = ({ node, depth }) => {
-    const [isOpen, setIsOpen] = useState(depth < 2);
+    const [isOpen, setIsOpen] = useState(depth < 2); // Auto-expand top 2 levels
 
     const levelColors: Record<number, string> = {
         1: 'border-blue-500 bg-blue-50 dark:bg-blue-900/30',
@@ -334,6 +194,7 @@ const JabatanFormModal: React.FC<{
         }
     };
 
+    // Filter parent options: exclude self and items at same/lower level
     const parentOptions = allJabatan.filter(j =>
         (!jabatan || j.id !== jabatan.id) && j.level < level
     );
@@ -445,10 +306,9 @@ const StrukturOrganisasiPage: React.FC = () => {
     const [tree, setTree] = useState<JabatanTree[]>([]);
     const [flatList, setFlatList] = useState<Jabatan[]>([]);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'tree' | 'table' | 'chart'>('chart');
+    const [viewMode, setViewMode] = useState<'tree' | 'table' | 'chart'>('tree');
     const [showForm, setShowForm] = useState(false);
     const [editJabatan, setEditJabatan] = useState<Jabatan | null>(null);
-    const [chartZoom, setChartZoom] = useState(0.55);
     const chartRef = useRef<HTMLDivElement>(null);
 
     const fetchData = async () => {
@@ -577,74 +437,21 @@ const StrukturOrganisasiPage: React.FC = () => {
                 <div className="text-center py-12 text-gray-500">Memuat data...</div>
             ) : viewMode === 'chart' ? (
                 /* ===== CHART VIEW ===== */
-                <div className="relative bg-gradient-to-b from-[#e8eef3] to-[#d5dfe8] dark:from-neutral-800 dark:to-neutral-900 rounded-lg shadow-sm border dark:border-neutral-700 overflow-hidden" style={{ height: 'calc(100vh - 260px)', minHeight: '500px' }}>
-                    {/* Zoom Controls */}
-                    <div className="absolute top-3 right-3 z-20 flex flex-col gap-1 bg-white/90 dark:bg-neutral-700/90 rounded-lg shadow-lg border border-gray-300 dark:border-neutral-600 p-1">
-                        <button
-                            onClick={() => setChartZoom(z => Math.min(z + 0.1, 1.5))}
-                            className="p-1.5 hover:bg-gray-200 dark:hover:bg-neutral-600 rounded transition-colors"
-                            title="Zoom In"
-                        >
-                            <ZoomIn size={16} className="text-gray-700 dark:text-gray-200" />
-                        </button>
-                        <button
-                            onClick={() => setChartZoom(z => Math.max(z - 0.1, 0.2))}
-                            className="p-1.5 hover:bg-gray-200 dark:hover:bg-neutral-600 rounded transition-colors"
-                            title="Zoom Out"
-                        >
-                            <ZoomOut size={16} className="text-gray-700 dark:text-gray-200" />
-                        </button>
-                        <button
-                            onClick={() => setChartZoom(0.55)}
-                            className="p-1.5 hover:bg-gray-200 dark:hover:bg-neutral-600 rounded transition-colors"
-                            title="Fit to Screen"
-                        >
-                            <Maximize2 size={16} className="text-gray-700 dark:text-gray-200" />
-                        </button>
-                        <div className="text-[10px] text-center text-gray-500 dark:text-gray-400 font-mono">
-                            {Math.round(chartZoom * 100)}%
+                <div className="bg-[#e9eff2] dark:bg-neutral-800 rounded-lg p-6 shadow-sm border dark:border-neutral-700 overflow-auto min-h-[600px] flex justify-center">
+                    {tree.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">Belum ada data jabatan</div>
+                    ) : (
+                        <div ref={chartRef} className="bg-[#e9eff2] dark:bg-neutral-800 p-8 inline-block min-w-max">
+                            <div className="text-center mb-8">
+                                <h2 className="text-2xl font-bold text-[#1b365d] dark:text-white uppercase tracking-wider">STRUKTUR ORGANISASI PERUSAHAAN</h2>
+                                <h3 className="text-xl font-bold text-[#1b365d] dark:text-white uppercase mt-1">PT BORCELLE</h3>
+                            </div>
+
+                            {tree.map(node => (
+                                <ChartNode key={node.id} node={node} isRoot={true} />
+                            ))}
                         </div>
-                    </div>
-
-                    {/* Scrollable + Zoomable container */}
-                    <div className="overflow-auto w-full h-full">
-                        <div
-                            ref={chartRef}
-                            className="bg-gradient-to-b from-[#e8eef3] to-[#d5dfe8] dark:from-neutral-800 dark:to-neutral-900 p-4"
-                            style={{ zoom: chartZoom }}
-                        >
-                            {/* Title header */}
-                            <div className="text-center mb-6 px-4">
-                                <h2 className="text-base font-bold text-[#1a3a6b] dark:text-white uppercase tracking-wider">
-                                    STRUKTUR ORGANISASI PT BPR BAPERA KAB BATANG 2026
-                                </h2>
-                            </div>
-
-                            {/* Org Chart */}
-                            <div className="flex justify-center w-full">
-                                {tree.length > 0 && buildChartTree(tree) ? (
-                                    <ChartNode node={buildChartTree(tree) as JabatanTree} isRoot={true} />
-                                ) : (
-                                    <div className="text-gray-500 py-10">Data tidak tersedia</div>
-                                )}
-                            </div>
-
-                            {/* Legend */}
-                            <div className="mt-6 flex justify-end px-4">
-                                <div className="bg-white/80 dark:bg-neutral-700/80 rounded-lg p-2 text-[9px] border border-gray-300 dark:border-neutral-600">
-                                    <div className="font-bold mb-1 text-gray-700 dark:text-gray-200">KETERANGAN :</div>
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <div className="w-6 h-0 border-t-2 border-[#2f5597]"></div>
-                                        <span className="text-gray-600 dark:text-gray-300">: garis komando</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-0 border-t-2 border-dashed border-[#2f5597]"></div>
-                                        <span className="text-gray-600 dark:text-gray-300">: garis koordinasi</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
             ) : viewMode === 'tree' ? (
                 /* ===== TREE VIEW ===== */

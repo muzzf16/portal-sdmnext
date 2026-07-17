@@ -478,7 +478,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
             </div>
 
             {/* Signature Area */}
-            <div className={clsx("mt-16 text-center text-black font-medium pb-8 pt-8 text-sm w-full", isWlaLong && "print:hidden")}>
+            <div className={clsx("mt-16 text-center text-black font-medium pb-8 pt-8 text-sm w-full print:break-inside-avoid", isWlaLong && "print:hidden")}>
                 <p className="mb-8">Mengetahui</p>
                 <div className="grid grid-cols-2 gap-8">
                     <div className="flex flex-col items-center">
@@ -579,8 +579,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                         </div>
                     </div>
 
-                    {/* Page Break */}
-                    <div className="print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
+                    {/* No manual page break to avoid large gaps */}
 
                     {/* Section 2 (Halaman Kedua): KPI Khusus & Tanda Tangan */}
                     <div className="space-y-8 pt-4">
@@ -634,7 +633,7 @@ const KpiMonitoringView: React.FC<KpiMonitoringViewProps> = ({
                         </div>
 
                         {/* Signature Area */}
-                        <div className="mt-16 text-center text-black font-medium pb-8 pt-8 text-sm w-full">
+                        <div className="mt-16 text-center text-black font-medium pb-8 pt-8 text-sm w-full print:break-inside-avoid">
                             <p className="mb-8">Mengetahui</p>
                             <div className="grid grid-cols-2 gap-8">
                                 <div className="flex flex-col items-center">
