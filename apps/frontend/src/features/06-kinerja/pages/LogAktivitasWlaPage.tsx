@@ -24,6 +24,8 @@ import {
     useUpdateKpiActualMutation,
     invalidateKpiQueries
 } from '../hooks/usePerformanceManagementQuery';
+import { useAllLaporan } from '../../12-laporan-kepatuhan/hooks/useLaporanKepatuhan';
+import { LaporanKepatuhanItem } from '../../12-laporan-kepatuhan/types';
 import { KreditBerkasModal } from '../components/KreditBerkasModal';
 import { KreditBerkasPending } from '../components/KreditBerkasPending';
 import * as kreditApi from '../api/kreditBerkasApi';
@@ -74,6 +76,11 @@ const LogAktivitasWlaPage: React.FC = () => {
             invalidateKpiQueries(queryClient);
         }
     });
+    
+    const laporanQuery = useAllLaporan(employeeId ? String(employeeId) : undefined);
+    const pendingLaporan = useMemo(() => {
+        return (laporanQuery.data || []).filter((l: LaporanKepatuhanItem) => l.status === 'pending');
+    }, [laporanQuery.data]);
     
     const nominalTargets = nominalTargetsQuery.data || { npl: 50000000, kredit: 100000000, dana: 100000000 };
     const myLogs = (myLogsQuery.data ?? []) as LogAktivitasHarian[];
@@ -146,10 +153,11 @@ const LogAktivitasWlaPage: React.FC = () => {
 
 
     const loadingLogs = myLogsQuery.isLoading;
-    const loadingLibrary = libraryQuery.isLoading || kpiTargetsQuery.isLoading;
+    const loadingLibrary = libraryQuery.isLoading || kpiTargetsQuery.isLoading || laporanQuery.isLoading;
     const error = (myLogsQuery.error as Error | null)?.message
         || (libraryQuery.error as Error | null)?.message
         || (kpiTargetsQuery.error as Error | null)?.message
+        || (laporanQuery.error as Error | null)?.message
         || null;
 
     // Map of activity ID to { frekuensi, catatan, files, target, nominal_rupiah }
@@ -551,6 +559,51 @@ const LogAktivitasWlaPage: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-6">
+                                    {pendingLaporan.length > 0 && (
+                                        <div className="mb-4">
+                                            <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center">
+                                                <Target className="w-4 h-4 mr-2 text-orange-600" /> 
+                                                Tugas Pelaporan Kepatuhan
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {pendingLaporan.map(laporan => {
+                                                    const isOverdue = new Date(laporan.batas_akhir) < new Date();
+                                                    return (
+                                                        <div key={`laporan-${laporan.id}`} className={clsx(
+                                                            "p-4 rounded-lg border-2 bg-orange-50/50 shadow-sm transition-all hover:shadow-md",
+                                                            isOverdue ? "border-red-500 bg-red-50/50" : "border-orange-500"
+                                                        )}>
+                                                            <div className="flex flex-col sm:flex-row justify-between sm:items-center">
+                                                                <div>
+                                                                    <h3 className="text-sm font-bold text-gray-900 flex items-center flex-wrap gap-2">
+                                                                        {laporan.nama_laporan}
+                                                                        <span className={clsx("text-white text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider shadow-md", isOverdue ? "bg-red-600 border-red-700" : "bg-orange-600 border-orange-700")}>
+                                                                            LAPORAN KEPATUHAN
+                                                                        </span>
+                                                                    </h3>
+                                                                    <div className="text-xs text-gray-500 mt-1">Batas Akhir: <span className={clsx("font-semibold", isOverdue ? "text-red-600" : "text-gray-900")}>{new Date(laporan.batas_akhir).toLocaleDateString('id-ID')}</span></div>
+                                                                    {laporan.ketentuan && <div className="text-xs text-gray-500 mt-1">{laporan.ketentuan}</div>}
+                                                                </div>
+                                                                <div className="mt-3 sm:mt-0">
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        className="bg-orange-600 hover:bg-orange-700 shadow-sm"
+                                                                        onClick={() => {
+                                                                            // Since it's on another tab, we can open in new tab or tell them to switch tab
+                                                                            addToast('Silakan buka tab Monitoring Laporan untuk menyelesaikan.', 'info');
+                                                                        }}
+                                                                    >
+                                                                        Lihat & Selesaikan
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div className="border-b border-gray-200 mt-6 mb-2"></div>
+                                        </div>
+                                    )}
                                     <div className="space-y-4">
                                     {library.slice().sort((a, b) => {
                                         const nameA = (a.activityName || '').toLowerCase();

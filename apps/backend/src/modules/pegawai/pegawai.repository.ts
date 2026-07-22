@@ -282,7 +282,7 @@ export const PegawaiRepository = {
 
     const genderCount: { [key: string]: number } = { 'L': 0, 'P': 0, 'Other': 0 };
 
-    rows.forEach(row => {
+    rows.forEach((row: any) => {
       if (row.jenis_kelamin === 'L') {
         genderCount['L']++;
       } else if (row.jenis_kelamin === 'P') {
@@ -305,7 +305,7 @@ export const PegawaiRepository = {
 
     const educationCount: { [key: string]: number } = {};
 
-    rows.forEach(row => {
+    rows.forEach((row: any) => {
       if (row.educationHistory && row.educationHistory !== '[]') {
         try {
           const educationHistory = JSON.parse(row.educationHistory);

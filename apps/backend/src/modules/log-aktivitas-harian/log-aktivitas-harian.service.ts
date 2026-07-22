@@ -36,12 +36,29 @@ export default class LogAktivitasHarianService {
         return value;
     }
 
+    private static validateNotExpired(value: string, fieldName: string) {
+        const inputDate = new Date(value);
+        inputDate.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = today.getTime() - inputDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 3) {
+            throw new AppError(`Tidak dapat menginput log untuk ${fieldName} lebih dari 3 hari yang lalu`, 403);
+        }
+
+        return value;
+    }
+
     private static async buildPersistedLog(
         payload: CreateLogAktivitasPayload
     ): Promise<CreateLogAktivitasPayload & { total_durasi_terhitung: number }> {
         const normalizedPayload: CreateLogAktivitasPayload = {
             id_pegawai: this.normalizeText(payload.id_pegawai),
-            tanggal: this.validateDate(this.normalizeText(payload.tanggal), 'tanggal'),
+            tanggal: this.validateNotExpired(this.validateDate(this.normalizeText(payload.tanggal), 'tanggal'), 'tanggal'),
             id_activity_library: this.normalizeText(payload.id_activity_library),
             frekuensi: this.normalizeNumber(payload.frekuensi || 1, 'frekuensi'),
             catatan: this.normalizeText(payload.catatan),
@@ -71,7 +88,7 @@ export default class LogAktivitasHarianService {
 
     static async createBulkLogs(payload: CreateBulkLogAktivitasPayload) {
         const employeeId = this.normalizeText(payload.id_pegawai);
-        const tanggal = this.validateDate(this.normalizeText(payload.tanggal), 'tanggal');
+        const tanggal = this.validateNotExpired(this.validateDate(this.normalizeText(payload.tanggal), 'tanggal'), 'tanggal');
         const logsData = Array.isArray(payload.logs) ? payload.logs : [];
 
         if (!employeeId || logsData.length === 0) {
@@ -165,6 +182,8 @@ export default class LogAktivitasHarianService {
             throw new AppError('Activity Library tidak ditemukan', 404);
         }
 
-        return LogAktivitasHarianRepository.updateFrekuensi(normalizedId, normalizedFrekuensi);
+        const total_durasi_terhitung = normalizedFrekuensi * activity.durationMinutes;
+
+        return LogAktivitasHarianRepository.updateFrekuensi(normalizedId, normalizedFrekuensi, total_durasi_terhitung);
     }
 }

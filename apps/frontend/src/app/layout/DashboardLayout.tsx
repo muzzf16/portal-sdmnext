@@ -122,6 +122,13 @@ const DashboardLayout: React.FC = () => {
       ],
     },
     {
+      label: 'Manajemen Pelaporan',
+      items: [
+        { to: '/dashboard/manajemen-pelaporan', icon: <FileText size={18} />, text: 'Manajemen Pelaporan OJK', roles: ['admin', 'supervisor'] },
+        { to: '/dashboard/monitoring-laporan', icon: <FileText size={18} />, text: 'Monitoring Laporan', roles: ['employee', 'supervisor', 'admin'] },
+      ],
+    },
+    {
       label: 'Laporan & Sistem',
       items: [
         { to: '/dashboard/profil-admin', icon: <User size={18} />, text: 'Profil Saya', roles: ['admin'] },

@@ -3,6 +3,7 @@ import { KontrakRepository } from '../kontrak/kontrak.repository';
 import { PermintaanCutiRepository } from '../cuti/permintaanCuti.repository';
 import { PenggajianRepository } from '../penggajian/penggajian.repository';
 import { PenilaianKinerjaRepository } from '../kinerja/penilaianKinerja.repository';
+import { LaporanKepatuhanRepository } from '../laporan-kepatuhan/laporan-kepatuhan.repository';
 import { AppError } from '../../utils/errors';
 
 class PengingatOtomatisService {
@@ -232,6 +233,83 @@ class PengingatOtomatisService {
     return [];
   }
   
+  // Send compliance report reminders
+  static async sendLaporanKepatuhanReminders() {
+    try {
+      const notifications = [];
+
+      // Check for reports due in 7 days
+      const dueIn7Days = await LaporanKepatuhanRepository.findPendingDueInDays(7);
+      for (const report of dueIn7Days) {
+        notifications.push({
+          employee_id: report.employee_id,
+          message: `Laporan Kepatuhan "${report.nama_laporan}" akan jatuh tempo dalam 7 hari (pada ${report.batas_akhir}). Mohon segera diselesaikan.`,
+          type: 'info',
+          delivery_channel: 'in_app',
+          related_entity: 'laporan_kepatuhan',
+          related_entity_id: report.id,
+          scheduled_for: new Date().toISOString()
+        });
+      }
+
+      // Check for reports due in 3 days
+      const dueIn3Days = await LaporanKepatuhanRepository.findPendingDueInDays(3);
+      for (const report of dueIn3Days) {
+        notifications.push({
+          employee_id: report.employee_id,
+          message: `URGENT: Laporan Kepatuhan "${report.nama_laporan}" jatuh tempo dalam 3 hari (pada ${report.batas_akhir}).`,
+          type: 'warning',
+          delivery_channel: 'in_app',
+          related_entity: 'laporan_kepatuhan',
+          related_entity_id: report.id,
+          scheduled_for: new Date().toISOString()
+        });
+      }
+
+      // Check for reports due today (0 days)
+      const dueToday = await LaporanKepatuhanRepository.findPendingDueInDays(0);
+      for (const report of dueToday) {
+        notifications.push({
+          employee_id: report.employee_id,
+          message: `HARI INI TERAKHIR: Laporan Kepatuhan "${report.nama_laporan}" jatuh tempo hari ini!`,
+          type: 'warning',
+          delivery_channel: 'in_app',
+          related_entity: 'laporan_kepatuhan',
+          related_entity_id: report.id,
+          scheduled_for: new Date().toISOString()
+        });
+      }
+
+      // Check for overdue reports
+      const overdue = await LaporanKepatuhanRepository.findOverduePending();
+      for (const report of overdue) {
+        notifications.push({
+          employee_id: report.employee_id,
+          message: `TERLAMBAT: Laporan Kepatuhan "${report.nama_laporan}" telah melewati batas akhir (${report.batas_akhir}). Mohon segera selesaikan!`,
+          type: 'error',
+          delivery_channel: 'in_app',
+          related_entity: 'laporan_kepatuhan',
+          related_entity_id: report.id,
+          scheduled_for: new Date().toISOString()
+        });
+      }
+
+      for (const notification of notifications) {
+        if (notification.employee_id) {
+          await NotifikasiRepository.create(notification as any);
+        }
+      }
+
+      return {
+        success: true,
+        message: `Sent ${notifications.length} compliance report reminders`,
+        notificationsSent: notifications.length
+      };
+    } catch (error: any) {
+      throw new AppError(`Error sending compliance report reminders: ${error.message}`, 500);
+    }
+  }
+
   // Main method to send all automated reminders
   static async sendAllAutomatedReminders() {
     try {
@@ -240,7 +318,8 @@ class PengingatOtomatisService {
         PengingatOtomatisService.sendLeaveApprovalNotifications(),
         PengingatOtomatisService.sendPayrollReleaseNotifications(),
         PengingatOtomatisService.sendPerformanceReviewReminders(),
-        PengingatOtomatisService.sendBirthdayReminders()
+        PengingatOtomatisService.sendBirthdayReminders(),
+        PengingatOtomatisService.sendLaporanKepatuhanReminders()
       ]);
       
       const successful = results.filter(result => result.status === 'fulfilled');

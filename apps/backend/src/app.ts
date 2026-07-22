@@ -41,6 +41,7 @@ app.use('/api', routes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 app.use('/documents', express.static(path.join(__dirname, '..', 'public', 'documents')));
 app.use('/logos', express.static(path.join(__dirname, '..', 'public', 'logos')));
+app.use('/avatars', express.static(path.join(__dirname, '..', 'public', 'uploads', 'avatars')));
 
 // Serve React Frontend (Static files from build)
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -51,6 +52,7 @@ app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') ||
         req.path.startsWith('/uploads') ||
         req.path.startsWith('/documents') ||
+        req.path.startsWith('/avatars') ||
         req.path.startsWith('/logos')) {
         return next();
     }

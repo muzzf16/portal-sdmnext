@@ -31,6 +31,7 @@ import performanceCycleRoutes from '../modules/performance-management/orchestrat
 import kreditBerkasRoutes from '../modules/kredit-berkas/kredit-berkas.routes';
 import arsipDokumenRoutes from '../modules/arsip-dokumen/arsip-dokumen.routes';
 import holidaysRoutes from '../modules/holidays/holidays.routes';
+import laporanKepatuhanRoutes from '../modules/laporan-kepatuhan/laporan-kepatuhan.routes';
 
 const router = Router();
 
@@ -65,5 +66,6 @@ router.use('/performance-cycle', performanceCycleRoutes);
 router.use('/kredit-berkas', kreditBerkasRoutes);
 router.use('/arsip-dokumen', arsipDokumenRoutes);
 router.use('/holidays', holidaysRoutes);
+router.use('/laporan-kepatuhan', laporanKepatuhanRoutes);
 router.use('/', uploadRoutes);
 export default router;

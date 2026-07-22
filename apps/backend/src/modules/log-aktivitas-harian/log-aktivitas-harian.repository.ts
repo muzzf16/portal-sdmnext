@@ -159,11 +159,11 @@ export default class LogAktivitasHarianRepository {
         return { id_log, status_approval: status };
     }
 
-    static async updateFrekuensi(id_log: number, frekuensi: number) {
+    static async updateFrekuensi(id_log: number, frekuensi: number, total_durasi_terhitung: number) {
         const db = await openDb();
         await db.run(
-            `UPDATE log_aktivitas_harian SET frekuensi = ?, updated_at = CURRENT_TIMESTAMP WHERE id_log = ?`,
-            frekuensi, id_log
+            `UPDATE log_aktivitas_harian SET frekuensi = ?, total_durasi_terhitung = ?, updated_at = CURRENT_TIMESTAMP WHERE id_log = ?`,
+            frekuensi, total_durasi_terhitung, id_log
         );
         const row = await db.get(`SELECT * FROM log_aktivitas_harian WHERE id_log = ?`, id_log) as LogAktivitasHarianItem | undefined;
         if (!row) throw new Error(`Log with id_log ${id_log} not found`);

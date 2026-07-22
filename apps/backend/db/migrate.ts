@@ -1,4 +1,3 @@
-// apps/backend/db/migrate.ts
 import { openDb } from '../src/config/db';
 import fs from 'fs';
 import path from 'path';
@@ -17,9 +16,12 @@ export const runMigrations = async () => {
           await db.exec(sql);
           console.log(`Migration ${file} executed successfully.`);
         } catch (execErr: any) {
-          console.error(`Error running migration ${file}:`, execErr.message);
-          // bubble up so callers can decide to exit if desired
-          throw execErr;
+          if (execErr.message.includes('duplicate column name') || execErr.message.includes('already exists')) {
+            console.log(`Migration ${file} partially executed (ignored duplicate column/table).`);
+          } else {
+            console.error(`Error running migration ${file}:`, execErr.message);
+            throw execErr;
+          }
         }
       }
     }

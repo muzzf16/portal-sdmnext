@@ -68,6 +68,8 @@ const HalamanOrientasi = lazy(() => import('../features/orientasi/pages/HalamanO
 
 // Reports
 const HalamanLaporan = lazy(() => import('../features/09-laporan/pages/HalamanLaporan'));
+const ManajemenPelaporanPage = lazy(() => import('../features/12-laporan-kepatuhan/pages/ManajemenPelaporanPage'));
+const MonitoringLaporanContent = lazy(() => import('../features/12-laporan-kepatuhan/pages/MonitoringLaporanPage'));
 
 // Notifications
 const HalamanNotifikasi = lazy(() => import('../features/10-notifikasi/pages/HalamanNotifikasi'));
@@ -295,6 +297,20 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanLaporan />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="manajemen-pelaporan" element={
+          <PrivateRoute allowedRoles={['admin', 'supervisor']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <ManajemenPelaporanPage />
+            </Suspense>
+          </PrivateRoute>
+        } />
+        <Route path="monitoring-laporan" element={
+          <PrivateRoute allowedRoles={['admin', 'employee', 'supervisor']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <MonitoringLaporanContent />
             </Suspense>
           </PrivateRoute>
         } />
