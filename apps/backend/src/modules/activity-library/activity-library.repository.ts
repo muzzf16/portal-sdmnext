@@ -11,7 +11,7 @@ export const ActivityLibraryRepository = {
         const db = await openDb();
         let query = 'SELECT * FROM activity_library';
         const params: Array<string | number> = [];
-        const conditions: string[] = [];
+        const conditions: string[] = ['IFNULL(is_active, 1) = 1'];
 
         if (filters?.position) {
             conditions.push('(LOWER(position) = LOWER(?) OR LOWER(position) = \'semua jabatan\')');
@@ -37,9 +37,18 @@ export const ActivityLibraryRepository = {
     async findByPosition(position: string): Promise<ActivityLibraryItem[]> {
         const db = await openDb();
         return db.all(
-            'SELECT * FROM activity_library WHERE LOWER(position) = LOWER(?) OR LOWER(position) = \'semua jabatan\' ORDER BY activityName ASC',
+            'SELECT * FROM activity_library WHERE (LOWER(position) = LOWER(?) OR LOWER(position) = \'semua jabatan\') AND IFNULL(is_active, 1) = 1 ORDER BY activityName ASC',
             position
         );
+    },
+
+    async findExact(position: string, activityName: string): Promise<ActivityLibraryItem | null> {
+        const db = await openDb();
+        const row = await db.get<ActivityLibraryItem>(
+            'SELECT * FROM activity_library WHERE LOWER(position) = LOWER(?) AND LOWER(activityName) = LOWER(?) AND IFNULL(is_active, 1) = 1',
+            position, activityName
+        );
+        return row || null;
     },
 
     async findById(id: string): Promise<ActivityLibraryItem | null> {
@@ -50,7 +59,7 @@ export const ActivityLibraryRepository = {
 
     async getPositions(): Promise<string[]> {
         const db = await openDb();
-        const rows = await db.all('SELECT DISTINCT position FROM activity_library ORDER BY position ASC') as Array<{ position: string }>;
+        const rows = await db.all('SELECT DISTINCT position FROM activity_library WHERE IFNULL(is_active, 1) = 1 ORDER BY position ASC') as Array<{ position: string }>;
         return rows.map((row) => row.position);
     },
 
@@ -83,6 +92,12 @@ export const ActivityLibraryRepository = {
     async delete(id: string) {
         const db = await openDb();
         const result = await db.run('DELETE FROM activity_library WHERE id = ?', id);
+        return !!(result.changes && result.changes > 0);
+    },
+
+    async softDelete(id: string) {
+        const db = await openDb();
+        const result = await db.run('UPDATE activity_library SET is_active = 0 WHERE id = ?', id);
         return !!(result.changes && result.changes > 0);
     }
 };

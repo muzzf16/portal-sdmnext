@@ -20,6 +20,8 @@ const mockPegawai = [
     position: 'Software Engineer',
     department: 'IT',
     joinDate: '2023-01-01',
+    tanggalCalonPegawai: '2023-01-01',
+    tanggalKenaikanPangkatTerakhir: '2024-01-01',
   },
   {
     id: 2,
@@ -29,6 +31,8 @@ const mockPegawai = [
     position: 'Product Manager',
     department: 'Product',
     joinDate: '2023-02-01',
+    tanggalCalonPegawai: '2023-02-01',
+    tanggalKenaikanPangkatTerakhir: '2024-02-01',
   },
 ];
 

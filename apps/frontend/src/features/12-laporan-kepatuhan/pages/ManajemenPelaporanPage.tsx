@@ -20,6 +20,8 @@ export const ManajemenPelaporanPage: React.FC = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [formData, setFormData] = useState<CreateLaporanKepatuhanPayload>({
     nama_laporan: '',
     ketentuan: '',
@@ -30,11 +32,18 @@ export const ManajemenPelaporanPage: React.FC = () => {
     employee_id: '',
   });
 
+  const filteredLaporan = laporan.filter(l => {
+    let match = true;
+    if (filterStartDate) match = match && l.batas_akhir >= filterStartDate;
+    if (filterEndDate) match = match && l.batas_akhir <= filterEndDate;
+    return match;
+  });
+
   const summary = {
-    total: laporan.length,
-    completed: laporan.filter(l => l.status === 'completed').length,
-    pending: laporan.filter(l => l.status === 'pending').length,
-    overdue: laporan.filter(l => l.status === 'pending' && new Date(l.batas_akhir) < new Date()).length
+    total: filteredLaporan.length,
+    completed: filteredLaporan.filter(l => l.status === 'completed').length,
+    pending: filteredLaporan.filter(l => l.status === 'pending').length,
+    overdue: filteredLaporan.filter(l => l.status === 'pending' && new Date(l.batas_akhir) < new Date()).length
   };
 
   const handleOpenModal = (item?: LaporanKepatuhanItem) => {
@@ -130,7 +139,19 @@ export const ManajemenPelaporanPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-neutral-200 mb-6 flex flex-wrap gap-4 items-end">
+        <div>
+           <label className="block text-sm font-medium text-neutral-700 mb-1">Mulai Batas Akhir</label>
+           <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+        <div>
+           <label className="block text-sm font-medium text-neutral-700 mb-1">Sampai Batas Akhir</label>
+           <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+        <Button variant="outline" onClick={() => { setFilterStartDate(''); setFilterEndDate(''); }}>Reset</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card className="p-4 border-l-4 border-l-indigo-500">
           <p className="text-sm text-neutral-500 font-medium">Total Laporan</p>
           <p className="text-2xl font-bold text-neutral-900 mt-1">{summary.total}</p>
@@ -149,7 +170,7 @@ export const ManajemenPelaporanPage: React.FC = () => {
         </Card>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-neutral-200">
             <thead className="bg-neutral-50">
@@ -157,22 +178,24 @@ export const ManajemenPelaporanPage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Laporan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Periode</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Batas Akhir</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">PIC / Bagian</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">PIC</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Supervisor(penanggung jawab)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Bukti Kirim</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-neutral-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-neutral-500">Memuat data...</td>
+                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-neutral-500">Memuat data...</td>
                 </tr>
-              ) : laporan.length === 0 ? (
+              ) : filteredLaporan.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-neutral-500">Belum ada data laporan</td>
+                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-neutral-500">Belum ada data laporan</td>
                 </tr>
               ) : (
-                laporan.map((item) => (
+                filteredLaporan.map((item) => (
                   <tr key={item.id} className="hover:bg-neutral-50">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-neutral-900 flex items-center gap-2">
@@ -190,10 +213,8 @@ export const ManajemenPelaporanPage: React.FC = () => {
                         {new Date(item.batas_akhir).toLocaleDateString('id-ID')}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-neutral-900">{item.employee_name || '-'}</div>
-                      <div className="text-xs text-neutral-500">{item.bagian || '-'}</div>
-                    </td>
+                    <td className="px-6 py-4 text-sm text-neutral-900">{item.employee_name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-neutral-900">{item.supervisor_name || item.bagian || '-'}</td>
                     <td className="px-6 py-4">
                       {item.status === 'completed' ? (
                         <Badge variant="success"><CheckCircle className="w-3 h-3 mr-1" /> Selesai</Badge>
@@ -202,6 +223,11 @@ export const ManajemenPelaporanPage: React.FC = () => {
                       ) : (
                         <Badge variant="warning"><Clock className="w-3 h-3 mr-1" /> Pending</Badge>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-neutral-500">
+                      {item.lampiran ? (
+                        <a href={`https://sdm.bprbaperabatang.com/documents/${item.lampiran.split('/').pop()}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-900 underline">Lihat Bukti</a>
+                      ) : '-'}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
                       <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-3">
@@ -274,13 +300,17 @@ export const ManajemenPelaporanPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">Bagian/Unit</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Supervisor(penanggung jawab)</label>
+                  <select
                     className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={formData.bagian}
+                    value={formData.bagian || ''}
                     onChange={e => setFormData({...formData, bagian: e.target.value})}
-                  />
+                  >
+                    <option value="">-- Pilih Supervisor --</option>
+                    {pegawai.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.position})</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-neutral-700 mb-1">Ketentuan Dasar</label>

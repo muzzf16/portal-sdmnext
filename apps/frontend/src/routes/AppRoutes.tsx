@@ -287,7 +287,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } />
         <Route path="pelatihan" element={
-          <PrivateRoute allowedRoles={['admin']}>
+          <PrivateRoute allowedRoles={['admin', 'supervisor']}>
             <Suspense fallback={<LoadingSpinner />}>
               <HalamanPelatihan />
             </Suspense>

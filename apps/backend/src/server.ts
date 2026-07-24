@@ -13,6 +13,7 @@ const runMigrations = async () => {
     { table: 'pegawai', column: 'tanggalKenaikanPangkatTerakhir', type: 'TEXT' },
     { table: 'pegawai', column: 'tanggalKenaikanPangkatSelanjutnya', type: 'TEXT' },
     { table: 'pegawai', column: 'tanggalKenaikanGajiBerkala', type: 'TEXT' },
+    { table: 'pelatihan', column: 'surat_jalan', type: 'TEXT' },
   ];
 
   for (const m of migrations) {

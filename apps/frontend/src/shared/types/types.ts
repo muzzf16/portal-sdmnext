@@ -127,6 +127,14 @@ export interface Pelatihan {
   tanggal_mulai: string;
   tanggal_selesai: string;
   nomor_sertifikat?: string;
+  surat_jalan?: string;
+  sppd?: string;
+  surat_penawaran?: string;
+  nama_peserta?: string;
+  employeeId?: string;
+  trainingName?: string;
+  organizer?: string;
+  employee_name?: string;
   durasi?: string;
   deskripsi?: string;
 }

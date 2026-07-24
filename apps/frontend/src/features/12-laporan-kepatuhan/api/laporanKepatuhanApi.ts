@@ -28,7 +28,22 @@ export const createLaporan = async (payload: CreateLaporanKepatuhanPayload) => {
 };
 
 export const updateLaporan = async (id: number, payload: UpdateLaporanKepatuhanPayload) => {
-  const response = await api.put<LaporanKepatuhanItem>(`${API_BASE}/${id}`, payload);
+  let response;
+  
+  if (payload.lampiran instanceof File) {
+    const formData = new FormData();
+    Object.keys(payload).forEach(key => {
+      if (payload[key as keyof typeof payload] !== undefined) {
+        formData.append(key, payload[key as keyof typeof payload] as any);
+      }
+    });
+    response = await api.put<LaporanKepatuhanItem>(`${API_BASE}/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  } else {
+    response = await api.put<LaporanKepatuhanItem>(`${API_BASE}/${id}`, payload);
+  }
+  
   return normalizeResponse<LaporanKepatuhanItem>(response.data);
 };
 

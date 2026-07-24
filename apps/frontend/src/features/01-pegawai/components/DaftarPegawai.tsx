@@ -5,6 +5,48 @@ import FormEditPegawai from './FormEditPegawai';
 import { Eye, Edit3, Trash2, Search, Filter, User, ChevronDown } from 'lucide-react';
 import { Table, Button, Badge } from '@/shared/components/ui';
 
+const calculateMasaKerja = (tanggalCalonPegawai?: string, joinDate?: string) => {
+  const dateStr = tanggalCalonPegawai || joinDate;
+  if (!dateStr) return '-';
+  const start = new Date(dateStr);
+  if (isNaN(start.getTime())) return '-';
+
+  const now = new Date();
+  let years = now.getFullYear() - start.getFullYear();
+  let months = now.getMonth() - start.getMonth();
+
+  if (now.getDate() < start.getDate()) {
+    months--;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  if (years < 0) return '-';
+
+  if (years > 0 && months > 0) {
+    return `${years} Tahun ${months} Bulan`;
+  } else if (years > 0) {
+    return `${years} Tahun`;
+  } else if (months > 0) {
+    return `${months} Bulan`;
+  } else {
+    return '0 Bulan';
+  }
+};
+
+const formatTanggalKenaikanPangkat = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
 const DaftarPegawai: React.FC = () => {
   const { data: pegawai, isLoading: loading, error, refetch: fetchPegawai } = usePegawaiList();
   const deleteMutation = useDeletePegawai();
@@ -91,7 +133,7 @@ const DaftarPegawai: React.FC = () => {
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
-  const tableHeaders = ['No', 'Foto', 'Nama', 'NIP', 'Jabatan', 'Departemen', 'Atasan', 'Status', 'Riwayat Jabatan', 'Aksi'];
+  const tableHeaders = ['No', 'Foto', 'Nama', 'NIP', 'Jabatan', 'Masa Kerja', 'Kenaikan Pangkat Terakhir', 'Status', 'Riwayat Jabatan', 'Aksi'];
 
   return (
     <div className="mt-6">
@@ -218,10 +260,12 @@ const DaftarPegawai: React.FC = () => {
                   <span className="text-xs text-gray-500 dark:text-gray-400">Level {(p as any).jabatanLevel}</span>
                 )}
               </td>
-              <td className="py-4 px-6">{(p as any).jabatanDepartment || p.department || '-'}</td>
+              <td className="py-4 px-6">{calculateMasaKerja(p.tanggalCalonPegawai, p.joinDate)}</td>
               <td className="py-4 px-6">
-                {(p as any).atasanNama ? (
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{(p as any).atasanNama}</span>
+                {p.tanggalKenaikanPangkatTerakhir ? (
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {formatTanggalKenaikanPangkat(p.tanggalKenaikanPangkatTerakhir)}
+                  </span>
                 ) : (
                   <span className="text-xs text-gray-400">-</span>
                 )}

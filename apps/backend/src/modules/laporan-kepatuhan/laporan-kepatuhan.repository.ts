@@ -23,9 +23,10 @@ export const LaporanKepatuhanRepository = {
     async findById(id: number): Promise<LaporanKepatuhanItem | null> {
         const db = await openDb();
         const row = await db.get(`
-            SELECT l.*, p.name as employee_name
+            SELECT l.*, p.name as employee_name, s.name as supervisor_name
             FROM laporan_kepatuhan l
             LEFT JOIN pegawai p ON l.employee_id = p.id
+            LEFT JOIN pegawai s ON l.bagian = CAST(s.id AS TEXT)
             WHERE l.id = ?
         `, id);
         return (row as LaporanKepatuhanItem) || null;
@@ -34,9 +35,10 @@ export const LaporanKepatuhanRepository = {
     async findAll(status?: LaporanStatus, employee_id?: string): Promise<LaporanKepatuhanItem[]> {
         const db = await openDb();
         let query = `
-            SELECT l.*, p.name as employee_name
+            SELECT l.*, p.name as employee_name, s.name as supervisor_name
             FROM laporan_kepatuhan l
             LEFT JOIN pegawai p ON l.employee_id = p.id
+            LEFT JOIN pegawai s ON l.bagian = CAST(s.id AS TEXT)
         `;
         const params: any[] = [];
         const conditions: string[] = [];
@@ -63,9 +65,10 @@ export const LaporanKepatuhanRepository = {
     async findByEmployeeId(employee_id: string, status?: LaporanStatus): Promise<LaporanKepatuhanItem[]> {
         const db = await openDb();
         let query = `
-            SELECT l.*, p.name as employee_name
+            SELECT l.*, p.name as employee_name, s.name as supervisor_name
             FROM laporan_kepatuhan l
             LEFT JOIN pegawai p ON l.employee_id = p.id
+            LEFT JOIN pegawai s ON l.bagian = CAST(s.id AS TEXT)
             WHERE l.employee_id = ?
         `;
         const params: any[] = [employee_id];

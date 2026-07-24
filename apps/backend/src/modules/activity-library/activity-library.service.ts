@@ -116,9 +116,13 @@ export default class ActivityLibraryService {
                 let firstCreated: ActivityLibraryItem | null = null;
 
                 for (const jabatan of allJabatan) {
+                    const jabatanName = normalizeText(jabatan.nama);
+                    const existing = await ActivityLibraryRepository.findExact(jabatanName, payload.activityName);
+                    if (existing) continue;
+
                     const created = await ActivityLibraryRepository.create({
                         ...payload,
-                        position: normalizeText(jabatan.nama),
+                        position: jabatanName,
                         department: normalizeOptionalText(jabatan.department),
                         id: undefined,
                     });
@@ -129,10 +133,15 @@ export default class ActivityLibraryService {
                 }
 
                 if (!firstCreated) {
-                    throw new AppError('Failed to create activities for all positions', 500);
+                    throw new AppError('Gagal membuat aktivitas untuk semua jabatan (mungkin karena aktivitas sudah ada di semua jabatan).', 400);
                 }
 
                 return firstCreated;
+            }
+
+            const existing = await ActivityLibraryRepository.findExact(payload.position, payload.activityName);
+            if (existing) {
+                throw new AppError(`Aktivitas dengan nama "${payload.activityName}" sudah ada untuk jabatan ini.`, 400);
             }
 
             const created = await ActivityLibraryRepository.create(payload);
@@ -183,7 +192,8 @@ export default class ActivityLibraryService {
             if (error instanceof AppError) throw error;
             const message = error instanceof Error ? error.message : 'Unknown error';
             if (message.includes('SQLITE_CONSTRAINT')) {
-                throw new AppError('Tidak dapat menghapus aktivitas karena sudah digunakan oleh log pegawai / beban kerja.', 400);
+                await ActivityLibraryRepository.softDelete(existing.id);
+                return { message: 'Aktivitas sedang digunakan oleh log WLA. Aktivitas telah dinonaktifkan (disembunyikan) agar tidak bisa dipilih lagi.' };
             }
             throw new AppError(`Error deleting activity: ${message}`, 500);
         }

@@ -24,7 +24,7 @@ import {
     useUpdateKpiActualMutation,
     invalidateKpiQueries
 } from '../hooks/usePerformanceManagementQuery';
-import { useAllLaporan } from '../../12-laporan-kepatuhan/hooks/useLaporanKepatuhan';
+import { useAllLaporan, useUpdateLaporan } from '../../12-laporan-kepatuhan/hooks/useLaporanKepatuhan';
 import { LaporanKepatuhanItem } from '../../12-laporan-kepatuhan/types';
 import { KreditBerkasModal } from '../components/KreditBerkasModal';
 import { KreditBerkasPending } from '../components/KreditBerkasPending';
@@ -178,6 +178,12 @@ const LogAktivitasWlaPage: React.FC = () => {
     const [showKreditModal, setShowKreditModal] = useState(false);
     const [kreditModalMode, setKreditModalMode] = useState<'create' | 'process'>('create');
     const [selectedKredit, setSelectedKredit] = useState<KreditBerkas | undefined>(undefined);
+
+    // Laporan Modal state
+    const [openLaporanModal, setOpenLaporanModal] = useState(false);
+    const [activeLaporan, setActiveLaporan] = useState<LaporanKepatuhanItem | null>(null);
+    const [laporanModalForm, setLaporanModalForm] = useState<{ keterangan: string; lampiran: File | null }>({ keterangan: '', lampiran: null });
+    const updateLaporanMutation = useUpdateLaporan();
     const [myKreditToday, setMyKreditToday] = useState<KreditBerkas[]>([]);
     const [loadingKredit, setLoadingKredit] = useState(false);
     const [kreditModalTitle, setKreditModalTitle] = useState('');
@@ -366,7 +372,31 @@ const LogAktivitasWlaPage: React.FC = () => {
             
         } catch (err: any) {
             console.error("Save error:", err);
-            addToast(err.response?.data?.message || 'Gagal menyimpan data.', "error");
+            addToast(err.response?.data?.message || 'Gagal menyimpan tugas', 'error');
+        } finally {
+            setSubmitting(false);
+            setOpenTaskModal(false);
+        }
+    };
+
+    const handleSelesaikanLaporan = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeLaporan) return;
+
+        setSubmitting(true);
+        try {
+            await updateLaporanMutation.mutateAsync({
+                id: activeLaporan.id,
+                data: {
+                    status: 'completed',
+                    keterangan: laporanModalForm.keterangan,
+                    lampiran: laporanModalForm.lampiran
+                }
+            });
+            setOpenLaporanModal(false);
+            laporanQuery.refetch();
+        } catch (err: any) {
+            // Error handling handled by hook
         } finally {
             setSubmitting(false);
         }
@@ -588,10 +618,7 @@ const LogAktivitasWlaPage: React.FC = () => {
                                                                     <Button 
                                                                         size="sm" 
                                                                         className="bg-orange-600 hover:bg-orange-700 shadow-sm"
-                                                                        onClick={() => {
-                                                                            // Since it's on another tab, we can open in new tab or tell them to switch tab
-                                                                            addToast('Silakan buka tab Monitoring Laporan untuk menyelesaikan.', 'info');
-                                                                        }}
+                                                                        onClick={() => { setActiveLaporan(laporan); setLaporanModalForm({ keterangan: '', lampiran: null }); setOpenLaporanModal(true); }}
                                                                     >
                                                                         Lihat & Selesaikan
                                                                     </Button>
@@ -1151,6 +1178,56 @@ const LogAktivitasWlaPage: React.FC = () => {
                                 <Button type="button" variant="outline" onClick={() => setOpenTaskModal(false)}>Batal</Button>
                                 <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white" disabled={submitting}>
                                     {submitting ? 'Menyimpan...' : 'Simpan & Selesaikan'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* LAPORAN MODAL */}
+            {openLaporanModal && activeLaporan && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-gray-900">Penyelesaian Laporan</h3>
+                            <button onClick={() => setOpenLaporanModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSelesaikanLaporan}>
+                            <div className="p-6 space-y-4">
+                                <div className="bg-orange-50 border border-orange-100 p-3 rounded-md mb-4">
+                                    <p className="text-sm font-semibold text-orange-900">{activeLaporan.nama_laporan}</p>
+                                    <p className="text-xs text-orange-700 mt-1">Batas Waktu: {new Date(activeLaporan.batas_akhir).toLocaleDateString('id-ID')}</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Catatan / Bukti Realisasi</label>
+                                    <textarea
+                                        className="w-full border-gray-300 rounded-md shadow-sm p-2 text-sm border focus:ring-orange-500 focus:border-orange-500"
+                                        rows={3}
+                                        required
+                                        placeholder="Isikan bukti penyerahan/nomor surat laporan..."
+                                        value={laporanModalForm.keterangan}
+                                        onChange={e => setLaporanModalForm(prev => ({ ...prev, keterangan: e.target.value }))}
+                                    />
+                                    <p className="text-[10px] text-gray-500 mt-1">Isi catatan sebagai bukti bahwa laporan telah ditunaikan.</p>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti File (Opsional)</label>
+                                    <input 
+                                        type="file" 
+                                        onChange={(e) => setLaporanModalForm(prev => ({ ...prev, lampiran: e.target.files ? e.target.files[0] : null }))}
+                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 border border-gray-300 p-1 rounded-md"
+                                    />
+                                </div>
+                            </div>
+                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 rounded-b-xl">
+                                <Button type="button" variant="outline" onClick={() => setOpenLaporanModal(false)}>Batal</Button>
+                                <Button type="submit" className="bg-orange-600 hover:bg-orange-700 text-white" disabled={submitting}>
+                                    {submitting ? 'Menyimpan...' : 'Selesaikan Tugas'}
                                 </Button>
                             </div>
                         </form>

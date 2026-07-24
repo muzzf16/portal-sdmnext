@@ -10,10 +10,13 @@ export interface LaporanKepatuhanItem {
   bagian?: string;
   employee_id?: number | string;
   status: LaporanStatus;
+  keterangan?: string;
+  lampiran?: string;
   created_at?: string;
   updated_at?: string;
   // Included from join
   employee_name?: string;
+  supervisor_name?: string;
 }
 
 export interface CreateLaporanKepatuhanPayload {
@@ -25,6 +28,9 @@ export interface CreateLaporanKepatuhanPayload {
   bagian?: string;
   employee_id?: number | string;
   status?: LaporanStatus;
+  keterangan?: string;
 }
 
-export interface UpdateLaporanKepatuhanPayload extends Partial<CreateLaporanKepatuhanPayload> {}
+export interface UpdateLaporanKepatuhanPayload extends Partial<CreateLaporanKepatuhanPayload> {
+  lampiran?: File | string | null;
+}

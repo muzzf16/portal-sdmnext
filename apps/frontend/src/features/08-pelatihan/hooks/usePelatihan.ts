@@ -25,12 +25,17 @@ export const usePelatihan = () => {
       // Map the response to use English field names expected in this module
       const mappedData = (response.data || []).map((item: any) => ({
         id: Number(item.id),
-        pegawai_id: String(item.pegawai_id || item.employeeId),
-        nama_pelatihan: item.nama_pelatihan || item.trainingName,
-        penyelenggara: item.penyelenggara || item.organizer,
-        tanggal_mulai: item.tanggal_mulai || item.startDate,
-        tanggal_selesai: item.tanggal_selesai || item.endDate,
-        nomor_sertifikat: item.nomor_sertifikat || item.certificate,
+        pegawai_id: String(item.pegawai_id || item.employeeId || ''),
+        nama_pelatihan: item.nama_pelatihan || item.trainingName || '',
+        penyelenggara: item.penyelenggara || item.organizer || '',
+        tanggal_mulai: item.tanggal_mulai || item.startDate || '',
+        tanggal_selesai: item.tanggal_selesai || item.endDate || '',
+        nomor_sertifikat: item.nomor_sertifikat || item.certificate || '',
+        surat_jalan: item.surat_jalan || item.suratJalan || item.sppd || '',
+        sppd: item.sppd || item.surat_jalan || item.suratJalan || '',
+        surat_penawaran: item.surat_penawaran || item.suratPenawaran || '',
+        nama_peserta: item.nama_peserta || item.namaPeserta || item.employee_name || '',
+        employee_name: item.employee_name || item.namaPeserta || item.nama_peserta || '',
       } as Pelatihan));
       setPelatihan(mappedData);
     } catch (err) {

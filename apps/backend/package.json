@@ -28,7 +28,8 @@
     "pdfkit": "^0.17.2",
     "react-hook-form": "^7.65.0",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
