@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useCuti } from '../hooks/useCuti';
-import { normalizeLeaveStatusLabel, useUpdateLeaveRequestStatus } from '../hooks/useLeaveQuery';
+import { normalizeLeaveStatusLabel, useUpdateLeaveRequestStatus, useDeleteLeaveRequest } from '../hooks/useLeaveQuery';
 import { Table, Badge, Button, Modal } from '@/shared/components/ui';
 import { useToast } from '@/app/providers/ToastContext';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Edit2, Trash2 } from 'lucide-react';
 import type { Cuti } from '../types';
 
 type ActionType = 'disetujui' | 'ditolak';
@@ -13,9 +13,14 @@ interface PendingAction {
   action: ActionType;
 }
 
-const DaftarCuti: React.FC = () => {
+interface DaftarCutiProps {
+  onEdit?: (item: Cuti) => void;
+}
+
+const DaftarCuti: React.FC<DaftarCutiProps> = ({ onEdit }) => {
   const { cuti, loading, error } = useCuti();
   const updateStatusMutation = useUpdateLeaveRequestStatus();
+  const deleteMutation = useDeleteLeaveRequest();
   const { addToast } = useToast();
 
   // Filter & search state
@@ -77,6 +82,18 @@ const DaftarCuti: React.FC = () => {
     }
   };
 
+  const handleDelete = async (item: Cuti) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data permohonan cuti atas nama ${item.employeeName}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+        addToast(`Permohonan cuti ${item.employeeName} berhasil dihapus`, 'success');
+      } catch (err) {
+        console.error('Gagal menghapus permohonan cuti', err);
+        addToast('Gagal menghapus permohonan cuti', 'error');
+      }
+    }
+  };
+
   if (loading) return <div className="text-center py-4">Memuat...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
 
@@ -84,6 +101,9 @@ const DaftarCuti: React.FC = () => {
 
   return (
     <div className="mt-6">
+      {/* Header Title */}
+      <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Daftar Pegawai yang Cuti</h2>
+
       {/* Toolbar: Search + Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <div className="relative flex-1">
@@ -135,31 +155,45 @@ const DaftarCuti: React.FC = () => {
                   </Badge>
                 </td>
                 <td className="py-4 px-6">
-                  {statusMeta.value === 'menunggu' && (
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="success"
-                        size="sm"
-                        disabled={updateStatusMutation.isPending}
-                        onClick={() => openConfirmModal(l, 'disetujui')}
+                  <div className="flex items-center gap-2">
+                    {statusMeta.value === 'menunggu' && (
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="success"
+                          size="sm"
+                          disabled={updateStatusMutation.isPending}
+                          onClick={() => openConfirmModal(l, 'disetujui')}
+                        >
+                          Setujui
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={updateStatusMutation.isPending}
+                          onClick={() => openConfirmModal(l, 'ditolak')}
+                        >
+                          Tolak
+                        </Button>
+                      </div>
+                    )}
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(l)}
+                        className="p-1.5 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 hover:bg-indigo-50 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                        title="Edit Cuti"
                       >
-                        Setujui
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        disabled={updateStatusMutation.isPending}
-                        onClick={() => openConfirmModal(l, 'ditolak')}
-                      >
-                        Tolak
-                      </Button>
-                    </div>
-                  )}
-                  {statusMeta.value === 'ditolak' && l.rejectionReason && (
-                    <span className="text-xs text-gray-500 italic" title={l.rejectionReason}>
-                      Alasan: {l.rejectionReason.length > 30 ? l.rejectionReason.slice(0, 30) + '...' : l.rejectionReason}
-                    </span>
-                  )}
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(l)}
+                      disabled={deleteMutation.isPending}
+                      className="p-1.5 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 hover:bg-red-50 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                      title="Hapus Cuti"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             );

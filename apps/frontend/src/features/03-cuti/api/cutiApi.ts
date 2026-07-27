@@ -21,6 +21,9 @@ export const getCutiBersama = () =>
 export const ajukanPermintaanCuti = (cutiData: FormData) =>
   api.post<Cuti>('/leave-requests', cutiData);
 
+export const perbaruiPermintaanCuti = (id: string, cutiData: FormData) =>
+  api.put<Cuti>(`/leave-requests/${id}`, cutiData);
+
 export const perbaruiStatusPermintaanCuti = (id: string, status: LeaveStatus, rejectionReason?: string) =>
   api.put<Cuti>(`/leave-requests/${id}/status`, { status, rejectionReason });
 

@@ -77,3 +77,19 @@ export const isAnnualLeaveType = (leaveType?: string | null) => {
   const normalized = (leaveType || '').trim().toLowerCase();
   return normalized === 'tahunan' || normalized === 'annual' || normalized === 'cuti tahunan';
 };
+
+export const shouldDeductAnnualLeave = (leaveType?: string | null, supportingDocument?: string | null) => {
+  const normalized = (leaveType || '').trim().toLowerCase();
+
+  // Cuti tahunan selalu memotong jatah cuti
+  if (isAnnualLeaveType(leaveType)) {
+    return true;
+  }
+
+  // Cuti sakit tanpa lampiran dokumen pendukung/SKD memotong jatah cuti tahunan
+  if ((normalized === 'sakit' || normalized === 'sick' || normalized === 'cuti sakit') && !supportingDocument) {
+    return true;
+  }
+
+  return false;
+};

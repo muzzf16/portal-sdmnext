@@ -8,6 +8,7 @@ import {
   LeaveBalanceSummary,
   LeaveRequestFilters,
   isAnnualLeaveType,
+  shouldDeductAnnualLeave,
   normalizeLeaveStatus
 } from './cuti.types';
 
@@ -92,6 +93,18 @@ class CutiService {
     }
   }
 
+  static async updatePermintaanCuti(id: string, requestData: Partial<CreateLeaveRequestInput>) {
+    try {
+      if (requestData.startDate && requestData.endDate) {
+        assertValidDateRange(requestData.startDate, requestData.endDate);
+      }
+      return await PermintaanCutiRepository.update(id, requestData);
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(`Error updating leave request: ${error.message}`, 500);
+    }
+  }
+
   static async updateStatusCuti(id: string, status: string, rejectionReason: string | null) {
     try {
       const nextStatus = normalizeLeaveStatus(status);
@@ -110,7 +123,7 @@ class CutiService {
           db
         );
 
-        if (isAnnualLeaveType(existingRequest.leaveType)) {
+        if (shouldDeductAnnualLeave(existingRequest.leaveType, existingRequest.supportingDocument)) {
           const leaveDays = existingRequest.jumlahHari ?? PermintaanCutiRepository.calculateLeaveDuration(existingRequest.startDate, existingRequest.endDate);
           const employee = await PermintaanCutiRepository.findEmployeeLeaveBalance(existingRequest.employeeId, db);
 
@@ -166,7 +179,9 @@ class CutiService {
   static async getSisaCuti(employeeId: string): Promise<LeaveBalanceSummary> {
     try {
       const approvedLeaves = await PermintaanCutiRepository.findApprovedByEmployeeId(employeeId);
-      const annualApprovedLeaves = approvedLeaves.filter((cutiItem) => isAnnualLeaveType(cutiItem.leaveType));
+      const annualApprovedLeaves = approvedLeaves.filter((cutiItem) =>
+        shouldDeductAnnualLeave(cutiItem.leaveType, cutiItem.supportingDocument)
+      );
 
       const totalCutiDiambil = annualApprovedLeaves.reduce((total, cutiItem) => {
         const leaveDays = cutiItem.jumlahHari ?? PermintaanCutiRepository.calculateLeaveDuration(cutiItem.startDate, cutiItem.endDate);
@@ -179,7 +194,8 @@ class CutiService {
       
       const cutiBersamaData = await HolidaysRepository.findAll();
       const cutiBersamaTahunIni = cutiBersamaData.filter((cutiBersama) =>
-        new Date(cutiBersama.tanggal).getFullYear() === currentYear
+        new Date(cutiBersama.tanggal).getFullYear() === currentYear &&
+        (cutiBersama.deskripsi || '').toLowerCase().includes('cuti bersama')
       ).length;
 
       return {
@@ -201,7 +217,8 @@ class CutiService {
     const currentYear = new Date().getFullYear();
     const cutiBersamaData = await HolidaysRepository.findAll();
     return cutiBersamaData.filter(
-      (cb) => new Date(cb.tanggal).getFullYear() === currentYear
+      (cb) => new Date(cb.tanggal).getFullYear() === currentYear &&
+      (cb.deskripsi || '').toLowerCase().includes('cuti bersama')
     );
   }
 
@@ -213,7 +230,8 @@ class CutiService {
       
       const cutiBersamaData = await HolidaysRepository.findAll();
       const cutiBersamaTahunIni = cutiBersamaData.filter(
-        (cb) => new Date(cb.tanggal).getFullYear() === currentYear
+        (cb) => new Date(cb.tanggal).getFullYear() === currentYear &&
+        (cb.deskripsi || '').toLowerCase().includes('cuti bersama')
       ).length;
       const sumberJatah = companySettings ? 'company_settings' : 'default_uu13_2003';
 
@@ -222,7 +240,7 @@ class CutiService {
 
       return allEmployees.map((emp) => {
         const empLeaves = allApprovedLeaves.filter(
-          (l) => l.employeeId === emp.id && isAnnualLeaveType(l.leaveType)
+          (l) => l.employeeId === emp.id && shouldDeductAnnualLeave(l.leaveType, l.supportingDocument)
         );
         const cutiDiambil = empLeaves.reduce((total, item) => {
           return total + (item.jumlahHari ?? PermintaanCutiRepository.calculateLeaveDuration(item.startDate, item.endDate));

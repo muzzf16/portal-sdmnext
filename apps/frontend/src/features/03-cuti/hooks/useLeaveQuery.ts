@@ -8,6 +8,7 @@ import {
   getPermintaanCutiSaya,
   getSisaCuti,
   hapusPermintaanCuti,
+  perbaruiPermintaanCuti,
   perbaruiStatusPermintaanCuti
 } from '../api/cutiApi';
 import type { Cuti, CutiFilters, LeaveBalanceSummary, LeaveStatus } from '../types';
@@ -112,6 +113,21 @@ export const useSubmitLeaveRequest = () => {
           queryKey: LEAVE_QUERY_KEYS.remainingBalance(employeeId)
         });
       }
+    }
+  });
+};
+
+export const useUpdateLeaveRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: FormData }) => {
+      const response = await perbaruiPermintaanCuti(id, payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: LEAVE_QUERY_KEYS.batchBalance });
     }
   });
 };

@@ -137,6 +137,40 @@ export const PermintaanCutiRepository = {
     return updated;
   },
 
+  async update(id: string, data: Partial<CreateLeaveRequestInput>, db?: LeaveDatabase) {
+    const connection = await resolveDb(db);
+    const existing = await this.findById(id, connection);
+    if (!existing) {
+      throw new Error('Leave request not found');
+    }
+    const leaveType = data.leaveType || existing.leaveType;
+    const startDate = data.startDate || existing.startDate;
+    const endDate = data.endDate || existing.endDate;
+    const reason = data.reason !== undefined ? data.reason : existing.reason;
+    const employeeId = data.employeeId || existing.employeeId;
+    const employeeName = data.employeeName || existing.employeeName;
+    const supportingDocument = data.supportingDocument !== undefined ? data.supportingDocument : existing.supportingDocument;
+    const jumlahHari = calculateLeaveDuration(startDate, endDate);
+
+    await connection.run(
+      `UPDATE permintaan_cuti SET
+        employeeId = ?, employeeName = ?, leaveType = ?, startDate = ?, endDate = ?,
+        jumlahHari = ?, reason = ?, supportingDocument = COALESCE(?, supportingDocument)
+       WHERE id = ?`,
+      employeeId,
+      employeeName,
+      leaveType,
+      startDate,
+      endDate,
+      jumlahHari,
+      reason,
+      supportingDocument,
+      id
+    );
+
+    return this.findById(id, connection);
+  },
+
   async delete(id: string, db?: LeaveDatabase) {
     const connection = await resolveDb(db);
     const result = await connection.run('DELETE FROM permintaan_cuti WHERE id = ?', id);

@@ -46,6 +46,20 @@ class CutiController {
     }
   }
 
+  static async updatePermintaanCuti(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const leaveRequestData = req.body;
+      if (req.file) {
+        leaveRequestData.supportingDocument = `/documents/${req.file.filename}`;
+      }
+      const result = await CutiService.updatePermintaanCuti(id, leaveRequestData);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async updateStatusCuti(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
